@@ -34,9 +34,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // Demo tabs functionality
     initDemoTabs();
 
-    // Animate elements on scroll
-    initScrollAnimations();
-
     // Add active state to nav links on scroll
     initNavActiveState();
 
@@ -146,43 +143,6 @@ function initDemoTabs() {
                 targetPanel.classList.add('active');
             }
         });
-    });
-}
-
-// ===========================
-// Scroll Animations
-// ===========================
-function initScrollAnimations() {
-    const observerOptions = {
-        threshold: 0.1,
-        rootMargin: '0px 0px -100px 0px'
-    };
-
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                entry.target.style.opacity = '1';
-                entry.target.style.transform = 'translateY(0)';
-            }
-        });
-    }, observerOptions);
-
-    // Observe cards and elements
-    const animatedElements = document.querySelectorAll(`
-        .overview-card,
-        .feature-card,
-        .doc-card,
-        .community-card,
-        .step,
-        .layer-card,
-        .pattern-item
-    `);
-
-    animatedElements.forEach((el, index) => {
-        el.style.opacity = '0';
-        el.style.transform = 'translateY(30px)';
-        el.style.transition = `opacity 0.6s ease ${index * 0.1}s, transform 0.6s ease ${index * 0.1}s`;
-        observer.observe(el);
     });
 }
 
