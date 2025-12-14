@@ -150,7 +150,7 @@ flowchart TB
 
 ```bash
 # Clone the repository
-git clone <repository-url>
+git clone https://github.com/hoangsonww/AI-Agents-Orchestrator
 cd AI-Agents-Orchestrator
 
 # Create virtual environment
