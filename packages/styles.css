@@ -417,6 +417,21 @@ body {
     min-height: 300px;
 }
 
+.mermaid svg {
+    max-width: 100%;
+    height: auto;
+}
+
+.mermaid svg .flowchart-link,
+.mermaid svg .edgePath path {
+    stroke: #1f2937;
+    stroke-width: 2.5px;
+}
+
+.mermaid svg marker path {
+    fill: #1f2937;
+}
+
 /* Stats Grid */
 .stats-grid {
     display: grid;

@@ -10,7 +10,8 @@ document.addEventListener('DOMContentLoaded', () => {
             primaryColor: '#667eea',
             primaryTextColor: '#fff',
             primaryBorderColor: '#667eea',
-            lineColor: '#764ba2',
+            lineColor: '#1f2937',
+            arrowheadColor: '#1f2937',
             secondaryColor: '#f093fb',
             tertiaryColor: '#43e97b',
             background: '#ffffff',
@@ -21,7 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
         },
         flowchart: {
             curve: 'basis',
-            padding: 20
+            padding: 20,
+            htmlLabels: true
         }
     });
 
