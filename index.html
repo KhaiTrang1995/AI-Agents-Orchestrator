@@ -251,37 +251,37 @@ graph LR
             <div class="diagram-container">
                 <pre class="mermaid">
 flowchart TB
-    subgraph "User Interfaces"
+    subgraph "User<br/>Interfaces"
         CLI[CLI Shell<br/>Click + Rich]
         WebUI[Web UI<br/>Vue 3 + Socket.IO]
     end
 
-    subgraph "Core Orchestrator"
-        Engine[Orchestration Engine]
-        Workflow[Workflow Manager]
-        Config[Config Manager]
-        Session[Session Manager]
+    subgraph "Core<br/>Orchestrator"
+        Engine[Orchestration<br/>Engine]
+        Workflow[Workflow<br/>Manager]
+        Config[Config<br/>Manager]
+        Session[Session<br/>Manager]
     end
 
-    subgraph "Cross-Cutting Concerns"
-        Metrics[Prometheus Metrics]
-        Cache[Response Cache]
-        Retry[Retry Logic]
-        Security[Security Layer]
+    subgraph "Cross-Cutting<br/>Concerns"
+        Metrics[Prometheus<br/>Metrics]
+        Cache[Response<br/>Cache]
+        Retry[Retry<br/>Logic]
+        Security[Security<br/>Layer]
     end
 
-    subgraph "AI Adapters"
-        Claude[Claude Adapter]
-        Codex[Codex Adapter]
-        Gemini[Gemini Adapter]
-        Copilot[Copilot Adapter]
+    subgraph "AI<br/>Adapters"
+        Claude[Claude<br/>Adapter]
+        Codex[Codex<br/>Adapter]
+        Gemini[Gemini<br/>Adapter]
+        Copilot[Copilot<br/>Adapter]
     end
 
-    subgraph "External AI Tools"
-        ClaudeCLI[Claude Code CLI]
-        CodexCLI[OpenAI Codex CLI]
-        GeminiCLI[Google Gemini CLI]
-        CopilotCLI[GitHub Copilot CLI]
+    subgraph "External AI<br/>Tools"
+        ClaudeCLI[Claude Code<br/>CLI]
+        CodexCLI[OpenAI Codex<br/>CLI]
+        GeminiCLI[Google Gemini<br/>CLI]
+        CopilotCLI[GitHub Copilot<br/>CLI]
     end
 
     CLI --> Engine
@@ -304,8 +304,8 @@ flowchart TB
 
     style CLI fill:#667eea,stroke:#667eea,color:#fff
     style WebUI fill:#667eea,stroke:#667eea,color:#fff
-    style Engine fill:#764ba2,stroke:#764ba2,color:#fff
-    style Workflow fill:#764ba2,stroke:#764ba2,color:#fff
+    style Engine fill:#4facfe,stroke:#4facfe,color:#fff
+    style Workflow fill:#43e97b,stroke:#43e97b,color:#fff
                 </pre>
             </div>
 
