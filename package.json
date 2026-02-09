@@ -1,4 +1,13 @@
 {
+  "name": "todo-app-fullstack-nextjs",
+  "displayName": "Todo App Fullstack Next.js",
+  "author": "Son Nguyen",
+  "license": "MIT",
+  "version": "1.1.0",
+  "private": false,
+  "scripts": {
+    "format": "prettier --write \"**/*.{js,ts,tsx,json,css,html}\""
+  },
   "dependencies": {
     "prettier": "^3.8.1"
   }
