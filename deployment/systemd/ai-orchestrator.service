@@ -1,7 +1,7 @@
 [Unit]
 Description=AI Orchestrator Service
 After=network.target
-Documentation=https://github.com/your-org/ai-orchestrator
+Documentation=https://github.com/hoangsonww/AI-Agents-Orchestrator
 
 [Service]
 Type=simple

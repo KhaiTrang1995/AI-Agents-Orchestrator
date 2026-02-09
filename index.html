@@ -1,98 +1,126 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="AI Coding Tools Orchestrator - Production-ready system for coordinating multiple AI coding assistants">
-    <meta name="keywords" content="AI, coding, orchestrator, Claude, Codex, Gemini, Copilot, collaborative AI">
-    <meta name="author" content="AI Orchestrator Team">
-    <link rel="icon" href="packages/favicon.ico" type="image/x-icon">
-    <title>AI Coding Tools Orchestrator | Multi-Agent Collaboration Platform</title>
-    <link rel="stylesheet" href="packages/styles.css">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="AI Coding Tools Orchestrator - Production-ready system for coordinating multiple AI coding assistants"
+    />
+    <meta
+      name="keywords"
+      content="AI, coding, orchestrator, Claude, Codex, Gemini, Copilot, collaborative AI"
+    />
+    <meta name="author" content="AI Orchestrator Team" />
+    <link rel="icon" href="packages/favicon.ico" type="image/x-icon" />
+    <title>
+      AI Coding Tools Orchestrator | Multi-Agent Collaboration Platform
+    </title>
+    <link rel="stylesheet" href="packages/styles.css" />
     <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
-</head>
-<body>
+  </head>
+  <body>
     <!-- Navigation -->
     <nav class="navbar">
-        <div class="container">
-            <div class="nav-brand">
-                <span class="logo">🤖</span>
-                <span class="brand-name">AI Orchestrator</span>
-            </div>
-            <ul class="nav-menu" id="navMenu">
-                <li><a href="#overview" class="nav-link">Overview</a></li>
-                <li><a href="#features" class="nav-link">Features</a></li>
-                <li><a href="#architecture" class="nav-link">Architecture</a></li>
-                <li><a href="#quick-start" class="nav-link">Quick Start</a></li>
-                <li><a href="#workflows" class="nav-link">Workflows</a></li>
-                <li><a href="#documentation" class="nav-link">Docs</a></li>
-                <li><a href="#community" class="nav-link">Community</a></li>
-            </ul>
-            <button class="hamburger" id="hamburger">
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
+      <div class="container">
+        <div class="nav-brand">
+          <span class="logo">🤖</span>
+          <span class="brand-name">AI Orchestrator</span>
         </div>
-        <!-- Scroll Progress Bar -->
-        <div class="progress-container">
-            <div class="progress-bar" id="progressBar"></div>
-        </div>
+        <ul class="nav-menu" id="navMenu">
+          <li><a href="#overview" class="nav-link">Overview</a></li>
+          <li><a href="#features" class="nav-link">Features</a></li>
+          <li><a href="#architecture" class="nav-link">Architecture</a></li>
+          <li><a href="#quick-start" class="nav-link">Quick Start</a></li>
+          <li><a href="#workflows" class="nav-link">Workflows</a></li>
+          <li><a href="#documentation" class="nav-link">Docs</a></li>
+          <li><a href="#community" class="nav-link">Community</a></li>
+        </ul>
+        <button class="hamburger" id="hamburger">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+      </div>
+      <!-- Scroll Progress Bar -->
+      <div class="progress-container">
+        <div class="progress-bar" id="progressBar"></div>
+      </div>
     </nav>
 
     <!-- Hero Section -->
     <header class="hero">
-        <div class="hero-content">
-            <div class="badge">Production Ready</div>
-            <h1 class="hero-title">AI Coding Tools Orchestrator</h1>
-            <p class="hero-subtitle">
-                Coordinate multiple AI coding assistants to collaborate on complex software development tasks
-            </p>
-            <div class="hero-buttons">
-                <a href="#quick-start" class="btn btn-primary">Get Started</a>
-                <a href="#demo" class="btn btn-secondary">View Demo</a>
-            </div>
-            <div class="tech-badges">
-                <span class="tech-badge">Python 3.8+</span>
-                <span class="tech-badge">Vue 3</span>
-                <span class="tech-badge">Docker Ready</span>
-                <span class="tech-badge">Kubernetes</span>
-                <span class="tech-badge">Prometheus</span>
-            </div>
+      <div class="hero-content">
+        <div class="badge">Production Ready</div>
+        <h1 class="hero-title">AI Coding Tools Orchestrator</h1>
+        <p class="hero-subtitle">
+          Coordinate multiple AI coding assistants to collaborate on complex
+          software development tasks
+        </p>
+        <div class="hero-buttons">
+          <a href="#quick-start" class="btn btn-primary">Get Started</a>
+          <a href="#demo" class="btn btn-secondary">View Demo</a>
+          <a
+            href="https://github.com/hoangsonww/AI-Agents-Orchestrator"
+            class="btn btn-secondary"
+            target="_blank"
+            rel="noopener noreferrer"
+            >GitHub Repo</a
+          >
         </div>
+        <div class="tech-badges">
+          <span class="tech-badge">Python 3.8+</span>
+          <span class="tech-badge">Vue 3</span>
+          <span class="tech-badge">Docker Ready</span>
+          <span class="tech-badge">Kubernetes</span>
+          <span class="tech-badge">Prometheus</span>
+        </div>
+      </div>
     </header>
 
     <!-- Overview Section -->
     <section id="overview" class="section">
-        <div class="container">
-            <h2 class="section-title">Overview</h2>
-            <div class="overview-grid">
-                <div class="overview-card">
-                    <div class="card-icon">🤝</div>
-                    <h3>Multi-Agent Collaboration</h3>
-                    <p>Coordinate Claude, Codex, Gemini, and Copilot to work together on your code with intelligent workflows.</p>
-                </div>
-                <div class="overview-card">
-                    <div class="card-icon">💻</div>
-                    <h3>Interactive CLI & Web UI</h3>
-                    <p>Choose between a powerful command-line interface or modern web UI with real-time updates.</p>
-                </div>
-                <div class="overview-card">
-                    <div class="card-icon">⚙️</div>
-                    <h3>Configurable Workflows</h3>
-                    <p>Define custom collaboration patterns or use built-in workflows for different scenarios.</p>
-                </div>
-                <div class="overview-card">
-                    <div class="card-icon">🛡️</div>
-                    <h3>Production Ready</h3>
-                    <p>Security, monitoring, rate limiting, retry logic, and comprehensive test coverage built-in.</p>
-                </div>
-            </div>
+      <div class="container">
+        <h2 class="section-title">Overview</h2>
+        <div class="overview-grid">
+          <div class="overview-card">
+            <div class="card-icon">🤝</div>
+            <h3>Multi-Agent Collaboration</h3>
+            <p>
+              Coordinate Claude, Codex, Gemini, and Copilot to work together on
+              your code with intelligent workflows.
+            </p>
+          </div>
+          <div class="overview-card">
+            <div class="card-icon">💻</div>
+            <h3>Interactive CLI & Web UI</h3>
+            <p>
+              Choose between a powerful command-line interface or modern web UI
+              with real-time updates.
+            </p>
+          </div>
+          <div class="overview-card">
+            <div class="card-icon">⚙️</div>
+            <h3>Configurable Workflows</h3>
+            <p>
+              Define custom collaboration patterns or use built-in workflows for
+              different scenarios.
+            </p>
+          </div>
+          <div class="overview-card">
+            <div class="card-icon">🛡️</div>
+            <h3>Production Ready</h3>
+            <p>
+              Security, monitoring, rate limiting, retry logic, and
+              comprehensive test coverage built-in.
+            </p>
+          </div>
+        </div>
 
-            <!-- Simple Workflow Diagram -->
-            <div class="diagram-container">
-                <h3 class="diagram-title">How It Works</h3>
-                <pre class="mermaid">
+        <!-- Simple Workflow Diagram -->
+        <div class="diagram-container">
+          <h3 class="diagram-title">How It Works</h3>
+          <pre class="mermaid">
 graph LR
     A[User Request] --> B[AI Orchestrator]
     B --> C[Codex: Implementation]
@@ -106,150 +134,152 @@ graph LR
     style D fill:#4facfe,stroke:#4facfe,color:#fff
     style E fill:#00f2fe,stroke:#00f2fe,color:#fff
     style F fill:#43e97b,stroke:#43e97b,color:#fff
-                </pre>
-            </div>
-
-            <!-- Stats -->
-            <div class="stats-grid">
-                <div class="stat-item">
-                    <div class="stat-number">4</div>
-                    <div class="stat-label">AI Agents</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-number">14+</div>
-                    <div class="stat-label">Python Files</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-number">5</div>
-                    <div class="stat-label">Workflows</div>
-                </div>
-                <div class="stat-item">
-                    <div class="stat-number">80%+</div>
-                    <div class="stat-label">Test Coverage</div>
-                </div>
-            </div>
+                </pre
+          >
         </div>
+
+        <!-- Stats -->
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-number">4</div>
+            <div class="stat-label">AI Agents</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number">14+</div>
+            <div class="stat-label">Python Files</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number">5</div>
+            <div class="stat-label">Workflows</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number">80%+</div>
+            <div class="stat-label">Test Coverage</div>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- Features Section -->
     <section id="features" class="section section-dark">
-        <div class="container">
-            <h2 class="section-title">Core Features</h2>
+      <div class="container">
+        <h2 class="section-title">Core Features</h2>
 
-            <div class="features-grid">
-                <div class="feature-card">
-                    <div class="feature-icon">🤖</div>
-                    <h3>Multi-Agent Collaboration</h3>
-                    <p>Coordinate multiple AI assistants with specialized roles:</p>
-                    <ul class="feature-list">
-                        <li><strong>Codex:</strong> Initial implementation</li>
-                        <li><strong>Gemini:</strong> Code review & analysis</li>
-                        <li><strong>Claude:</strong> Refinement & documentation</li>
-                        <li><strong>Copilot:</strong> Alternative suggestions</li>
-                    </ul>
-                </div>
+        <div class="features-grid">
+          <div class="feature-card">
+            <div class="feature-icon">🤖</div>
+            <h3>Multi-Agent Collaboration</h3>
+            <p>Coordinate multiple AI assistants with specialized roles:</p>
+            <ul class="feature-list">
+              <li><strong>Codex:</strong> Initial implementation</li>
+              <li><strong>Gemini:</strong> Code review & analysis</li>
+              <li><strong>Claude:</strong> Refinement & documentation</li>
+              <li><strong>Copilot:</strong> Alternative suggestions</li>
+            </ul>
+          </div>
 
-                <div class="feature-card">
-                    <div class="feature-icon">💬</div>
-                    <h3>Interactive Shell</h3>
-                    <ul class="feature-list">
-                        <li>REPL-style conversation interface</li>
-                        <li>Smart follow-up detection</li>
-                        <li>Full readline support & history</li>
-                        <li>Session save/restore</li>
-                        <li>Colored output with Rich</li>
-                    </ul>
-                </div>
+          <div class="feature-card">
+            <div class="feature-icon">💬</div>
+            <h3>Interactive Shell</h3>
+            <ul class="feature-list">
+              <li>REPL-style conversation interface</li>
+              <li>Smart follow-up detection</li>
+              <li>Full readline support & history</li>
+              <li>Session save/restore</li>
+              <li>Colored output with Rich</li>
+            </ul>
+          </div>
 
-                <div class="feature-card">
-                    <div class="feature-icon">🌐</div>
-                    <h3>Modern Web UI</h3>
-                    <ul class="feature-list">
-                        <li>Vue 3 with Composition API</li>
-                        <li>Real-time updates via Socket.IO</li>
-                        <li>Monaco code editor (VS Code)</li>
-                        <li>File management & downloads</li>
-                        <li>Conversation mode toggle</li>
-                    </ul>
-                </div>
+          <div class="feature-card">
+            <div class="feature-icon">🌐</div>
+            <h3>Modern Web UI</h3>
+            <ul class="feature-list">
+              <li>Vue 3 with Composition API</li>
+              <li>Real-time updates via Socket.IO</li>
+              <li>Monaco code editor (VS Code)</li>
+              <li>File management & downloads</li>
+              <li>Conversation mode toggle</li>
+            </ul>
+          </div>
 
-                <div class="feature-card">
-                    <div class="feature-icon">📊</div>
-                    <h3>Monitoring & Metrics</h3>
-                    <ul class="feature-list">
-                        <li>Prometheus metrics integration</li>
-                        <li>Structured logging (structlog)</li>
-                        <li>Health & readiness checks</li>
-                        <li>Performance tracking</li>
-                        <li>Error rate monitoring</li>
-                    </ul>
-                </div>
+          <div class="feature-card">
+            <div class="feature-icon">📊</div>
+            <h3>Monitoring & Metrics</h3>
+            <ul class="feature-list">
+              <li>Prometheus metrics integration</li>
+              <li>Structured logging (structlog)</li>
+              <li>Health & readiness checks</li>
+              <li>Performance tracking</li>
+              <li>Error rate monitoring</li>
+            </ul>
+          </div>
 
-                <div class="feature-card">
-                    <div class="feature-icon">🛡️</div>
-                    <h3>Security Features</h3>
-                    <ul class="feature-list">
-                        <li>Input validation & sanitization</li>
-                        <li>Rate limiting (token bucket)</li>
-                        <li>Audit logging</li>
-                        <li>Secret management</li>
-                        <li>Security scanning (Bandit)</li>
-                    </ul>
-                </div>
+          <div class="feature-card">
+            <div class="feature-icon">🛡️</div>
+            <h3>Security Features</h3>
+            <ul class="feature-list">
+              <li>Input validation & sanitization</li>
+              <li>Rate limiting (token bucket)</li>
+              <li>Audit logging</li>
+              <li>Secret management</li>
+              <li>Security scanning (Bandit)</li>
+            </ul>
+          </div>
 
-                <div class="feature-card">
-                    <div class="feature-icon">⚡</div>
-                    <h3>Performance</h3>
-                    <ul class="feature-list">
-                        <li>Async execution support</li>
-                        <li>Multi-layer caching</li>
-                        <li>Connection pooling</li>
-                        <li>Retry logic with backoff</li>
-                        <li>Circuit breaker pattern</li>
-                    </ul>
-                </div>
+          <div class="feature-card">
+            <div class="feature-icon">⚡</div>
+            <h3>Performance</h3>
+            <ul class="feature-list">
+              <li>Async execution support</li>
+              <li>Multi-layer caching</li>
+              <li>Connection pooling</li>
+              <li>Retry logic with backoff</li>
+              <li>Circuit breaker pattern</li>
+            </ul>
+          </div>
 
-                <div class="feature-card">
-                    <div class="feature-icon">🚢</div>
-                    <h3>Deployment Options</h3>
-                    <ul class="feature-list">
-                        <li>Docker & Docker Compose</li>
-                        <li>Kubernetes manifests</li>
-                        <li>Systemd service files</li>
-                        <li>CI/CD with GitHub Actions</li>
-                        <li>Multi-environment configs</li>
-                    </ul>
-                </div>
+          <div class="feature-card">
+            <div class="feature-icon">🚢</div>
+            <h3>Deployment Options</h3>
+            <ul class="feature-list">
+              <li>Docker & Docker Compose</li>
+              <li>Kubernetes manifests</li>
+              <li>Systemd service files</li>
+              <li>CI/CD with GitHub Actions</li>
+              <li>Multi-environment configs</li>
+            </ul>
+          </div>
 
-                <div class="feature-card">
-                    <div class="feature-icon">🔧</div>
-                    <h3>Code Quality</h3>
-                    <ul class="feature-list">
-                        <li>Type hints with Pydantic</li>
-                        <li>80%+ test coverage (pytest)</li>
-                        <li>Black code formatting</li>
-                        <li>Flake8 linting</li>
-                        <li>MyPy type checking</li>
-                    </ul>
-                </div>
-            </div>
+          <div class="feature-card">
+            <div class="feature-icon">🔧</div>
+            <h3>Code Quality</h3>
+            <ul class="feature-list">
+              <li>Type hints with Pydantic</li>
+              <li>80%+ test coverage (pytest)</li>
+              <li>Black code formatting</li>
+              <li>Flake8 linting</li>
+              <li>MyPy type checking</li>
+            </ul>
+          </div>
         </div>
+      </div>
     </section>
 
     <!-- Architecture Section -->
     <section id="architecture" class="section">
-        <div class="container">
-            <h2 class="section-title">System Architecture</h2>
+      <div class="container">
+        <h2 class="section-title">System Architecture</h2>
 
-            <div class="architecture-description">
-                <p>
-                    The AI Orchestrator follows a modular, layered architecture with clear separation of concerns.
-                    It's designed for extensibility, reliability, and production-grade performance.
-                </p>
-            </div>
+        <div class="architecture-description">
+          <p>
+            The AI Orchestrator follows a modular, layered architecture with
+            clear separation of concerns. It's designed for extensibility,
+            reliability, and production-grade performance.
+          </p>
+        </div>
 
-            <div class="diagram-container">
-                <pre class="mermaid">
+        <div class="diagram-container">
+          <pre class="mermaid">
 flowchart TB
     subgraph "User<br/>Interfaces"
         CLI[CLI Shell<br/>Click + Rich]
@@ -307,118 +337,123 @@ flowchart TB
     style Engine fill:#4facfe,stroke:#4facfe,color:#fff
     style Workflow fill:#43e97b,stroke:#43e97b,color:#fff
                 </pre>
-            </div>
-
-            <div class="architecture-layers">
-                <div class="layer-card">
-                    <h3>1. Interface Layer</h3>
-                    <p>User-facing interfaces: CLI and Web UI</p>
-                </div>
-                <div class="layer-card">
-                    <h3>2. Orchestration Layer</h3>
-                    <p>Core business logic and workflow management</p>
-                </div>
-                <div class="layer-card">
-                    <h3>3. Cross-Cutting Layer</h3>
-                    <p>Security, caching, metrics, and logging</p>
-                </div>
-                <div class="layer-card">
-                    <h3>4. Adapter Layer</h3>
-                    <p>AI agent integrations with uniform interface</p>
-                </div>
-                <div class="layer-card">
-                    <h3>5. External Services</h3>
-                    <p>Third-party AI CLI tools</p>
-                </div>
-            </div>
-
-            <div class="design-patterns">
-                <h3>Design Patterns</h3>
-                <div class="patterns-grid">
-                    <div class="pattern-item">
-                        <strong>Adapter Pattern</strong>
-                        <p>Uniform interface to different AI CLIs</p>
-                    </div>
-                    <div class="pattern-item">
-                        <strong>Strategy Pattern</strong>
-                        <p>Configurable workflow strategies</p>
-                    </div>
-                    <div class="pattern-item">
-                        <strong>Observer Pattern</strong>
-                        <p>Real-time UI updates via Socket.IO</p>
-                    </div>
-                    <div class="pattern-item">
-                        <strong>Factory Pattern</strong>
-                        <p>Agent and workflow creation</p>
-                    </div>
-                    <div class="pattern-item">
-                        <strong>Singleton Pattern</strong>
-                        <p>Config and metrics managers</p>
-                    </div>
-                    <div class="pattern-item">
-                        <strong>Decorator Pattern</strong>
-                        <p>Retry, cache, and logging decorators</p>
-                    </div>
-                </div>
-            </div>
         </div>
+
+        <div class="architecture-layers">
+          <div class="layer-card">
+            <h3>1. Interface Layer</h3>
+            <p>User-facing interfaces: CLI and Web UI</p>
+          </div>
+          <div class="layer-card">
+            <h3>2. Orchestration Layer</h3>
+            <p>Core business logic and workflow management</p>
+          </div>
+          <div class="layer-card">
+            <h3>3. Cross-Cutting Layer</h3>
+            <p>Security, caching, metrics, and logging</p>
+          </div>
+          <div class="layer-card">
+            <h3>4. Adapter Layer</h3>
+            <p>AI agent integrations with uniform interface</p>
+          </div>
+          <div class="layer-card">
+            <h3>5. External Services</h3>
+            <p>Third-party AI CLI tools</p>
+          </div>
+        </div>
+
+        <div class="design-patterns">
+          <h3>Design Patterns</h3>
+          <div class="patterns-grid">
+            <div class="pattern-item">
+              <strong>Adapter Pattern</strong>
+              <p>Uniform interface to different AI CLIs</p>
+            </div>
+            <div class="pattern-item">
+              <strong>Strategy Pattern</strong>
+              <p>Configurable workflow strategies</p>
+            </div>
+            <div class="pattern-item">
+              <strong>Observer Pattern</strong>
+              <p>Real-time UI updates via Socket.IO</p>
+            </div>
+            <div class="pattern-item">
+              <strong>Factory Pattern</strong>
+              <p>Agent and workflow creation</p>
+            </div>
+            <div class="pattern-item">
+              <strong>Singleton Pattern</strong>
+              <p>Config and metrics managers</p>
+            </div>
+            <div class="pattern-item">
+              <strong>Decorator Pattern</strong>
+              <p>Retry, cache, and logging decorators</p>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- Quick Start Section -->
     <section id="quick-start" class="section section-dark">
-        <div class="container">
-            <h2 class="section-title">Quick Start</h2>
+      <div class="container">
+        <h2 class="section-title">Quick Start</h2>
 
-            <div class="quick-start-steps">
-                <div class="step">
-                    <div class="step-number">1</div>
-                    <div class="step-content">
-                        <h3>Clone Repository</h3>
-                        <pre><code>git clone &lt;repository-url&gt;
+        <div class="quick-start-steps">
+          <div class="step">
+            <div class="step-number">1</div>
+            <div class="step-content">
+              <h3>Clone Repository</h3>
+              <pre><code>git clone &lt;repository-url&gt;
 cd AI-Coding-Tools-Collaborative</code></pre>
-                    </div>
-                </div>
+            </div>
+          </div>
 
-                <div class="step">
-                    <div class="step-number">2</div>
-                    <div class="step-content">
-                        <h3>Install Dependencies</h3>
-                        <pre><code>pip install -r requirements.txt
+          <div class="step">
+            <div class="step-number">2</div>
+            <div class="step-content">
+              <h3>Install Dependencies</h3>
+              <pre><code>pip install -r requirements.txt
 chmod +x ai-orchestrator</code></pre>
-                    </div>
-                </div>
+            </div>
+          </div>
 
-                <div class="step">
-                    <div class="step-number">3</div>
-                    <div class="step-content">
-                        <h3>Verify Installation</h3>
-                        <pre><code>./ai-orchestrator --help
+          <div class="step">
+            <div class="step-number">3</div>
+            <div class="step-content">
+              <h3>Verify Installation</h3>
+              <pre><code>./ai-orchestrator --help
 ./ai-orchestrator agents</code></pre>
-                    </div>
-                </div>
-
-                <div class="step">
-                    <div class="step-number">4</div>
-                    <div class="step-content">
-                        <h3>Start Interactive Shell</h3>
-                        <pre><code>./ai-orchestrator shell</code></pre>
-                    </div>
-                </div>
             </div>
+          </div>
 
-            <div class="prerequisites">
-                <h3>Prerequisites</h3>
-                <ul>
-                    <li><strong>Python 3.8+</strong> - Core runtime</li>
-                    <li><strong>Node.js 20+</strong> - For Web UI (optional)</li>
-                    <li><strong>At least one AI CLI</strong> - Claude, Codex, Gemini, or Copilot</li>
-                    <li><strong>Docker</strong> - For containerized deployment (optional)</li>
-                </ul>
+          <div class="step">
+            <div class="step-number">4</div>
+            <div class="step-content">
+              <h3>Start Interactive Shell</h3>
+              <pre><code>./ai-orchestrator shell</code></pre>
             </div>
+          </div>
+        </div>
 
-            <div class="example-usage">
-                <h3>Example Usage</h3>
-                <pre><code># Start interactive shell
+        <div class="prerequisites">
+          <h3>Prerequisites</h3>
+          <ul>
+            <li><strong>Python 3.8+</strong> - Core runtime</li>
+            <li><strong>Node.js 20+</strong> - For Web UI (optional)</li>
+            <li>
+              <strong>At least one AI CLI</strong> - Claude, Codex, Gemini, or
+              Copilot
+            </li>
+            <li>
+              <strong>Docker</strong> - For containerized deployment (optional)
+            </li>
+          </ul>
+        </div>
+
+        <div class="example-usage">
+          <h3>Example Usage</h3>
+          <pre><code># Start interactive shell
 ./ai-orchestrator shell
 
 orchestrator (default) &gt; create a REST API for user management
@@ -433,63 +468,63 @@ orchestrator (default) &gt; add JWT authentication
 
 orchestrator (default) &gt; /save user-api-project
 ✓ Session saved!</code></pre>
-            </div>
         </div>
+      </div>
     </section>
 
     <!-- Workflows Section -->
     <section id="workflows" class="section">
-        <div class="container">
-            <h2 class="section-title">Available Workflows</h2>
+      <div class="container">
+        <h2 class="section-title">Available Workflows</h2>
 
-            <div class="workflow-table">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Workflow</th>
-                            <th>Agents</th>
-                            <th>Iterations</th>
-                            <th>Use Case</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td><strong>default</strong></td>
-                            <td>Codex → Gemini → Claude</td>
-                            <td>3</td>
-                            <td>Production-quality code with review</td>
-                        </tr>
-                        <tr>
-                            <td><strong>quick</strong></td>
-                            <td>Codex only</td>
-                            <td>1</td>
-                            <td>Fast prototyping and iteration</td>
-                        </tr>
-                        <tr>
-                            <td><strong>thorough</strong></td>
-                            <td>Codex → Copilot → Gemini → Claude → Gemini</td>
-                            <td>5</td>
-                            <td>Mission-critical or security-sensitive</td>
-                        </tr>
-                        <tr>
-                            <td><strong>review-only</strong></td>
-                            <td>Gemini → Claude</td>
-                            <td>2</td>
-                            <td>Analyzing existing code</td>
-                        </tr>
-                        <tr>
-                            <td><strong>document</strong></td>
-                            <td>Claude → Gemini</td>
-                            <td>2</td>
-                            <td>Generating documentation</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+        <div class="workflow-table">
+          <table>
+            <thead>
+              <tr>
+                <th>Workflow</th>
+                <th>Agents</th>
+                <th>Iterations</th>
+                <th>Use Case</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>default</strong></td>
+                <td>Codex → Gemini → Claude</td>
+                <td>3</td>
+                <td>Production-quality code with review</td>
+              </tr>
+              <tr>
+                <td><strong>quick</strong></td>
+                <td>Codex only</td>
+                <td>1</td>
+                <td>Fast prototyping and iteration</td>
+              </tr>
+              <tr>
+                <td><strong>thorough</strong></td>
+                <td>Codex → Copilot → Gemini → Claude → Gemini</td>
+                <td>5</td>
+                <td>Mission-critical or security-sensitive</td>
+              </tr>
+              <tr>
+                <td><strong>review-only</strong></td>
+                <td>Gemini → Claude</td>
+                <td>2</td>
+                <td>Analyzing existing code</td>
+              </tr>
+              <tr>
+                <td><strong>document</strong></td>
+                <td>Claude → Gemini</td>
+                <td>2</td>
+                <td>Generating documentation</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
 
-            <div class="workflow-diagram">
-                <h3>Workflow Execution Flow</h3>
-                <pre class="mermaid">
+        <div class="workflow-diagram">
+          <h3>Workflow Execution Flow</h3>
+          <pre class="mermaid">
 graph TD
     START([Start]) --> LOAD[Load Workflow Config]
     LOAD --> VALIDATE[Validate Configuration]
@@ -516,12 +551,15 @@ graph TD
     style START fill:#667eea,stroke:#667eea,color:#fff
     style END fill:#43e97b,stroke:#43e97b,color:#fff
                 </pre>
-            </div>
+        </div>
 
-            <div class="custom-workflow">
-                <h3>Custom Workflows</h3>
-                <p>Define your own workflows in <code>config/agents.yaml</code>:</p>
-                <pre><code>workflows:
+        <div class="custom-workflow">
+          <h3>Custom Workflows</h3>
+          <p>
+            Define your own workflows in
+            <code style="color: rebeccapurple">config/agents.yaml</code>:
+          </p>
+          <pre><code>workflows:
   custom:
     max_iterations: 4
     min_suggestions_threshold: 5
@@ -532,195 +570,200 @@ graph TD
         task: "security_review"
       - agent: "claude"
         task: "refine"</code></pre>
-            </div>
         </div>
+      </div>
     </section>
 
     <!-- Documentation Section -->
     <section id="documentation" class="section section-dark">
-        <div class="container">
-            <h2 class="section-title">Documentation</h2>
+      <div class="container">
+        <h2 class="section-title">Documentation</h2>
 
-            <div class="docs-grid">
-                <a href="README.md" class="doc-card">
-                    <div class="doc-icon">📖</div>
-                    <h3>README</h3>
-                    <p>Project overview and getting started guide</p>
-                </a>
+        <div class="docs-grid">
+          <a href="README.md" class="doc-card">
+            <div class="doc-icon">📖</div>
+            <h3>README</h3>
+            <p>Project overview and getting started guide</p>
+          </a>
 
-                <a href="ARCHITECTURE.md" class="doc-card">
-                    <div class="doc-icon">🏗️</div>
-                    <h3>Architecture</h3>
-                    <p>System design, patterns, and components</p>
-                </a>
+          <a href="ARCHITECTURE.md" class="doc-card">
+            <div class="doc-icon">🏗️</div>
+            <h3>Architecture</h3>
+            <p>System design, patterns, and components</p>
+          </a>
 
-                <a href="FEATURES.md" class="doc-card">
-                    <div class="doc-icon">✨</div>
-                    <h3>Features</h3>
-                    <p>Comprehensive feature documentation</p>
-                </a>
+          <a href="FEATURES.md" class="doc-card">
+            <div class="doc-icon">✨</div>
+            <h3>Features</h3>
+            <p>Comprehensive feature documentation</p>
+          </a>
 
-                <a href="SETUP.md" class="doc-card">
-                    <div class="doc-icon">🚀</div>
-                    <h3>Setup Guide</h3>
-                    <p>Detailed installation and configuration</p>
-                </a>
+          <a href="SETUP.md" class="doc-card">
+            <div class="doc-icon">🚀</div>
+            <h3>Setup Guide</h3>
+            <p>Detailed installation and configuration</p>
+          </a>
 
-                <a href="ADD_AGENTS.md" class="doc-card">
-                    <div class="doc-icon">🔌</div>
-                    <h3>Add Agents</h3>
-                    <p>Guide for integrating new AI agents</p>
-                </a>
+          <a href="ADD_AGENTS.md" class="doc-card">
+            <div class="doc-icon">🔌</div>
+            <h3>Add Agents</h3>
+            <p>Guide for integrating new AI agents</p>
+          </a>
 
-                <a href="DEPLOYMENT.md" class="doc-card">
-                    <div class="doc-icon">☁️</div>
-                    <h3>Deployment</h3>
-                    <p>Production deployment strategies</p>
-                </a>
-            </div>
-
-            <div class="tech-stack">
-                <h3>Technology Stack</h3>
-                <div class="tech-categories">
-                    <div class="tech-category">
-                        <h4>Core</h4>
-                        <ul>
-                            <li>Python 3.8+</li>
-                            <li>Click (CLI)</li>
-                            <li>Rich (Terminal)</li>
-                            <li>Pydantic (Validation)</li>
-                        </ul>
-                    </div>
-                    <div class="tech-category">
-                        <h4>Web UI</h4>
-                        <ul>
-                            <li>Vue 3</li>
-                            <li>Vite</li>
-                            <li>TailwindCSS</li>
-                            <li>Monaco Editor</li>
-                        </ul>
-                    </div>
-                    <div class="tech-category">
-                        <h4>Backend</h4>
-                        <ul>
-                            <li>Flask</li>
-                            <li>Flask-SocketIO</li>
-                            <li>Socket.IO</li>
-                            <li>Pinia</li>
-                        </ul>
-                    </div>
-                    <div class="tech-category">
-                        <h4>Monitoring</h4>
-                        <ul>
-                            <li>Prometheus</li>
-                            <li>Structlog</li>
-                            <li>Grafana</li>
-                            <li>Health Checks</li>
-                        </ul>
-                    </div>
-                    <div class="tech-category">
-                        <h4>Testing</h4>
-                        <ul>
-                            <li>Pytest</li>
-                            <li>Coverage</li>
-                            <li>MyPy</li>
-                            <li>Black</li>
-                        </ul>
-                    </div>
-                    <div class="tech-category">
-                        <h4>Deployment</h4>
-                        <ul>
-                            <li>Docker</li>
-                            <li>Kubernetes</li>
-                            <li>GitHub Actions</li>
-                            <li>Systemd</li>
-                        </ul>
-                    </div>
-                </div>
-            </div>
+          <a href="DEPLOYMENT.md" class="doc-card">
+            <div class="doc-icon">☁️</div>
+            <h3>Deployment</h3>
+            <p>Production deployment strategies</p>
+          </a>
         </div>
+
+        <div class="tech-stack">
+          <h3>Technology Stack</h3>
+          <div class="tech-categories">
+            <div class="tech-category">
+              <h4>Core</h4>
+              <ul>
+                <li>Python 3.8+</li>
+                <li>Click (CLI)</li>
+                <li>Rich (Terminal)</li>
+                <li>Pydantic (Validation)</li>
+              </ul>
+            </div>
+            <div class="tech-category">
+              <h4>Web UI</h4>
+              <ul>
+                <li>Vue 3</li>
+                <li>Vite</li>
+                <li>TailwindCSS</li>
+                <li>Monaco Editor</li>
+              </ul>
+            </div>
+            <div class="tech-category">
+              <h4>Backend</h4>
+              <ul>
+                <li>Flask</li>
+                <li>Flask-SocketIO</li>
+                <li>Socket.IO</li>
+                <li>Pinia</li>
+              </ul>
+            </div>
+            <div class="tech-category">
+              <h4>Monitoring</h4>
+              <ul>
+                <li>Prometheus</li>
+                <li>Structlog</li>
+                <li>Grafana</li>
+                <li>Health Checks</li>
+              </ul>
+            </div>
+            <div class="tech-category">
+              <h4>Testing</h4>
+              <ul>
+                <li>Pytest</li>
+                <li>Coverage</li>
+                <li>MyPy</li>
+                <li>Black</li>
+              </ul>
+            </div>
+            <div class="tech-category">
+              <h4>Deployment</h4>
+              <ul>
+                <li>Docker</li>
+                <li>Kubernetes</li>
+                <li>GitHub Actions</li>
+                <li>Systemd</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- Community Section -->
     <section id="community" class="section">
-        <div class="container">
-            <h2 class="section-title">Community & Support</h2>
+      <div class="container">
+        <h2 class="section-title">Community & Support</h2>
 
-            <div class="community-grid">
-                <div class="community-card">
-                    <div class="community-icon">💬</div>
-                    <h3>GitHub Discussions</h3>
-                    <p>Ask questions, share ideas, and connect with other users</p>
-                    <a href="#" class="community-link">Join Discussions →</a>
-                </div>
+        <div class="community-grid">
+          <div class="community-card">
+            <div class="community-icon">💬</div>
+            <h3>GitHub Discussions</h3>
+            <p>Ask questions, share ideas, and connect with other users</p>
+            <a href="#" class="community-link">Join Discussions →</a>
+          </div>
 
-                <div class="community-card">
-                    <div class="community-icon">🐛</div>
-                    <h3>Issue Tracker</h3>
-                    <p>Report bugs, request features, and track development</p>
-                    <a href="#" class="community-link">View Issues →</a>
-                </div>
+          <div class="community-card">
+            <div class="community-icon">🐛</div>
+            <h3>Issue Tracker</h3>
+            <p>Report bugs, request features, and track development</p>
+            <a href="#" class="community-link">View Issues →</a>
+          </div>
 
-                <div class="community-card">
-                    <div class="community-icon">🤝</div>
-                    <h3>Contributing</h3>
-                    <p>Help improve the project with code, docs, or ideas</p>
-                    <a href="#" class="community-link">Contribution Guide →</a>
-                </div>
+          <div class="community-card">
+            <div class="community-icon">🤝</div>
+            <h3>Contributing</h3>
+            <p>Help improve the project with code, docs, or ideas</p>
+            <a href="#" class="community-link">Contribution Guide →</a>
+          </div>
 
-                <div class="community-card">
-                    <div class="community-icon">📧</div>
-                    <h3>Security</h3>
-                    <p>Report security vulnerabilities responsibly</p>
-                    <a href="#" class="community-link">Security Policy →</a>
-                </div>
-            </div>
-
-            <div class="contribution-steps">
-                <h3>Quick Contribution Guide</h3>
-                <ol>
-                    <li>Fork the repository</li>
-                    <li>Create a feature branch: <code>git checkout -b feature/your-feature</code></li>
-                    <li>Make your changes with tests</li>
-                    <li>Run checks: <code>make all</code></li>
-                    <li>Commit: <code>git commit -m "feat: add amazing feature"</code></li>
-                    <li>Push and create a Pull Request</li>
-                </ol>
-            </div>
-
-            <div class="acknowledgments">
-                <h3>Built With</h3>
-                <div class="tools-list">
-                    <span>Click</span>
-                    <span>Rich</span>
-                    <span>Pydantic</span>
-                    <span>Vue 3</span>
-                    <span>Flask</span>
-                    <span>Monaco Editor</span>
-                    <span>Prometheus</span>
-                    <span>Docker</span>
-                    <span>Kubernetes</span>
-                </div>
-            </div>
+          <div class="community-card">
+            <div class="community-icon">📧</div>
+            <h3>Security</h3>
+            <p>Report security vulnerabilities responsibly</p>
+            <a href="#" class="community-link">Security Policy →</a>
+          </div>
         </div>
+
+        <div class="contribution-steps">
+          <h3>Quick Contribution Guide</h3>
+          <ol>
+            <li>Fork the repository</li>
+            <li>
+              Create a feature branch:
+              <code>git checkout -b feature/your-feature</code>
+            </li>
+            <li>Make your changes with tests</li>
+            <li>Run checks: <code>make all</code></li>
+            <li>
+              Commit: <code>git commit -m "feat: add amazing feature"</code>
+            </li>
+            <li>Push and create a Pull Request</li>
+          </ol>
+        </div>
+
+        <div class="acknowledgments">
+          <h3>Built With</h3>
+          <div class="tools-list">
+            <span>Click</span>
+            <span>Rich</span>
+            <span>Pydantic</span>
+            <span>Vue 3</span>
+            <span>Flask</span>
+            <span>Monaco Editor</span>
+            <span>Prometheus</span>
+            <span>Docker</span>
+            <span>Kubernetes</span>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- Demo Section -->
     <section id="demo" class="section section-dark">
-        <div class="container">
-            <h2 class="section-title">See It In Action</h2>
+      <div class="container">
+        <h2 class="section-title">See It In Action</h2>
 
-            <div class="demo-container">
-                <div class="demo-tabs">
-                    <button class="demo-tab active" data-tab="cli">CLI Demo</button>
-                    <button class="demo-tab" data-tab="ui">Web UI Demo</button>
-                    <button class="demo-tab" data-tab="workflow">Workflow Demo</button>
-                </div>
+        <div class="demo-container">
+          <div class="demo-tabs">
+            <button class="demo-tab active" data-tab="cli">CLI Demo</button>
+            <button class="demo-tab" data-tab="ui">Web UI Demo</button>
+            <button class="demo-tab" data-tab="workflow">Workflow Demo</button>
+          </div>
 
-                <div class="demo-content">
-                    <div class="demo-panel active" id="cli">
-                        <h3>Interactive CLI Shell</h3>
-                        <pre><code>$ ./ai-orchestrator shell
+          <div class="demo-content">
+            <div class="demo-panel active" id="cli">
+              <h3>Interactive CLI Shell</h3>
+              <pre><code>$ ./ai-orchestrator shell
 
 Welcome to AI Orchestrator v1.0.0
 Type /help for available commands
@@ -758,37 +801,37 @@ Workspace: ./workspace/session-abc123
 
 orchestrator (default) &gt; add authentication
 💡 Detected as follow-up to previous task</code></pre>
-                    </div>
+            </div>
 
-                    <div class="demo-panel" id="ui">
-                        <h3>Modern Web Interface</h3>
-                        <p>The Web UI provides a visual interface with:</p>
-                        <ul>
-                            <li>Real-time progress tracking with live updates</li>
-                            <li>Monaco code editor (same as VS Code)</li>
-                            <li>File browser and management</li>
-                            <li>Conversation mode for iterative development</li>
-                            <li>Workflow and iteration visualization</li>
-                        </ul>
-                        <div class="ui-features">
-                            <div class="ui-feature">
-                                <strong>Task Input</strong>
-                                <p>Multi-line textarea with syntax highlighting</p>
-                            </div>
-                            <div class="ui-feature">
-                                <strong>Live Updates</strong>
-                                <p>Socket.IO for real-time progress</p>
-                            </div>
-                            <div class="ui-feature">
-                                <strong>Code Editor</strong>
-                                <p>Full Monaco editor with IntelliSense</p>
-                            </div>
-                        </div>
-                    </div>
+            <div class="demo-panel" id="ui">
+              <h3>Modern Web Interface</h3>
+              <p>The Web UI provides a visual interface with:</p>
+              <ul>
+                <li>Real-time progress tracking with live updates</li>
+                <li>Monaco code editor (same as VS Code)</li>
+                <li>File browser and management</li>
+                <li>Conversation mode for iterative development</li>
+                <li>Workflow and iteration visualization</li>
+              </ul>
+              <div class="ui-features">
+                <div class="ui-feature">
+                  <strong>Task Input</strong>
+                  <p>Multi-line textarea with syntax highlighting</p>
+                </div>
+                <div class="ui-feature">
+                  <strong>Live Updates</strong>
+                  <p>Socket.IO for real-time progress</p>
+                </div>
+                <div class="ui-feature">
+                  <strong>Code Editor</strong>
+                  <p>Full Monaco editor with IntelliSense</p>
+                </div>
+              </div>
+            </div>
 
-                    <div class="demo-panel" id="workflow">
-                        <h3>Workflow Execution</h3>
-                        <pre><code># Run with specific workflow
+            <div class="demo-panel" id="workflow">
+              <h3>Workflow Execution</h3>
+              <pre><code># Run with specific workflow
 ./ai-orchestrator run "Build authentication system" --workflow thorough
 
 # Custom iterations
@@ -802,72 +845,96 @@ orchestrator (default) &gt; add authentication
 
 # Load previous session
 ./ai-orchestrator shell --load my-project</code></pre>
-                    </div>
-                </div>
             </div>
+          </div>
         </div>
+      </div>
     </section>
 
     <!-- CTA Section -->
     <section class="cta-section">
-        <div class="container">
-            <h2>Ready to Get Started?</h2>
-            <p>Join developers using AI Orchestrator to build better software faster</p>
-            <div class="cta-buttons">
-                <a href="#quick-start" class="btn btn-primary btn-large">Get Started Now</a>
-                <a href="https://github.com" class="btn btn-secondary btn-large">View on GitHub</a>
-            </div>
+      <div class="container">
+        <h2>Ready to Get Started?</h2>
+        <p>
+          Join developers using AI Orchestrator to build better software faster
+        </p>
+        <div class="cta-buttons">
+          <a href="#quick-start" class="btn btn-primary btn-large"
+            >Get Started Now</a
+          >
+          <a
+            href="https://github.com/hoangsonww/AI-Agents-Orchestrator"
+            class="btn btn-secondary btn-large"
+            target="_blank"
+            >View on GitHub</a
+          >
         </div>
+      </div>
     </section>
 
     <!-- Footer -->
     <footer class="footer">
-        <div class="container">
-            <div class="footer-grid">
-                <div class="footer-section">
-                    <h4>AI Orchestrator</h4>
-                    <p>Production-ready orchestration for collaborative AI coding assistants</p>
-                    <p class="footer-version">Version 1.0.0</p>
-                </div>
+      <div class="container">
+        <div class="footer-grid">
+          <div class="footer-section">
+            <h4>AI Orchestrator</h4>
+            <p>
+              Production-ready orchestration for collaborative AI coding
+              assistants
+            </p>
+            <p class="footer-version">Version 1.0.0</p>
+          </div>
 
-                <div class="footer-section">
-                    <h4>Documentation</h4>
-                    <ul>
-                        <li><a href="README.md">README</a></li>
-                        <li><a href="ARCHITECTURE.md">Architecture</a></li>
-                        <li><a href="FEATURES.md">Features</a></li>
-                        <li><a href="SETUP.md">Setup Guide</a></li>
-                    </ul>
-                </div>
+          <div class="footer-section">
+            <h4>Documentation</h4>
+            <ul>
+              <li><a href="README.md">README</a></li>
+              <li><a href="ARCHITECTURE.md">Architecture</a></li>
+              <li><a href="FEATURES.md">Features</a></li>
+              <li><a href="SETUP.md">Setup Guide</a></li>
+            </ul>
+          </div>
 
-                <div class="footer-section">
-                    <h4>Resources</h4>
-                    <ul>
-                        <li><a href="#quick-start">Quick Start</a></li>
-                        <li><a href="#documentation">Documentation</a></li>
-                        <li><a href="#demo">Demo</a></li>
-                        <li><a href="ADD_AGENTS.md">Add Agents</a></li>
-                    </ul>
-                </div>
+          <div class="footer-section">
+            <h4>Resources</h4>
+            <ul>
+              <li><a href="#quick-start">Quick Start</a></li>
+              <li><a href="#documentation">Documentation</a></li>
+              <li><a href="#demo">Demo</a></li>
+              <li><a href="ADD_AGENTS.md">Add Agents</a></li>
+            </ul>
+          </div>
 
-                <div class="footer-section">
-                    <h4>Community</h4>
-                    <ul>
-                        <li><a href="#">GitHub</a></li>
-                        <li><a href="#">Discussions</a></li>
-                        <li><a href="#">Issues</a></li>
-                        <li><a href="#">Contributing</a></li>
-                    </ul>
-                </div>
-            </div>
-
-            <div class="footer-bottom">
-                <p>&copy; 2024 AI Orchestrator. Licensed under the MIT License.</p>
-                <p>Made with ❤️ for the AI development community</p>
-            </div>
+          <div class="footer-section">
+            <h4>Community</h4>
+            <ul>
+              <li><a href="#">GitHub</a></li>
+              <li><a href="#">Discussions</a></li>
+              <li><a href="#">Issues</a></li>
+              <li><a href="#">Contributing</a></li>
+            </ul>
+          </div>
         </div>
+
+        <div class="footer-bottom">
+          <p>
+            &copy; <span id="currentYear">2024</span> AI Orchestrator. Licensed
+            under the MIT License.
+          </p>
+          <p>
+            Made with ❤️ by
+            <a
+              href="https://sonnguyenhoang.com"
+              target="_blank"
+              rel="noopener noreferrer"
+              >Son Nguyen</a
+            >
+            for the AI development community
+          </p>
+        </div>
+      </div>
     </footer>
 
     <script src="packages/script.js"></script>
-</body>
+  </body>
 </html>
