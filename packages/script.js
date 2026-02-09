@@ -36,6 +36,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Demo tabs functionality
     initDemoTabs();
 
+    // Subtle scroll reveal animations
+    initScrollReveal();
+
     // Add active state to nav links on scroll
     initNavActiveState();
 
@@ -44,6 +47,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize scroll progress bar
     initScrollProgressBar();
+
+    // Dynamic footer year
+    initFooterYear();
 });
 
 // ===========================
@@ -149,6 +155,51 @@ function initDemoTabs() {
 }
 
 // ===========================
+// Scroll Reveal Animations
+// ===========================
+function initScrollReveal() {
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const revealElements = new Set();
+
+    const revealGroups = [
+        ['.section-title', 60],
+        ['.overview-card, .feature-card, .layer-card, .pattern-item, .doc-card, .community-card, .tech-category, .footer-section', 70],
+        ['.diagram-container, .architecture-description, .prerequisites, .example-usage, .workflow-table, .workflow-diagram, .custom-workflow, .contribution-steps, .acknowledgments, .demo-container, .footer-bottom', 90],
+        ['.stat-item, .step, .ui-feature, .demo-tab, .tools-list span, .workflow-table tbody tr', 65],
+        ['.feature-list li, .prerequisites li, .demo-panel li, .tech-category li, .contribution-steps li', 35],
+        ['section .container > *:not(.section-title), .cta-section .container > *', 45]
+    ];
+
+    revealGroups.forEach(([selector, delayStep]) => {
+        document.querySelectorAll(selector).forEach((element, index) => {
+            if (element.classList.contains('reveal-on-scroll')) return;
+            const delay = Math.min(index * delayStep, 320);
+            element.classList.add('reveal-on-scroll');
+            element.style.setProperty('--reveal-delay', `${delay}ms`);
+            revealElements.add(element);
+        });
+    });
+
+    if (prefersReducedMotion || !('IntersectionObserver' in window)) {
+        revealElements.forEach(element => element.classList.add('is-visible'));
+        return;
+    }
+
+    const revealObserver = new IntersectionObserver((entries, observer) => {
+        entries.forEach(entry => {
+            if (!entry.isIntersecting) return;
+            entry.target.classList.add('is-visible');
+            observer.unobserve(entry.target);
+        });
+    }, {
+        threshold: 0.14,
+        rootMargin: '0px 0px -8% 0px'
+    });
+
+    revealElements.forEach(element => revealObserver.observe(element));
+}
+
+// ===========================
 // Active Nav State on Scroll
 // ===========================
 function initNavActiveState() {
@@ -197,53 +248,37 @@ function initCodeCopyButtons() {
 
     codeBlocks.forEach(block => {
         const pre = block.parentElement;
+        if (!pre || pre.parentElement?.classList.contains('code-block-wrapper')) return;
+
         const wrapper = document.createElement('div');
-        wrapper.style.position = 'relative';
+        wrapper.className = 'code-block-wrapper';
 
         const button = document.createElement('button');
+        button.type = 'button';
         button.className = 'copy-code-btn';
-        button.innerHTML = '📋 Copy';
-        button.style.cssText = `
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            padding: 6px 12px;
-            background: rgba(255, 255, 255, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.2);
-            border-radius: 4px;
-            color: white;
-            cursor: pointer;
-            font-size: 0.875rem;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-        `;
-
-        button.addEventListener('mouseover', () => {
-            button.style.background = 'rgba(255, 255, 255, 0.2)';
-        });
-
-        button.addEventListener('mouseout', () => {
-            button.style.background = 'rgba(255, 255, 255, 0.1)';
-        });
+        button.textContent = '📋 Copy';
+        button.setAttribute('aria-label', 'Copy code block');
 
         button.addEventListener('click', async () => {
             const code = block.textContent;
             try {
                 await navigator.clipboard.writeText(code);
-                button.innerHTML = '✓ Copied!';
-                button.style.background = '#43e97b';
-                button.style.borderColor = '#43e97b';
+                button.classList.remove('failed');
+                button.classList.add('copied');
+                button.textContent = '✓ Copied!';
 
                 setTimeout(() => {
-                    button.innerHTML = '📋 Copy';
-                    button.style.background = 'rgba(255, 255, 255, 0.1)';
-                    button.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                    button.classList.remove('copied');
+                    button.textContent = '📋 Copy';
                 }, 2000);
             } catch (err) {
                 console.error('Failed to copy:', err);
-                button.innerHTML = '✗ Failed';
+                button.classList.remove('copied');
+                button.classList.add('failed');
+                button.textContent = '✗ Failed';
                 setTimeout(() => {
-                    button.innerHTML = '📋 Copy';
+                    button.classList.remove('failed');
+                    button.textContent = '📋 Copy';
                 }, 2000);
             }
         });
@@ -267,6 +302,15 @@ function initScrollProgressBar() {
         const scrolled = (window.pageYOffset / windowHeight) * 100;
         progressBar.style.width = scrolled + '%';
     });
+}
+
+// ===========================
+// Dynamic Footer Year
+// ===========================
+function initFooterYear() {
+    const yearElement = document.getElementById('currentYear');
+    if (!yearElement) return;
+    yearElement.textContent = new Date().getFullYear().toString();
 }
 
 // ===========================

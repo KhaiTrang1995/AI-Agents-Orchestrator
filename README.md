@@ -458,8 +458,8 @@ Built with:
 ## 💬 Support
 
 - **Repo Maintainer**: [@hoangsonww](https://github.com/hoangsonww)
-- **Issues**: [GitHub Issues](https://github.com/your-org/ai-orchestrator/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/your-org/ai-orchestrator/discussions)
+- **Issues**: [GitHub Issues](https://github.com/hoangsonww/AI-Agents-Orchestrator/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/hoangsonww/AI-Agents-Orchestrator/discussions)
 
 ## ⭐ Star History
 
