@@ -13,14 +13,14 @@ class OllamaAdapter(BaseAdapter):
       self.endpoint = config.get("endpoint", "http://localhost:11434")
 
     def get_capabilities(self) -> List[AgentCapability]:
-          """Return the capabilities of the Ollama agent."""
-          return [
-              AgentCapability.IMPLEMENTATION,
-              AgentCapability.CODE_REVIEW,
-              AgentCapability.REFACTORING,
-              AgentCapability.TESTING,
-              AgentCapability.DOCUMENTATION,
-          ]
+        """Return the capabilities of the Ollama agent."""
+        return [
+            AgentCapability.IMPLEMENTATION,
+            AgentCapability.CODE_REVIEW,
+            AgentCapability.REFACTORING,
+            AgentCapability.TESTING,
+            AgentCapability.DOCUMENTATION,
+        ]
     
     def execute_task(self, task: str, context: Dict[str, Any]) -> AgentResponse:
         """Execute a task using Ollama Code.
