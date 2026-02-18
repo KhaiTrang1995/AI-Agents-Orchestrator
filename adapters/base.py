@@ -8,7 +8,7 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, List, Optional
-
+import httpx
 from .cli_communicator import AgentCLIRegistry, CLICommunicator
 
 
@@ -61,8 +61,10 @@ class BaseAdapter(ABC):
         self.timeout = config.get("timeout", 300)  # 5 minutes default
         self.logger = logging.getLogger(f"adapter.{self.name}")
 
-        # Initialize CLI communicator
-        self.cli_communicator = CLICommunicator(self.command, self.logger)
+        # Initialize CLI communicator only if modal is not local llm
+        self.cli_communicator = None
+        if not self.config.get("offline", False):
+            self.cli_communicator = CLICommunicator(self.command, self.logger)
 
         # Get communication pattern for this tool
         self.cli_pattern = AgentCLIRegistry.get_pattern(self.name)
@@ -172,6 +174,45 @@ class BaseAdapter(ABC):
             self.logger.error(f"Command execution failed: {e}", exc_info=True)
             return AgentResponse(success=False, output="", error=str(e))
 
+
+    def _run_http_with_prompt(self,payload: Dict)->AgentResponse:
+        """Send http request to local endpoint and return AgentResponse"""
+        try:
+            with httpx.Client(timeout=self.timeout) as client:
+                response = client.post(
+                    self.endpoint,
+                    json=payload,
+                )
+
+            response.raise_for_status()
+            data = response.json()
+
+            return AgentResponse(
+                success=True,
+                output=data,
+            )
+        except httpx.HTTPStatusError as e:
+            self.logger.error(f"{self.name} returned error status: {e}", exc_info=True)
+            return AgentResponse(
+                success=False,
+                output="",
+                error=f"HTTP error: {str(e)}",
+            )
+        except httpx.RequestError as e:
+            self.logger.error(f"{self.name} request failed: {e}", exc_info=True)
+            return AgentResponse(
+                success=False,
+                output="",
+                error=f"Connection error: {str(e)}",
+            )
+        except Exception as e:
+            self.logger.error(f"{self.name} execution failed: {e}", exc_info=True)
+            return AgentResponse(
+                success=False,
+                output="",
+                error=str(e),
+            )
+
     def _run_command(self, args: List[str], stdin_input: Optional[str] = None) -> AgentResponse:
         """Run a CLI command with arguments (legacy method for backward compatibility).
 
@@ -246,3 +287,71 @@ class BaseAdapter(ABC):
     def __repr__(self) -> str:
         """Return the detailed string representation of the adapter."""
         return f"<{self.__class__.__name__} name={self.name} enabled={self.enabled}>"
+
+    def _update_endpoint(self) :
+        """Combine the endpoint with path"""
+        
+        if self.endpoint[-1] == "/":
+            self.endpoint =  f"{self.endpoint}{self.path}"
+        else:
+            self.endpoint = f"{self.endpoint}/{self.path}"
+    
+    def _build_local_llm_prompt(self, task: str, context: Dict[str, Any]) -> str:
+        """Build a detailed prompt for llama.cpp."""
+        parts: List[str] = []
+        role = context.get("role", "general")
+
+        if role == "implement":
+            parts.append("You are an expert software engineer.")
+            parts.append("Implement the following task with clean, production-ready code.")
+            parts.append(f"\nTask:\n{task}")
+
+        elif role == "review":
+            parts.append("You are an expert code reviewer.")
+            parts.append("Review the following implementation and provide actionable feedback.")
+            parts.append(f"\nTask:\n{task}")
+
+            if context.get("implementation"):
+                parts.append("\nImplementation to Review:\n")
+                parts.append("```")
+                parts.append(context["implementation"])
+                parts.append("```")
+
+        elif role == "refine":
+            parts.append("You are refining code based on review feedback.")
+            parts.append(f"\nTask:\n{task}")
+
+            if context.get("feedback"):
+                parts.append("\nReview Feedback:\n")
+                parts.append(context["feedback"])
+
+            if context.get("implementation"):
+                parts.append("\nCurrent Implementation:\n")
+                parts.append("```")
+                parts.append(context["implementation"])
+                parts.append("```")
+
+            parts.append("\nPlease improve the implementation while preserving functionality.")
+
+        elif role == "test":
+            parts.append("Write comprehensive tests for the following task.")
+            parts.append(f"\nTask:\n{task}")
+
+        elif role == "document":
+            parts.append("Write clear documentation for the following implementation.")
+            parts.append(f"\nTask:\n{task}")
+
+        else:
+            parts.append(task)
+
+        parts.append("\n\nGeneral Requirements:")
+        parts.append("- Follow clean code principles")
+        parts.append("- Use proper error handling")
+        parts.append("- Ensure readability and maintainability")
+        parts.append("- Keep the solution concise but complete")
+
+        if context.get("previous_output"):
+            parts.append("\n\nPrevious Output:")
+            parts.append(context["previous_output"])
+
+        return "\n".join(parts)
