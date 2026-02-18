@@ -23,7 +23,10 @@ class LlamaCppAdapter(BaseAdapter):
           ]
 
     def execute_task(self, task: str, context: Dict[str, Any]) -> AgentResponse:
-        """Execute a task using LlamaCpp Code."""
+        """Execute a task using LlamaCpp Code.
+        
+        LlamaCpp is typically used for larger-context implementation and code review tasks.
+        """
         prompt = self._build_system_prompt(task,context)
 
         try:
@@ -52,7 +55,20 @@ class LlamaCppAdapter(BaseAdapter):
                     "endpoint": self.endpoint,
                 },
             )
-
+        except httpx.HTTPStatusError as e:
+            self.logger.error(f"llama.cpp returned error status: {e}", exc_info=True)
+            return AgentResponse(
+                success=False,
+                output="",
+                error=f"HTTP error: {str(e)}",
+            )
+        except httpx.RequestError as e:
+            self.logger.error(f"llama.cpp request failed: {e}", exc_info=True)
+            return AgentResponse(
+                success=False,
+                output="",
+                error=f"Connection error: {str(e)}",
+            )
         except Exception as e:
             self.logger.error(f"llama.cpp execution failed: {e}", exc_info=True)
             return AgentResponse(
@@ -92,3 +108,10 @@ class LlamaCppAdapter(BaseAdapter):
             parts.append(context["previous_output"])
 
         return "\n\n".join(parts)
+
+    def is_available(self) -> bool:
+        try:
+            resp = httpx.get(f"{self.endpoint}/api/tags", timeout=5)
+            return resp.status_code == 200
+        except Exception:
+            return False

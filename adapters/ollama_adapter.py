@@ -26,10 +26,8 @@ class OllamaAdapter(BaseAdapter):
     def execute_task(self, task: str, context: Dict[str, Any]) -> AgentResponse:
         """Execute a task using Ollama Code.
         
-        Ollama has main three modal:
-        1 - codellama  is good at implementation
-        2 - mistral-instruc is good at general task
-        3 - deepseek-coder is good at strong coding
+        Ollama is typically used for implementation and quick refinement tasks.
+
         """
         prompt = self._build_system_prompt(task,context)
 
@@ -56,7 +54,21 @@ class OllamaAdapter(BaseAdapter):
                   "model": self.model,
               },
           )
+        except httpx.HTTPStatusError as e:
+            self.logger.error(f"Ollama returned error status: {e}", exc_info=True)
+            return AgentResponse(
+                success=False,
+                output="",
+                error=f"HTTP error: {str(e)}",
+            )
 
+        except httpx.RequestError as e:
+            self.logger.error(f"Ollama request failed: {e}", exc_info=True)
+            return AgentResponse(
+                success=False,
+                output="",
+                error=f"Connection error: {str(e)}",
+            )
         except Exception as e:
             self.logger.error(f"Ollama execution failed: {e}", exc_info=True)
             return AgentResponse(
@@ -127,7 +139,7 @@ class OllamaAdapter(BaseAdapter):
 
         return "\n".join(parts)
         
-    def health_check(self) -> bool:
+    def is_available(self) -> bool:
         try:
             resp = httpx.get(f"{self.endpoint}/api/tags", timeout=5)
             return resp.status_code == 200
@@ -136,5 +148,10 @@ class OllamaAdapter(BaseAdapter):
     
     def list_models(self) -> list[str]:
         """Return available models on the Ollama server."""
-        resp = httpx.get(f"{self.endpoint}/api/tags")
-        return [m["name"] for m in resp.json().get("models", [])]
+        try:
+            resp = httpx.get(f"{self.endpoint}/api/tags")
+            resp.raise_for_status()
+            return [m["name"] for m in resp.json().get("models", [])]
+        except (httpx.RequestError, httpx.HTTPStatusError) as e:
+            self.logger.error(f"Failed to list Ollama models: {e}")
+            return []
