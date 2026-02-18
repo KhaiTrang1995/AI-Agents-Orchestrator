@@ -1,15 +1,14 @@
-"""Adapter for Ollama local modal."""
+"""Adapter for Ollama local model."""
 
 from typing import Any, Dict, List
 import httpx
 from .base import AgentCapability, AgentResponse, BaseAdapter
 
 class OllamaAdapter(BaseAdapter):
-    """Adapter for interacting with Ollama local modal."""
+    """Adapter for interacting with Ollama local model."""
     def __init__(self, config):
       """Initializes the Ollama adapter."""
       super().__init__(config)
-      self.command = config.get('command','Ollama')
       self.model = config.get("model", "codellama:13b")
       self.endpoint = config.get("endpoint", "http://localhost:11434")
 

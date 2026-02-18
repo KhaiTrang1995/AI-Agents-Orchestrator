@@ -1,11 +1,11 @@
-"""Adapter for LlamaCpp local modal."""
+"""Adapter for LlamaCpp local model."""
 
 from typing import Any, Dict, List
 import httpx
 from .base import AgentCapability, AgentResponse, BaseAdapter
 
 class LlamaCppAdapter(BaseAdapter):
-    """Adapter for interacting with LlamaCpp local modal."""
+    """Adapter for interacting with LlamaCpp local model."""
     def __init__(self, config):
       """Initializes the LlamaCpp adapter."""
       super().__init__(config)
