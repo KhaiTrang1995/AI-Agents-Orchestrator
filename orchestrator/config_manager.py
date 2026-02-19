@@ -15,7 +15,7 @@ class AgentConfig(BaseSettings):
     enabled: bool = True
     command: Optional[str] = None
     role: Optional[str] = None
-    timeout: int = 300
+    timeout: int = 1800
     max_retries: int = 3
     description: str = ""
     endpoint: Optional[str] = None
@@ -65,7 +65,7 @@ class PerformanceSettings(BaseSettings):
     enable_caching: bool = True
     cache_ttl: int = 3600
     max_concurrent_agents: int = 3
-    request_timeout: int = 600
+    request_timeout: int = 1800
     enable_async_execution: bool = True
 
     model_config = SettingsConfigDict(extra="allow")

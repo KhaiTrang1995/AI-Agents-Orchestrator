@@ -63,7 +63,7 @@ class BaseAdapter(ABC):
         self.command = config.get("command", "")
         self.endpoint = str(config.get("endpoint", ""))
         self.enabled = config.get("enabled", True)
-        self.timeout = config.get("timeout", 300)  # 5 minutes default
+        self.timeout = config.get("timeout", 1800)  # 30 minutes default
         self.logger = logging.getLogger(f"adapter.{self.name}")
 
         # Initialize CLI communicator only if modal is not local llm

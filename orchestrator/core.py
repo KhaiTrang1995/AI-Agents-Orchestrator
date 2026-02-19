@@ -77,24 +77,28 @@ class Orchestrator:
                     "enabled": True,
                     "command": "codex",
                     "role": "implementation",
+                    "timeout": 1800,
                 },
                 "gemini": {
                     "type": "cli",
                     "enabled": True,
                     "command": "gemini-cli",
                     "role": "review",
+                    "timeout": 1800,
                 },
                 "claude": {
                     "type": "cli",
                     "enabled": True,
                     "command": "claude",
                     "role": "refinement",
+                    "timeout": 1800,
                 },
                 "copilot": {
                     "type": "cli",
                     "enabled": False,
                     "command": "github-copilot-cli",
                     "role": "suggestions",
+                    "timeout": 1800,
                 },
                 "local-code": {
                     "type": "ollama",
@@ -102,6 +106,7 @@ class Orchestrator:
                     "model": "codellama:13b",
                     "endpoint": "http://localhost:11434",
                     "offline": True,
+                    "timeout": 1800,
                 },
                 "local-instruct": {
                     "type": "ollama",
@@ -109,12 +114,14 @@ class Orchestrator:
                     "model": "mistral:7b-instruct",
                     "endpoint": "http://localhost:11434",
                     "offline": True,
+                    "timeout": 1800,
                 },
                 "local-large": {
                     "type": "llamacpp",
                     "enabled": False,
                     "endpoint": "http://localhost:8080",
                     "offline": True,
+                    "timeout": 1800,
                 },
             },
             "workflows": {

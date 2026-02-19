@@ -28,7 +28,7 @@ class OllamaAdapter(BaseAdapter):
         super().__init__(local_config)
         self.model = local_config.get("model", "codellama:13b")
         self.endpoint = str(local_config.get("endpoint", "http://localhost:11434")).rstrip("/")
-        self.timeout = int(local_config.get("timeout", 300))
+        self.timeout = int(local_config.get("timeout", 1800))
         self.keep_alive = local_config.get("keep_alive", "5m")
 
     def get_capabilities(self) -> list[AgentCapability]:

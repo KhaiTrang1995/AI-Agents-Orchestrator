@@ -8,7 +8,7 @@ agents:
     enabled: true
     command: "codex"
     role: "implementation"
-    timeout: 300
+    timeout: 1800
     description: "Primary implementation agent for writing initial code"
 
   gemini:
@@ -16,7 +16,7 @@ agents:
     enabled: true
     command: "gemini"
     role: "review"
-    timeout: 180
+    timeout: 1800
     description: "Reviews code for SOLID principles and best practices"
 
   claude:
@@ -24,7 +24,7 @@ agents:
     enabled: true
     command: "claude"
     role: "refinement"
-    timeout: 300
+    timeout: 1800
     description: "Implements feedback and refines code quality"
 
   copilot:
@@ -32,7 +32,7 @@ agents:
     enabled: false
     command: "copilot"
     role: "suggestions"
-    timeout: 120
+    timeout: 1800
     description: "Provides alternative implementation suggestions"
 
   # Local/offline agents (name is user-defined; type selects adapter)
@@ -42,7 +42,7 @@ agents:
     model: "codellama:13b"
     endpoint: "http://localhost:11434"
     offline: true
-    timeout: 300
+    timeout: 1800
     capabilities: [code, review]
     description: "Local coding model via Ollama"
 
@@ -52,7 +52,7 @@ agents:
     model: "mistral:7b-instruct"
     endpoint: "http://localhost:11434"
     offline: true
-    timeout: 300
+    timeout: 1800
     capabilities: [general, docs]
     description: "Local instruction/reasoning model via Ollama"
 
@@ -61,7 +61,7 @@ agents:
     enabled: false
     endpoint: "http://localhost:8080"
     offline: true
-    timeout: 300
+    timeout: 1800
     capabilities: [code, review, docs]
     description: "Local llama.cpp/OpenAI-compatible model endpoint"
 

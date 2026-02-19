@@ -22,7 +22,7 @@ class LlamaCppAdapter(BaseAdapter):
         self.model_path = local_config.get("model_path")
         self.max_tokens = int(local_config.get("max_tokens", 4096))
         self.temperature = float(local_config.get("temperature", 0.7))
-        self.timeout = int(local_config.get("timeout", 300))
+        self.timeout = int(local_config.get("timeout", 1800))
 
     def get_capabilities(self) -> list[AgentCapability]:
         """Return supported coding and review capabilities."""

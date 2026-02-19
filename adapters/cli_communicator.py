@@ -33,7 +33,7 @@ class CLICommunicator:
         self,
         prompt: str,
         method: str = "stdin",
-        timeout: int = 300,
+        timeout: int = 1800,
         working_dir: Optional[str] = None,
     ) -> Tuple[bool, str, str]:
         """Execute CLI command with a prompt using the specified method.
@@ -251,7 +251,7 @@ EOF
             return False, "", str(e)
 
     def execute_in_workspace(
-        self, prompt: str, workspace_dir: str, timeout: int = 300, method: str = "arg"
+        self, prompt: str, workspace_dir: str, timeout: int = 1800, method: str = "arg"
     ) -> Tuple[bool, str, str, List[str]]:
         """Execute CLI in a workspace directory and track file changes.
 
