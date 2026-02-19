@@ -54,7 +54,7 @@ class MetricsCollector:
             "orchestrator_task_duration_seconds",
             "Task execution duration in seconds",
             ["workflow"],
-            buckets=[1, 5, 10, 30, 60, 120, 300, 600, 1800],
+            buckets=[1, 5, 10, 30, 60, 120, 300, 600, 1800, 3600],
             registry=self.registry,
         )
 

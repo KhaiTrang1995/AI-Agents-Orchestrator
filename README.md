@@ -139,14 +139,18 @@ flowchart TB
 
 - 🤝 **Multi-Agent Collaboration** - Coordinate multiple AI assistants in intelligent workflows
 - 💬 **Interactive Shell** - REPL-style interface with natural conversation flow
-- 🌐 **Web UI** - Modern Vue 3 interface with real-time updates and Monaco editor
+- 🔄 **Iterative Development** - Support for multiple iterations with context preservation
+- 🌐 **Web UI** - Modern Vue 3 interface with real-time updates and Monaco editor & Pinia state management
 - 📝 **Conversation Mode** - ChatGPT-like experience with context preservation
 - 💾 **Session Management** - Save and restore conversation history
 - ⚙️ **Configurable Workflows** - Define custom collaboration patterns (default, quick, thorough)
 - 🔧 **Extensible Architecture** - Easy to add new AI agents
+- 🔁 **Cloud-to-Local Fallback** - Automatic fallback to local models if cloud agents are unavailable
 - 📴 **Offline/Local LLM Support** - Run with Ollama and OpenAI-compatible local endpoints
+- 📊 **Multiple Sessions Support** - Support for multiple concurrent sessions with separate contexts
+- 🧠 **Context-Aware Follow-ups** - Smart detection of follow-up messages without explicit commands
 
-### Production-Ready Features
+### Production-Grade Features
 
 - 🛡️ **Security** - Input validation, rate limiting, secret management, audit logging
 - 📊 **Monitoring** - Prometheus metrics, structured logging, health checks
