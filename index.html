@@ -87,8 +87,8 @@
             <div class="card-icon">🤝</div>
             <h3>Multi-Agent Collaboration</h3>
             <p>
-              Coordinate Claude, Codex, Gemini, and Copilot to work together on
-              your code with intelligent workflows.
+              Coordinate Claude, Codex, Gemini, Copilot, and local model
+              backends with intelligent workflows.
             </p>
           </div>
           <div class="overview-card">
@@ -104,7 +104,7 @@
             <h3>Configurable Workflows</h3>
             <p>
               Define custom collaboration patterns or use built-in workflows for
-              different scenarios.
+              different scenarios, including offline and hybrid execution.
             </p>
           </div>
           <div class="overview-card">
@@ -117,23 +117,38 @@
           </div>
         </div>
 
+        <div class="architecture-description" style="margin-top: 1.25rem">
+          <p>
+            Latest implementation supports type-based adapter resolution
+            (dynamic agent names), local/offline backends (Ollama +
+            OpenAI-compatible), cloud-to-local fallback on recoverable failures,
+            and live local model status probing in the Web UI.
+          </p>
+        </div>
+
         <!-- Simple Workflow Diagram -->
         <div class="diagram-container">
           <h3 class="diagram-title">How It Works</h3>
           <pre class="mermaid">
 graph LR
     A[User Request] --> B[AI Orchestrator]
-    B --> C[Codex: Implementation]
-    C --> D[Gemini: Review]
-    D --> E[Claude: Refinement]
-    E --> F[Quality Code]
+    B --> C{Offline Mode?}
+    C -->|Yes| D[Route to Local Agent by type]
+    C -->|No| E[Route to Cloud or Local Agent]
+    D --> F[Execute Workflow Step]
+    E --> F
+    F --> G{Step Success?}
+    G -->|Yes| H[Next Step]
+    G -->|Recoverable failure| I[Fallback Agent]
+    I --> H
+    H --> J[Final Output + Files]
 
     style A fill:#667eea,stroke:#667eea,color:#fff
     style B fill:#764ba2,stroke:#764ba2,color:#fff
-    style C fill:#f093fb,stroke:#f093fb,color:#fff
-    style D fill:#4facfe,stroke:#4facfe,color:#fff
-    style E fill:#00f2fe,stroke:#00f2fe,color:#fff
-    style F fill:#43e97b,stroke:#43e97b,color:#fff
+    style D fill:#43e97b,stroke:#43e97b,color:#fff
+    style E fill:#4facfe,stroke:#4facfe,color:#fff
+    style I fill:#f093fb,stroke:#f093fb,color:#fff
+    style J fill:#00c853,stroke:#00c853,color:#fff
                 </pre
           >
         </div>
@@ -141,7 +156,7 @@ graph LR
         <!-- Stats -->
         <div class="stats-grid">
           <div class="stat-item">
-            <div class="stat-number">4</div>
+            <div class="stat-number">6+</div>
             <div class="stat-label">AI Agents</div>
           </div>
           <div class="stat-item">
@@ -149,7 +164,7 @@ graph LR
             <div class="stat-label">Python Files</div>
           </div>
           <div class="stat-item">
-            <div class="stat-number">5</div>
+            <div class="stat-number">7+</div>
             <div class="stat-label">Workflows</div>
           </div>
           <div class="stat-item">
@@ -175,6 +190,25 @@ graph LR
               <li><strong>Gemini:</strong> Code review & analysis</li>
               <li><strong>Claude:</strong> Refinement & documentation</li>
               <li><strong>Copilot:</strong> Alternative suggestions</li>
+              <li>
+                <strong>Ollama/llama.cpp:</strong> Local offline execution
+              </li>
+            </ul>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">📴</div>
+            <h3>Offline + Local LLM Support</h3>
+            <ul class="feature-list">
+              <li>Run local-only workflows with <code>--offline</code></li>
+              <li>Dynamic agent keys resolved by <code>type</code></li>
+              <li>
+                Supported local types: <code>ollama</code>,
+                <code>llamacpp</code>, <code>localai</code>,
+                <code>text-generation-webui</code>
+              </li>
+              <li>Built-in cloud-to-local fallback routing</li>
+              <li>CLI local model lifecycle: status/list/pull/remove</li>
             </ul>
           </div>
 
@@ -197,6 +231,7 @@ graph LR
               <li>Vue 3 with Composition API</li>
               <li>Real-time updates via Socket.IO</li>
               <li>Monaco code editor (VS Code)</li>
+              <li>Pinia state management</li>
               <li>File management & downloads</li>
               <li>Conversation mode toggle</li>
             </ul>
@@ -276,6 +311,11 @@ graph LR
             clear separation of concerns. It's designed for extensibility,
             reliability, and production-grade performance.
           </p>
+          <p>
+            Runtime controls now include offline detection, fallback management,
+            and local model endpoint probing. This allows hybrid and offline
+            execution without changing core orchestration flow.
+          </p>
         </div>
 
         <div class="diagram-container">
@@ -291,6 +331,7 @@ flowchart TB
         Workflow[Workflow<br/>Manager]
         Config[Config<br/>Manager]
         Session[Session<br/>Manager]
+        Router[Type-based<br/>Adapter Resolver]
     end
 
     subgraph "Cross-Cutting<br/>Concerns"
@@ -305,6 +346,14 @@ flowchart TB
         Codex[Codex<br/>Adapter]
         Gemini[Gemini<br/>Adapter]
         Copilot[Copilot<br/>Adapter]
+        Ollama[Ollama<br/>Adapter]
+        LlamaCpp[LlamaCpp<br/>Adapter]
+    end
+
+    subgraph "Runtime<br/>Controls"
+        Offline[Offline<br/>Detector]
+        Fallback[Fallback<br/>Manager]
+        ModelStatus[Local Model<br/>Status Probe]
     end
 
     subgraph "External AI<br/>Tools"
@@ -312,6 +361,8 @@ flowchart TB
         CodexCLI[OpenAI Codex<br/>CLI]
         GeminiCLI[Google Gemini<br/>CLI]
         CopilotCLI[GitHub Copilot<br/>CLI]
+        OllamaAPI[Ollama API<br/>/api/generate]
+        OpenAICompat[Local OpenAI-Compatible API<br/>/v1/completions]
     end
 
     CLI --> Engine
@@ -319,6 +370,12 @@ flowchart TB
     Engine --> Workflow
     Engine --> Config
     Engine --> Session
+    Engine --> Router
+    Engine --> Offline
+    Engine --> Fallback
+    WebUI --> ModelStatus
+    ModelStatus --> OllamaAPI
+    ModelStatus --> OpenAICompat
     Workflow --> Metrics
     Workflow --> Cache
     Workflow --> Retry
@@ -327,15 +384,21 @@ flowchart TB
     Workflow --> Codex
     Workflow --> Gemini
     Workflow --> Copilot
+    Workflow --> Ollama
+    Workflow --> LlamaCpp
     Claude --> ClaudeCLI
     Codex --> CodexCLI
     Gemini --> GeminiCLI
     Copilot --> CopilotCLI
+    Ollama --> OllamaAPI
+    LlamaCpp --> OpenAICompat
 
     style CLI fill:#667eea,stroke:#667eea,color:#fff
     style WebUI fill:#667eea,stroke:#667eea,color:#fff
     style Engine fill:#4facfe,stroke:#4facfe,color:#fff
     style Workflow fill:#43e97b,stroke:#43e97b,color:#fff
+    style Offline fill:#ffe082,stroke:#ffca28,color:#000
+    style Fallback fill:#f8bbd0,stroke:#ec407a,color:#000
                 </pre>
         </div>
 
@@ -436,6 +499,19 @@ chmod +x ai-orchestrator</code></pre>
           </div>
         </div>
 
+        <div class="example-usage">
+          <h3>Local/Offline Quick Start</h3>
+          <pre><code># Start local backend (example: Ollama)
+ollama serve
+ollama pull codellama:13b
+
+# Check local backend and model status
+./ai-orchestrator models status
+
+# Run local-only workflow
+./ai-orchestrator run "Build a Python CLI todo app" --workflow offline-default --offline</code></pre>
+        </div>
+
         <div class="prerequisites">
           <h3>Prerequisites</h3>
           <ul>
@@ -444,6 +520,10 @@ chmod +x ai-orchestrator</code></pre>
             <li>
               <strong>At least one AI CLI</strong> - Claude, Codex, Gemini, or
               Copilot
+            </li>
+            <li>
+              <strong>Optional local backend</strong> - Ollama or any
+              OpenAI-compatible local server for offline/hybrid runs
             </li>
             <li>
               <strong>Docker</strong> - For containerized deployment (optional)
@@ -518,6 +598,18 @@ orchestrator (default) &gt; /save user-api-project
                 <td>2</td>
                 <td>Generating documentation</td>
               </tr>
+              <tr>
+                <td><strong>offline-default</strong></td>
+                <td>local-code → local-instruct</td>
+                <td>2</td>
+                <td>Local-only execution in offline/air-gapped setups</td>
+              </tr>
+              <tr>
+                <td><strong>hybrid</strong></td>
+                <td>local-code → claude (fallback local-instruct)</td>
+                <td>2</td>
+                <td>Local draft with cloud review and local failover</td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -527,30 +619,32 @@ orchestrator (default) &gt; /save user-api-project
           <pre class="mermaid">
 graph TD
     START([Start]) --> LOAD[Load Workflow Config]
-    LOAD --> VALIDATE[Validate Configuration]
-    VALIDATE --> INIT[Initialize Agents]
+    LOAD --> NORM[Normalize legacy and steps formats]
+    NORM --> VALIDATE[Validate workflow and agent availability]
+    VALIDATE --> INIT[Initialize adapters by type]
     INIT --> ITER{Iteration &lt; Max?}
 
-    ITER -->|Yes| EXEC[Execute Workflow Steps]
-    EXEC --> AGENT1[Agent 1]
-    AGENT1 --> AGENT2[Agent 2]
-    AGENT2 --> AGENT3[Agent 3]
+    ITER -->|Yes| STEP[Execute step with primary agent]
+    STEP --> OK{Success?}
+    OK -->|Yes| CTX[Update context]
+    OK -->|No recoverable| FB[Run configured fallback]
+    FB --> CTX
+    OK -->|No non-recoverable| FAIL[Record step failure]
+    FAIL --> CTX
+    CTX --> CHECK{Stop criteria met?}
 
-    AGENT3 --> COLLECT[Collect Feedback]
-    COLLECT --> CHECK{Sufficient<br/>Suggestions?}
-
-    CHECK -->|Yes| UPDATE[Update Context]
-    UPDATE --> ITER
-
-    CHECK -->|No| AGG[Aggregate Results]
+    CHECK -->|No| ITER
+    CHECK -->|Yes| AGG[Aggregate iteration outputs]
     ITER -->|No| AGG
 
-    AGG --> REPORT[Generate Report]
+    AGG --> REPORT[Generate final result]
     REPORT --> END([End])
 
     style START fill:#667eea,stroke:#667eea,color:#fff
     style END fill:#43e97b,stroke:#43e97b,color:#fff
-                </pre>
+    style FB fill:#f8bbd0,stroke:#ec407a,color:#000
+                </pre
+          >
         </div>
 
         <div class="custom-workflow">
@@ -559,17 +653,21 @@ graph TD
             Define your own workflows in
             <code style="color: rebeccapurple">config/agents.yaml</code>:
           </p>
-          <pre><code>workflows:
+          <pre><code>agents:
+  my-custom-llama:
+    type: llamacpp
+    endpoint: http://localhost:9000
+    offline: true
+    enabled: true
+
+workflows:
   custom:
-    max_iterations: 4
-    min_suggestions_threshold: 5
     steps:
-      - agent: "codex"
-        task: "implement"
+      - agent: "my-custom-llama"
+        role: "implementer"
       - agent: "gemini"
-        task: "security_review"
-      - agent: "claude"
-        task: "refine"</code></pre>
+        role: "reviewer"
+        fallback: "my-custom-llama"</code></pre>
         </div>
       </div>
     </section>
@@ -632,7 +730,7 @@ graph TD
             <div class="tech-category">
               <h4>Web UI</h4>
               <ul>
-                <li>Vue 3</li>
+                <li>Vue 3 & Pinia</li>
                 <li>Vite</li>
                 <li>TailwindCSS</li>
                 <li>Monaco Editor</li>
@@ -644,7 +742,7 @@ graph TD
                 <li>Flask</li>
                 <li>Flask-SocketIO</li>
                 <li>Socket.IO</li>
-                <li>Pinia</li>
+                <li>Gunicorn</li>
               </ul>
             </div>
             <div class="tech-category">
@@ -740,6 +838,7 @@ graph TD
             <span>Vue 3</span>
             <span>Flask</span>
             <span>Monaco Editor</span>
+            <span>Pinia</span>
             <span>Prometheus</span>
             <span>Docker</span>
             <span>Kubernetes</span>
@@ -809,6 +908,7 @@ orchestrator (default) &gt; add authentication
               <ul>
                 <li>Real-time progress tracking with live updates</li>
                 <li>Monaco code editor (same as VS Code)</li>
+                <li>Pinia state management</li>
                 <li>File browser and management</li>
                 <li>Conversation mode for iterative development</li>
                 <li>Workflow and iteration visualization</li>
@@ -825,6 +925,10 @@ orchestrator (default) &gt; add authentication
                 <div class="ui-feature">
                   <strong>Code Editor</strong>
                   <p>Full Monaco editor with IntelliSense</p>
+                </div>
+                <div class="ui-feature">
+                  <strong>File Management</strong>
+                  <p>View, download, and manage generated files</p>
                 </div>
               </div>
             </div>
