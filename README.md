@@ -3,6 +3,8 @@
 ![Python](https://img.shields.io/badge/Python-3.8%2B-blue?logo=python&logoColor=white)
 ![Vue.js](https://img.shields.io/badge/Vue.js-3.x-4FC08D?logo=vue.js&logoColor=white)
 ![Nuxt](https://img.shields.io/badge/Nuxt-3.x-00C58E?logo=nuxt&logoColor=white)
+![Apollo Vue GraphQL](https://img.shields.io/badge/Apollo_Vue_GraphQL-3.x-311C87?logo=apollo-graphql&logoColor=white)
+![Pinia](https://img.shields.io/badge/Pinia-2.x-FFD859?logo=pinia&logoColor=black)
 ![Flask](https://img.shields.io/badge/Flask-2.x-000000?logo=flask&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED?logo=docker&logoColor=white)
 ![Kubernetes](https://img.shields.io/badge/Kubernetes-Ready-326CE5?logo=kubernetes&logoColor=white)
@@ -16,7 +18,6 @@
 ![Vite](https://img.shields.io/badge/Vite-5.x-646CFF?logo=vite&logoColor=white)
 ![TailwindCSS](https://img.shields.io/badge/Tailwind-3.x-06B6D4?logo=tailwindcss&logoColor=white)
 ![Monaco](https://img.shields.io/badge/Monaco_Editor-VS_Code-007ACC?logo=visualstudiocode&logoColor=white)
-![Pinia](https://img.shields.io/badge/Pinia-2.x-FFD859?logo=pinia&logoColor=black)
 ![Pytest](https://img.shields.io/badge/Pytest-7.x-0A9EDC?logo=pytest&logoColor=white)
 ![MyPy](https://img.shields.io/badge/MyPy-Type_Checked-3776AB?logo=python&logoColor=white)
 ![Black](https://img.shields.io/badge/Code_Style-Black-000000?logo=python&logoColor=white)
@@ -28,7 +29,7 @@
 
 <div align="center">
 
-**Production-ready orchestration system that coordinates multiple AI coding assistants (Claude, Codex, Gemini, Copilot) to collaborate on software development tasks**
+**Production-ready orchestration system that coordinates cloud and local AI coding assistants (Claude, Codex, Gemini, Copilot, Ollama, llama.cpp-compatible) to collaborate on software development tasks**
 
 [Features](#-features) • [Quick Start](#-quick-start) • [Documentation](#-documentation) • [Architecture](ARCHITECTURE.md) • [Setup Guide](SETUP.md) • [Feature Docs](FEATURES.md) • [Add New Agents](ADD_AGENTS.md) • [Deployment](DEPLOYMENT.md)
 
@@ -38,16 +39,18 @@
 
 ## 🎯 Overview
 
-AI Coding Tools Orchestrator is an enterprise-grade system that enables multiple AI coding assistants to work together collaboratively. It provides a unified interface (CLI and Web UI) to coordinate Claude Code, OpenAI Codex, Google Gemini, and GitHub Copilot for complex software development tasks.
+AI Coding Tools Orchestrator is an enterprise-grade system that enables multiple AI coding assistants to work together collaboratively. It provides a unified interface (CLI and Web UI) to coordinate cloud CLIs (Claude Code, OpenAI Codex, Google Gemini, GitHub Copilot) and local backends (Ollama and OpenAI-compatible local servers) for complex software development tasks.
 
 ### How It Works
 
 ```mermaid
 graph LR
     A[User Request] --> B[AI Orchestrator]
-    B --> C[Codex: Implementation]
-    C --> D[Gemini: Review]
-    D --> E[Claude: Refinement]
+    B --> C[Primary Workflow Agent]
+    C --> D{Primary Available?}
+    D -->|Yes| E[Continue Workflow]
+    D -->|No| G[Fallback Agent]
+    G --> E
     E --> F[Final Code]
 ```
 
@@ -79,6 +82,8 @@ flowchart TB
         Codex[Codex Adapter]
         Gemini[Gemini Adapter]
         Copilot[Copilot Adapter]
+        Ollama[Ollama Adapter]
+        LlamaCpp[LlamaCpp Adapter]
     end
 
     subgraph External AI Tools
@@ -86,6 +91,13 @@ flowchart TB
         CodexCLI[OpenAI Codex CLI]
         GeminiCLI[Google Gemini CLI]
         CopilotCLI[GitHub Copilot CLI]
+        OllamaAPI[Ollama API]
+        LocalOpenAI[Local OpenAI-Compatible API]
+    end
+
+    subgraph Runtime Controls
+        Fallback[Fallback Manager]
+        Offline[Offline Detector]
     end
 
     CLI --> Engine
@@ -93,6 +105,8 @@ flowchart TB
     Engine --> Workflow
     Engine --> Config
     Engine --> Session
+    Engine --> Fallback
+    Engine --> Offline
     Workflow --> Metrics
     Workflow --> Cache
     Workflow --> Retry
@@ -101,14 +115,22 @@ flowchart TB
     Workflow --> Codex
     Workflow --> Gemini
     Workflow --> Copilot
+    Workflow --> Ollama
+    Workflow --> LlamaCpp
     Claude --> ClaudeCLI
     Codex --> CodexCLI
     Gemini --> GeminiCLI
     Copilot --> CopilotCLI
+    Ollama --> OllamaAPI
+    LlamaCpp --> LocalOpenAI
 ```
 
 <p align="center">
   <img src="docs/images/cli.png" alt="CLI Interface" width="100%"/>
+</p>
+
+<p align="center">
+  <img src="docs/images/cli-2.png" alt="System Architecture" width="100%"/>
 </p>
 
 ## ✨ Features
@@ -122,6 +144,7 @@ flowchart TB
 - 💾 **Session Management** - Save and restore conversation history
 - ⚙️ **Configurable Workflows** - Define custom collaboration patterns (default, quick, thorough)
 - 🔧 **Extensible Architecture** - Easy to add new AI agents
+- 📴 **Offline/Local LLM Support** - Run with Ollama and OpenAI-compatible local endpoints
 
 ### Production-Ready Features
 
@@ -142,7 +165,8 @@ flowchart TB
 ### Prerequisites
 
 - Python 3.8 or higher
-- At least one AI CLI tool installed (Claude Code, Codex, Gemini, or Copilot), authenticated, and accessible from INSIDE the `venv` where the orchestrator runs (if you run it inside a virtual environment)
+- At least one cloud AI CLI tool installed (Claude Code, Codex, Gemini, or Copilot), authenticated, and accessible from INSIDE the `venv` where the orchestrator runs (if using cloud workflows)
+- Optional for offline/local workflows: a local backend such as Ollama (`http://localhost:11434`) or an OpenAI-compatible local server (`http://localhost:8080`)
 - Node.js 20+ (for Web UI)
 - Docker (optional)
 
@@ -256,6 +280,8 @@ Open http://localhost:3000
 | **thorough** | Multi-agent with extra review | Mission-critical or security-sensitive code |
 | **review-only** | Gemini → Claude | Analyzing and improving existing code |
 | **document** | Claude → Gemini | Generating comprehensive documentation |
+| **offline-default** | local-code → local-instruct | Local-only execution with no cloud dependency |
+| **hybrid** | local-code → claude (fallback local-instruct) | Local drafting with cloud review and automatic fallback |
 
 ### CLI Commands
 
@@ -272,7 +298,26 @@ Open http://localhost:3000
 ./ai-orchestrator agents       # List available agents
 ./ai-orchestrator workflows    # List available workflows
 ./ai-orchestrator validate     # Validate configuration
+./ai-orchestrator models status # Check local model endpoint health
+./ai-orchestrator models list   # List discovered local models
+./ai-orchestrator models pull codellama:13b
+./ai-orchestrator models remove codellama:13b
+./ai-orchestrator test-agent local-code "Write hello world in Python"
+./ai-orchestrator run "task" --offline
 ./ai-orchestrator version      # Show version info
+```
+
+### Dynamic Agent Configuration
+
+Agent names are dynamic. Adapter selection is based on `type` in `config/agents.yaml`:
+
+```yaml
+agents:
+  my-custom-llama:
+    type: llamacpp
+    endpoint: http://localhost:9000
+    offline: true
+    enabled: true
 ```
 
 ## 📁 Project Structure
@@ -281,50 +326,55 @@ Open http://localhost:3000
 AI-Agents-Orchestrator/
 ├── ai-orchestrator           # Main CLI entry point
 ├── orchestrator/             # Core orchestration engine
-│   ├── core.py              # Main orchestrator logic
-│   ├── workflow.py          # Workflow management
-│   ├── shell.py             # Interactive shell/REPL
-│   ├── config_manager.py    # Configuration handling
-│   ├── metrics.py           # Prometheus metrics
-│   ├── security.py          # Security utilities
-│   ├── cache.py             # Caching layer
-│   └── retry.py             # Retry logic
+│   ├── core.py               # Main orchestrator logic
+│   ├── workflow.py           # Workflow management
+│   ├── shell.py              # Interactive shell/REPL
+│   ├── config_manager.py     # Configuration handling
+│   ├── metrics.py            # Prometheus metrics
+│   ├── security.py           # Security utilities
+│   ├── cache.py              # Caching layer
+│   ├── retry.py              # Retry logic
+│   ├── fallback.py           # Cloud-to-local fallback manager
+│   └── offline.py            # Offline detection with cached checks
 ├── adapters/                 # AI agent adapters
-│   ├── base.py              # Base adapter interface
-│   ├── claude_adapter.py    # Claude Code integration
-│   ├── codex_adapter.py     # OpenAI Codex integration
-│   ├── gemini_adapter.py    # Google Gemini integration
-│   ├── copilot_adapter.py   # GitHub Copilot integration
-│   └── cli_communicator.py  # Robust CLI communication
+│   ├── base.py               # Base adapter interface
+│   ├── claude_adapter.py     # Claude Code integration
+│   ├── codex_adapter.py      # OpenAI Codex integration
+│   ├── gemini_adapter.py     # Google Gemini integration
+│   ├── copilot_adapter.py    # GitHub Copilot integration
+│   ├── ollama_adapter.py     # Ollama local model integration
+│   ├── llama_cpp_adapter.py  # llama.cpp/OpenAI-compatible local integration
+│   └── cli_communicator.py   # Robust CLI communication
 ├── ui/                       # Web UI
-│   ├── app.py               # Flask backend with Socket.IO
-│   ├── frontend/            # Vue 3 frontend
+│   ├── app.py                # Flask backend with Socket.IO
+│   ├── frontend/             # Vue 3 frontend
 │   │   ├── src/
 │   │   │   ├── App.vue
 │   │   │   ├── components/
-│   │   │   └── stores/      # Pinia state management
+│   │   │   └── stores/       # Pinia state management
 │   │   └── package.json
 │   └── requirements.txt
 ├── config/
-│   └── agents.yaml          # Agent and workflow configuration
+│   └── agents.yaml           # Agent and workflow configuration
 ├── tests/                    # Comprehensive test suite
 │   ├── test_orchestrator.py
 │   ├── test_adapters.py
 │   ├── test_integration.py
 │   └── test_shell.py
 ├── docs/                     # Documentation
-│   ├── images/              # Screenshots
-│   ├── ARCHITECTURE.md
-│   ├── FEATURES.md
-│   ├── SETUP.md
-│   └── ADD_AGENTS.md
+│   ├── images/               # Screenshots
 ├── deployment/               # Deployment configs
 │   ├── kubernetes/
 │   └── systemd/
 ├── Dockerfile
 ├── docker-compose.yml
 ├── Makefile                  # Development commands
-├── pyproject.toml           # Project metadata
+├── ARCHITECTURE.md
+├── FEATURES.md
+├── SETUP.md
+├── ADD_AGENTS.md
+├── OFFLINE_MODE.md           # Offline mode and local model guide
+├── pyproject.toml            # Project metadata
 ├── requirements.txt
 └── README.md
 ```
@@ -419,6 +469,7 @@ pre-commit run --all-files
 - **[FEATURES.md](FEATURES.md)** - Comprehensive feature documentation
 - **[SETUP.md](SETUP.md)** - Installation and setup guide
 - **[ADD_AGENTS.md](ADD_AGENTS.md)** - Guide for adding new AI agents
+- **[docs/OFFLINE_MODE.md](OFFLINE_MODE.md)** - Offline mode setup, fallback, and local model workflows
 - **[DEPLOYMENT.md](DEPLOYMENT.md)** - Deployment strategies and configurations
 
 ## 🤝 Contributing
@@ -469,7 +520,7 @@ If you find this project useful, please consider giving it a star!
 
 <div align="center">
 
-**Made with ❤️ for the AI development community**
+**Made with ❤️ by [Son Nguyen](https://github.com/hoangsonww) for the AI development community**
 
 [⬆ Back to Top](#ai-coding-tools-orchestrator)
 

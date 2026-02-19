@@ -11,12 +11,16 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class AgentConfig(BaseSettings):
     """Configuration for an individual agent."""
 
+    type: str = "cli"
     enabled: bool = True
-    command: str
-    role: str
+    command: Optional[str] = None
+    role: Optional[str] = None
     timeout: int = 300
     max_retries: int = 3
     description: str = ""
+    endpoint: Optional[str] = None
+    model: Optional[str] = None
+    offline: bool = False
 
     model_config = SettingsConfigDict(extra="allow")
 
@@ -85,7 +89,7 @@ class SecuritySettings(BaseSettings):
     rate_limit_per_minute: int = 60
     max_task_length: int = 10000
     allowed_commands: List[str] = Field(
-        default_factory=lambda: ["codex", "gemini", "claude", "copilot"]
+        default_factory=lambda: ["codex", "gemini", "claude", "copilot", "ollama", "llama-server"]
     )
 
     model_config = SettingsConfigDict(extra="allow")

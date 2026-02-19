@@ -2,13 +2,19 @@
   <div class="min-h-screen bg-gray-50">
     <!-- Header -->
     <header class="bg-white shadow-sm sticky top-0 z-50">
-      <div class="px-6 py-4">
-        <div class="flex items-center justify-between">
-          <div class="flex items-center space-x-4">
+      <div class="px-4 sm:px-6 py-4">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div class="flex items-center gap-3 sm:space-x-4">
             <h1 class="text-2xl font-bold text-gray-900">🤖 AI Orchestrator</h1>
-            <span class="text-sm text-gray-500">Collaborative AI Development</span>
+            <span class="hidden sm:inline text-sm text-gray-500">Collaborative AI Development</span>
           </div>
-          <div class="flex items-center space-x-4">
+          <div class="flex items-center justify-between sm:justify-end gap-3 sm:space-x-4">
+            <div
+              v-if="orchestratorStore.isRunning"
+              class="text-xs px-2 py-1 rounded-full bg-amber-100 text-amber-800 whitespace-nowrap"
+            >
+              Running • {{ orchestratorStore.logs.length }} events
+            </div>
             <StatusBadge :status="orchestratorStore.status" />
             <button
               @click="clearAll"
@@ -37,7 +43,7 @@
     </div>
 
     <!-- Main Layout -->
-    <div class="flex h-[calc(100vh-4rem)]">
+    <div class="flex flex-col lg:flex-row min-h-[calc(100vh-4rem)]">
       <!-- Sidebar -->
       <Sidebar />
 

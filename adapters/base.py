@@ -2,13 +2,17 @@
 Base adapter interface for AI coding assistants.
 """
 
+import asyncio
 import logging
+import shlex
 import subprocess
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Dict, List, Optional
+
 import httpx
+
 from .cli_communicator import AgentCLIRegistry, CLICommunicator
 
 
@@ -57,6 +61,7 @@ class BaseAdapter(ABC):
         self.config = config
         self.name = config.get("name", self.__class__.__name__)
         self.command = config.get("command", "")
+        self.endpoint = str(config.get("endpoint", ""))
         self.enabled = config.get("enabled", True)
         self.timeout = config.get("timeout", 300)  # 5 minutes default
         self.logger = logging.getLogger(f"adapter.{self.name}")
@@ -92,6 +97,15 @@ class BaseAdapter(ABC):
         """
         pass
 
+    async def execute_task_async(self, task: str, context: Dict[str, Any]) -> AgentResponse:
+        """Async execution hook.
+
+        Adapters can override this for native async transport. By default, this
+        delegates to the synchronous implementation in a worker thread.
+        """
+        loop = asyncio.get_running_loop()
+        return await loop.run_in_executor(None, self.execute_task, task, context)
+
     def is_available(self) -> bool:
         """Check if the agent CLI tool is available.
 
@@ -102,9 +116,15 @@ class BaseAdapter(ABC):
             return False
 
         try:
+            command_to_check = self.command
+            if isinstance(command_to_check, str):
+                parts = shlex.split(command_to_check)
+                if parts:
+                    command_to_check = parts[0]
+
             # Check if command exists
             result = subprocess.run(
-                ["which", self.command], capture_output=True, text=True, timeout=5
+                ["which", str(command_to_check)], capture_output=True, text=True, timeout=5
             )
             return result.returncode == 0
         except Exception as e:
@@ -174,8 +194,7 @@ class BaseAdapter(ABC):
             self.logger.error(f"Command execution failed: {e}", exc_info=True)
             return AgentResponse(success=False, output="", error=str(e))
 
-
-    def _run_http_with_prompt(self,payload: Dict)->AgentResponse:
+    def _run_http_with_prompt(self, payload: Dict) -> AgentResponse:
         """Send http request to local endpoint and return AgentResponse"""
         try:
             with httpx.Client(timeout=self.timeout) as client:
@@ -288,14 +307,6 @@ class BaseAdapter(ABC):
         """Return the detailed string representation of the adapter."""
         return f"<{self.__class__.__name__} name={self.name} enabled={self.enabled}>"
 
-    def _update_endpoint(self) :
-        """Combine the endpoint with path"""
-        
-        if self.endpoint[-1] == "/":
-            self.endpoint =  f"{self.endpoint}{self.path}"
-        else:
-            self.endpoint = f"{self.endpoint}/{self.path}"
-    
     def _build_local_llm_prompt(self, task: str, context: Dict[str, Any]) -> str:
         """Build a detailed prompt for llama.cpp."""
         parts: List[str] = []

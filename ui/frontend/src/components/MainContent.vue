@@ -1,14 +1,14 @@
 <template>
-  <div class="p-6">
+  <div class="p-4 sm:p-6">
     <!-- Tabs -->
     <div class="mb-4">
-      <nav class="flex space-x-4 border-b border-gray-200">
+      <nav class="flex space-x-2 sm:space-x-4 border-b border-gray-200 overflow-x-auto">
         <button
           v-for="tab in tabs"
           :key="tab.id"
           @click="activeTab = tab.id"
           :class="[
-            'px-4 py-2 text-sm font-medium border-b-2 transition',
+            'px-3 sm:px-4 py-2 text-sm font-medium border-b-2 transition whitespace-nowrap',
             activeTab === tab.id
               ? 'border-blue-600 text-blue-600'
               : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -22,12 +22,44 @@
     <!-- Tab Content -->
     <div class="space-y-4">
       <!-- Output Tab -->
-      <div v-show="activeTab === 'output'" class="bg-white rounded-lg shadow-sm p-6">
+      <div v-show="activeTab === 'output'" class="bg-white rounded-lg shadow-sm p-4 sm:p-6">
+        <div v-if="store.isRunning" class="mb-4 border border-blue-100 bg-blue-50 rounded-lg p-4">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-sm font-semibold text-blue-800">Execution In Progress</h3>
+            <span class="text-xs text-blue-700 animate-pulse">● Running</span>
+          </div>
+          <p class="text-sm text-blue-900 mb-3">
+            The task is currently executing. Live events will appear below.
+          </p>
+          <div
+            v-if="store.hasLogs"
+            class="bg-slate-900 rounded-md p-3 max-h-44 overflow-y-auto font-mono text-xs"
+          >
+            <div
+              v-for="log in store.logs.slice(-8)"
+              :key="log.id"
+              :class="{
+                'text-blue-300': log.level === 'info',
+                'text-green-300': log.level === 'success',
+                'text-yellow-300': log.level === 'warn' || log.level === 'warning',
+                'text-red-300': log.level === 'error',
+                'text-gray-300': !['info', 'success', 'warn', 'warning', 'error'].includes(log.level)
+              }"
+              class="mb-1"
+            >
+              [{{ log.time }}] {{ log.message }}
+            </div>
+          </div>
+          <div v-else class="text-xs text-blue-700 italic">
+            Waiting for progress events...
+          </div>
+        </div>
+
         <div v-if="store.hasOutput" class="prose max-w-none">
           <pre class="bg-gray-100 p-4 rounded-lg overflow-x-auto text-sm">{{ store.output }}</pre>
         </div>
         <div v-else class="text-gray-500 italic text-center py-12">
-          Output will appear here after task execution...
+          {{ store.isRunning ? 'Execution is running. Output will appear here when available...' : 'Output will appear here after task execution...' }}
         </div>
       </div>
 
@@ -92,7 +124,7 @@
           <h3 class="text-lg font-semibold text-gray-900">Execution Logs</h3>
           <button
             v-if="store.hasLogs"
-            @click="store.logs = []"
+            @click="store.clearLogs()"
             class="px-3 py-1 text-sm text-gray-600 hover:text-gray-900 transition"
           >
             Clear Logs

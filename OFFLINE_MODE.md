@@ -1,0 +1,369 @@
+# Offline Mode Guide
+
+This guide explains how to run the orchestrator with local models, how fallback works, and how to operate cloud/hybrid/offline profiles safely in development and production.
+
+## 1. What Offline Mode Provides
+
+- Run workflows without cloud API access (`--offline` or config-driven offline mode)
+- Use local backends such as Ollama and OpenAI-compatible local servers
+- Configure automatic fallback from cloud agents to local agents on recoverable failures
+- Manage local Ollama models from the CLI (`models status|list|pull|remove`)
+
+## 2. Runtime Decision Model
+
+```mermaid
+flowchart TD
+    A[Start Run] --> B{--offline flag?}
+    B -->|Yes| C[Force Offline Mode]
+    B -->|No| D{settings.offline.enabled?}
+    D -->|Yes| C
+    D -->|No| E{settings.offline.auto_detect?}
+    E -->|No| F[Online/Hybrid Mode]
+    E -->|Yes| G[OfflineDetector HEAD check]
+    G -->|No connectivity| C
+    G -->|Connectivity OK| F
+    C --> H[Initialize local agents only]
+    F --> I[Initialize all enabled agents]
+```
+
+## 3. Supported Backends
+
+| Backend | `type` | Protocol | Notes |
+| --- | --- | --- | --- |
+| Cloud CLI agents | `cli` | Local CLI process | Codex/Gemini/Claude/Copilot adapters |
+| Ollama | `ollama` | `POST /api/generate` | Supports `models pull/remove` via Ollama API |
+| llama.cpp server | `llamacpp` | `POST /v1/completions` | OpenAI-compatible completion endpoint |
+| LocalAI | `localai` | `POST /v1/completions` | Routed through `LlamaCppAdapter` |
+| text-generation-webui | `text-generation-webui` | `POST /v1/completions` | Routed through `LlamaCppAdapter` |
+| Generic OpenAI-compatible local endpoint | `openai-compatible` | `POST /v1/completions` | Routed through `LlamaCppAdapter` |
+
+## 4. Dynamic Agent Naming
+
+Agent keys are dynamic. Adapter selection is based on `type`, not the agent name.
+
+```yaml
+agents:
+  my-custom-llama:
+    type: llamacpp
+    endpoint: http://localhost:9000
+    offline: true
+    enabled: true
+```
+
+## 5. Configuration Patterns
+
+### 5.1 Cloud + Local Hybrid (Recommended)
+
+```yaml
+agents:
+  codex:
+    type: cli
+    command: codex
+    enabled: true
+
+  claude:
+    type: cli
+    command: claude
+    enabled: true
+
+  local-code:
+    type: ollama
+    endpoint: http://localhost:11434
+    model: codellama:13b
+    offline: true
+    enabled: true
+
+  local-instruct:
+    type: ollama
+    endpoint: http://localhost:11434
+    model: mistral:7b-instruct
+    offline: true
+    enabled: true
+
+workflows:
+  hybrid:
+    description: "Local draft, cloud review, local fallback"
+    steps:
+      - agent: local-code
+        role: implementer
+      - agent: claude
+        role: reviewer
+        fallback: local-instruct
+
+settings:
+  fallback:
+    enabled: true
+    map:
+      claude: local-instruct
+      codex: local-code
+  offline:
+    enabled: false
+    auto_detect: true
+```
+
+### 5.2 Strict Offline Profile
+
+```yaml
+agents:
+  local-code:
+    type: ollama
+    endpoint: http://localhost:11434
+    model: codellama:13b
+    offline: true
+    enabled: true
+
+  local-instruct:
+    type: llamacpp
+    endpoint: http://localhost:8080
+    offline: true
+    enabled: true
+
+workflows:
+  offline-default:
+    steps:
+      - agent: local-code
+        role: implementer
+      - agent: local-instruct
+        role: reviewer
+
+settings:
+  offline:
+    enabled: true
+    auto_detect: false
+```
+
+## 6. Workflow Format Support
+
+Both workflow formats are supported:
+
+### Legacy list format
+
+```yaml
+workflows:
+  default:
+    - agent: codex
+      task: implement
+    - agent: gemini
+      task: review
+```
+
+### Structured steps format
+
+```yaml
+workflows:
+  hybrid:
+    description: "Hybrid workflow"
+    steps:
+      - agent: local-code
+        role: implementer
+      - agent: claude
+        role: reviewer
+        fallback: local-instruct
+```
+
+Role aliases are normalized internally:
+
+- `implementer` -> `implement`
+- `reviewer` -> `review`
+- `refiner` -> `refine`
+- `writer` -> `document`
+- `tester` -> `test`
+
+## 7. Fallback Behavior
+
+Fallback is evaluated per workflow step.
+
+- Primary step runs first.
+- On recoverable connectivity/API failure, fallback agent is executed.
+- Fallback source is recorded in step output as `fallback_from`.
+- If fallback also fails, a structured error is returned for that step.
+
+Recoverable indicators include:
+
+- connection/network errors
+- timeouts
+- transient upstream API failures (for example 5xx)
+
+```mermaid
+sequenceDiagram
+    participant O as Orchestrator
+    participant P as Primary Agent
+    participant F as Fallback Agent
+
+    O->>P: execute_task(task, context)
+    alt Success
+        P-->>O: AgentResponse(success=true)
+        O-->>O: continue workflow
+    else Recoverable failure
+        P-->>O: AgentResponse(success=false, error=network/timeout/5xx)
+        O->>F: execute_task(task, context)
+        alt Fallback success
+            F-->>O: AgentResponse(success=true)
+            O-->>O: record fallback_from=primary
+        else Fallback failure
+            F-->>O: exception/error
+            O-->>O: return structured step failure
+        end
+    else Non-recoverable failure
+        P-->>O: AgentResponse(success=false, error=non-recoverable)
+        O-->>O: no fallback
+    end
+```
+
+## 8. Local Model Lifecycle
+
+```mermaid
+stateDiagram-v2
+    [*] --> NotConfigured
+    NotConfigured --> Configured: add agent(type=ollama/llamacpp)
+    Configured --> Unreachable: endpoint down / DNS fail
+    Configured --> Reachable: endpoint healthy
+    Reachable --> ModelMissing: model not present
+    Reachable --> ModelReady: model present
+    ModelMissing --> ModelReady: models pull <model> (Ollama)
+    ModelReady --> InUse: run workflow/test-agent
+    InUse --> ModelReady: request complete
+    ModelReady --> Removed: models remove <model> (Ollama)
+    Removed --> ModelMissing
+```
+
+## 9. CLI Operations
+
+### 9.1 Validate and inspect
+
+```bash
+./ai-orchestrator validate
+./ai-orchestrator agents
+./ai-orchestrator workflows
+```
+
+### 9.2 Local model management
+
+```bash
+./ai-orchestrator models status
+./ai-orchestrator models list
+./ai-orchestrator models pull codellama:13b
+./ai-orchestrator models remove codellama:13b
+```
+
+Notes:
+
+- `pull`/`remove` are Ollama-focused operations.
+- `list` works for Ollama and OpenAI-compatible endpoints if `/v1/models` is implemented.
+
+### 9.3 Execute
+
+```bash
+# Auto mode (may use cloud and/or local based on config)
+./ai-orchestrator run "Create a REST API" -w hybrid
+
+# Force local-only mode
+./ai-orchestrator run "Create a REST API" --offline
+
+# Test a single configured agent directly
+./ai-orchestrator test-agent local-code "Write hello world in Python"
+```
+
+## 10. Health Checks and Availability
+
+On startup, each enabled adapter runs availability checks:
+
+- `cli` adapters: command presence check
+- `ollama`: `GET /api/tags`
+- `llamacpp`/openai-compatible: checks `/health`, `/v1/models`, and base endpoint
+
+Unavailable agents are not added to active adapter set and workflow steps targeting them are skipped.
+
+## 11. Kubernetes / Container Topology
+
+```mermaid
+flowchart LR
+    subgraph Cluster
+        O[ai-orchestrator pod]
+        C[config/agents.yaml via ConfigMap]
+        O --> C
+    end
+
+    subgraph Local Backends
+        OL[ollama.service:11434]
+        LC[llamacpp.service:8080]
+    end
+
+    subgraph Cloud
+        CC[Cloud CLIs in container]
+    end
+
+    O --> OL
+    O --> LC
+    O --> CC
+```
+
+Recommended:
+
+- Use internal service DNS names in `endpoint` fields.
+- Apply config changes via ConfigMap update + rollout restart.
+
+## 12. Performance and Capacity Guidance
+
+### Typical behavior
+
+| Mode | First-token latency | Throughput |
+| --- | --- | --- |
+| Cloud API/CLI | 0.4s - 2s | 30 - 120 tokens/s |
+| Local GPU (7B-13B) | 0.15s - 1s | 20 - 90 tokens/s |
+| Local CPU (7B-13B) | 0.8s - 5s | 3 - 20 tokens/s |
+
+Actual results depend on model size, quantization, prompt length, backend config, and hardware.
+
+### Benchmark recipe
+
+```bash
+# 1) Warm endpoint
+./ai-orchestrator test-agent local-code "Print warm-up message"
+
+# 2) Timed run
+/usr/bin/time -l ./ai-orchestrator run "Implement a paginated REST endpoint" --offline
+
+# 3) Compare to cloud/hybrid
+/usr/bin/time -l ./ai-orchestrator run "Implement a paginated REST endpoint" -w default
+```
+
+## 13. Security and Compliance Notes
+
+- Local/offline mode reduces external data egress but does not eliminate internal risk.
+- Apply the same input validation, RBAC, audit logging, and secret hygiene practices.
+- For regulated workloads, pin model versions and keep signed model artifacts where possible.
+
+## 14. Troubleshooting
+
+```mermaid
+flowchart TD
+    A[Workflow failed] --> B{Agent available?}
+    B -->|No| C[Check enabled/type/command or endpoint]
+    B -->|Yes| D{Offline run?}
+    D -->|Yes| E[Verify local agents enabled + endpoints healthy]
+    D -->|No| F{Expected fallback?}
+    F -->|Yes| G[Check settings.fallback.enabled and map/step fallback]
+    F -->|No| H[Inspect primary adapter error details]
+    E --> I[Run models status + test-agent]
+    G --> J[Look for fallback log lines]
+    C --> K[Fix config and restart]
+    I --> K
+    J --> K
+    H --> K
+```
+
+Quick checks:
+
+```bash
+./ai-orchestrator validate
+./ai-orchestrator models status
+./ai-orchestrator test-agent local-code "Sanity check"
+```
+
+## 15. Related Docs
+
+- `README.md`
+- `ARCHITECTURE.md`
+- `DEPLOYMENT.md`
+- `config/agents.yaml`

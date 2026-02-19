@@ -115,7 +115,7 @@ class TestWorkflowStep:
 
         context = {"task": "Create a function"}
 
-        description = step._build_task_description(context)
+        description = step.build_task_description(context)
 
         assert "Create a function" in description
         assert "Implement" in description

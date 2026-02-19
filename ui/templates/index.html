@@ -265,6 +265,14 @@
       let editor;
       let socket;
       let currentFile = null;
+      const clientId = (() => {
+        return (
+          (window.crypto &&
+            window.crypto.randomUUID &&
+            window.crypto.randomUUID()) ||
+          `client-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+        );
+      })();
 
       // Initialize Monaco Editor
       require(["vs/editor/editor.main"], function () {
@@ -285,7 +293,7 @@
       });
 
       // Socket.IO Connection
-      socket = io();
+      socket = io({ query: { client_id: clientId }, transports: ["polling"] });
 
       socket.on("connect", () => {
         console.log("Connected to server");
@@ -343,11 +351,15 @@
 
         fetch("/api/execute", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "X-Client-Id": clientId,
+          },
           body: JSON.stringify({
             task,
             workflow,
             max_iterations: maxIterations,
+            client_id: clientId,
           }),
         })
           .then((res) => res.json())

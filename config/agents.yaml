@@ -1,130 +1,160 @@
 # AI Agent Configuration
-# Configure which AI coding assistants to use and how they should collaborate
+# Configure which AI coding assistants to use and how they should collaborate.
 
 agents:
-  # OpenAI Codex - Primary implementation agent
+  # Cloud agents (CLI-backed)
   codex:
+    type: cli
     enabled: true
     command: "codex"
     role: "implementation"
     timeout: 300
     description: "Primary implementation agent for writing initial code"
 
-  # Google Gemini - Code review and architecture analysis
   gemini:
+    type: cli
     enabled: true
     command: "gemini"
     role: "review"
     timeout: 180
     description: "Reviews code for SOLID principles and best practices"
 
-  # Claude Code - Refinement and improvement
   claude:
+    type: cli
     enabled: true
     command: "claude"
     role: "refinement"
     timeout: 300
     description: "Implements feedback and refines code quality"
 
-  # GitHub Copilot - Additional suggestions (optional)
   copilot:
+    type: cli
     enabled: false
     command: "copilot"
     role: "suggestions"
     timeout: 120
     description: "Provides alternative implementation suggestions"
 
-# Workflow Definitions
-# Define how agents collaborate on different types of tasks
+  # Local/offline agents (name is user-defined; type selects adapter)
+  local-code:
+    type: ollama
+    enabled: false
+    model: "codellama:13b"
+    endpoint: "http://localhost:11434"
+    offline: true
+    timeout: 300
+    capabilities: [code, review]
+    description: "Local coding model via Ollama"
 
+  local-instruct:
+    type: ollama
+    enabled: false
+    model: "mistral:7b-instruct"
+    endpoint: "http://localhost:11434"
+    offline: true
+    timeout: 300
+    capabilities: [general, docs]
+    description: "Local instruction/reasoning model via Ollama"
+
+  local-large:
+    type: llamacpp
+    enabled: false
+    endpoint: "http://localhost:8080"
+    offline: true
+    timeout: 300
+    capabilities: [code, review, docs]
+    description: "Local llama.cpp/OpenAI-compatible model endpoint"
+
+# Workflow Definitions
 workflows:
-  # Default workflow: Implementation -> Review -> Refinement
   default:
     - agent: "codex"
       task: "implement"
       description: "Create initial implementation"
-
     - agent: "gemini"
       task: "review"
       description: "Review for SOLID principles and best practices"
-
     - agent: "claude"
       task: "refine"
       description: "Implement feedback and improvements"
 
-  # Quick workflow: Just implementation
   quick:
     - agent: "codex"
       task: "implement"
       description: "Quick implementation without review"
 
-  # Thorough workflow: Multiple review cycles
   thorough:
     - agent: "codex"
       task: "implement"
       description: "Create initial implementation"
-
     - agent: "copilot"
       task: "suggestions"
       description: "Get alternative approaches"
-
     - agent: "gemini"
       task: "review"
       description: "Comprehensive code review"
-
     - agent: "claude"
       task: "refine"
       description: "Implement all feedback"
-
     - agent: "gemini"
       task: "review"
       description: "Verify improvements"
 
-  # Review-only: For existing code
   review-only:
     - agent: "gemini"
       task: "review"
       description: "Review existing code"
-
     - agent: "claude"
       task: "refine"
       description: "Implement improvements"
 
-  # Documentation workflow
   document:
     - agent: "claude"
       task: "document"
       description: "Generate comprehensive documentation"
-
     - agent: "gemini"
       task: "review"
       description: "Review documentation quality"
 
+  offline-default:
+    description: "Local-only workflow for offline development"
+    offline: true
+    steps:
+      - agent: "local-code"
+        role: "implementer"
+      - agent: "local-instruct"
+        role: "reviewer"
+
+  hybrid:
+    description: "Use local for drafts, cloud for final review"
+    steps:
+      - agent: "local-code"
+        role: "implementer"
+      - agent: "claude"
+        role: "reviewer"
+        fallback: "local-instruct"
+
 # Global Settings
 settings:
-  # Maximum number of iterations for iterative refinement
   max_iterations: 3
-
-  # Output directory for generated code
   output_dir: "./output"
-
-  # Workspace directory for agent collaboration
   workspace_dir: "./workspace"
-
-  # Logging level (DEBUG, INFO, WARNING, ERROR)
   log_level: "INFO"
-
-  # Log file location
   log_file: "ai-orchestrator.log"
-
-  # Whether to create detailed execution reports
   create_reports: true
-
-  # Report output directory
   reports_dir: "./reports"
-
-  # Stop iteration if review has fewer than this many suggestions
   min_suggestions_threshold: 3
-
-  # Enable colored output
   colored_output: true
+
+  # Offline behavior
+  offline:
+    enabled: false
+    auto_detect: true
+
+  # Fallback routing (cloud -> local) on transient network/API errors
+  fallback:
+    enabled: true
+    map:
+      codex: local-code
+      claude: local-instruct
+      gemini: local-instruct

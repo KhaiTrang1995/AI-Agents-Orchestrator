@@ -59,6 +59,13 @@ graph TD
         COD[Codex Adapter]
         GEM[Gemini Adapter]
         COP[Copilot Adapter]
+        OLL[Ollama Adapter]
+        LLAMA[LlamaCpp Adapter]
+    end
+
+    subgraph "Runtime Controls"
+        OFF[Offline Detector]
+        FB[Fallback Manager]
     end
 
     subgraph "External AI Services"
@@ -66,6 +73,8 @@ graph TD
         CODEX[Codex CLI]
         GEMINI[Gemini CLI]
         COPILOT[Copilot CLI]
+        OLLAMA_API[Ollama API]
+        OPENAI_LOCAL[OpenAI-Compatible Local API]
     end
 
     CLI --> ORCH
@@ -73,6 +82,8 @@ graph TD
     ORCH --> WF
     ORCH --> TM
     ORCH --> CFG
+    ORCH --> OFF
+    ORCH --> FB
 
     ORCH -.-> SEC
     ORCH -.-> CACHE
@@ -86,11 +97,15 @@ graph TD
     BASE --> COD
     BASE --> GEM
     BASE --> COP
+    BASE --> OLL
+    BASE --> LLAMA
 
     CLA --> CLAUDE
     COD --> CODEX
     GEM --> GEMINI
     COP --> COPILOT
+    OLL --> OLLAMA_API
+    LLAMA --> OPENAI_LOCAL
 ```
 
 ### Component Layers
@@ -99,7 +114,8 @@ graph TD
 2. **Orchestration Layer** - Core business logic and workflow management
 3. **Cross-Cutting Layer** - Security, caching, metrics, logging
 4. **Adapter Layer** - AI agent integrations
-5. **External Services** - Third-party AI CLIs
+5. **Runtime Controls** - Offline detection and fallback routing
+6. **External Services** - Third-party AI CLIs and local model APIs
 
 ## Component Design
 
@@ -149,15 +165,27 @@ stateDiagram-v2
     AggregateResults --> [*]
 ```
 
-**Workflow Types:**
+**Workflow Execution Characteristics:**
 
-1. **Sequential** - Agents execute one after another
-2. **Parallel** - Multiple agents execute simultaneously
-3. **Iterative** - Repeated cycles with feedback
-4. **Conditional** - Branch based on results
+1. **Sequential Steps** - Agents execute one after another
+2. **Iterative Refinement** - Workflow cycles until stop conditions are met
+3. **Step-Level Fallback** - If a step fails due to recoverable connectivity/API issues, fallback agent can run
+4. **Offline Filtering** - In offline mode, non-local agents are skipped at initialization
 
-**Configuration:**
+**Configuration (Supported Forms):**
 ```yaml
+agents:
+  codex:
+    type: cli
+    command: codex
+    enabled: true
+
+  my-custom-llama:
+    type: llamacpp
+    endpoint: http://localhost:9000
+    offline: true
+    enabled: true
+
 workflows:
   default:
     - agent: "codex"
@@ -166,6 +194,14 @@ workflows:
       task: "review"
     - agent: "claude"
       task: "refine"
+
+  offline-default:
+    description: "Local-only workflow"
+    steps:
+      - agent: "local-code"
+        role: "implementer"
+      - agent: "local-instruct"
+        role: "reviewer"
 ```
 
 ### Adapter Layer
@@ -179,54 +215,66 @@ classDiagram
         +name: str
         +command: str
         +timeout: int
-        +execute(task) Task Result
-        +validate_response() bool
-        +format_output() str
+        +get_capabilities() List[AgentCapability]
+        +execute_task(task, context) AgentResponse
+        +execute_task_async(task, context) AgentResponse
+        +is_available() bool
     }
 
     class ClaudeAdapter {
-        +execute(task)
-        -parse_claude_output()
+        +execute_task(task, context)
     }
 
     class CodexAdapter {
-        +execute(task)
-        -parse_codex_output()
+        +execute_task(task, context)
     }
 
     class GeminiAdapter {
-        +execute(task)
-        -parse_gemini_output()
+        +execute_task(task, context)
     }
 
     class CopilotAdapter {
-        +execute(task)
-        -parse_copilot_output()
+        +execute_task(task, context)
+    }
+
+    class OllamaAdapter {
+        +execute_task(task, context)
+        +execute_task_async(task, context)
+        +list_models()
+        +pull_model()
+        +remove_model()
+    }
+
+    class LlamaCppAdapter {
+        +execute_task(task, context)
+        +execute_task_async(task, context)
+        +list_models()
     }
 
     BaseAdapter <|-- ClaudeAdapter
     BaseAdapter <|-- CodexAdapter
     BaseAdapter <|-- GeminiAdapter
     BaseAdapter <|-- CopilotAdapter
+    BaseAdapter <|-- OllamaAdapter
+    BaseAdapter <|-- LlamaCppAdapter
 ```
 
 **Base Adapter Interface:**
 ```python
 class BaseAdapter(ABC):
     @abstractmethod
-    def execute(self, task: str, context: Dict[str, Any]) -> TaskResult:
-        """Execute task with the AI agent"""
+    def get_capabilities(self) -> List[AgentCapability]:
+        """Declare supported capability set."""
         pass
 
     @abstractmethod
-    def validate_response(self, response: str) -> bool:
-        """Validate agent response"""
+    def execute_task(self, task: str, context: Dict[str, Any]) -> AgentResponse:
+        """Execute task with the AI agent."""
         pass
 
-    @abstractmethod
-    def format_output(self, response: str) -> str:
-        """Format output for consumption"""
-        pass
+    async def execute_task_async(self, task: str, context: Dict[str, Any]) -> AgentResponse:
+        """Async execution hook (default delegates to sync)."""
+        ...
 ```
 
 ### CLI Communicator
@@ -246,7 +294,7 @@ sequenceDiagram
     A-->>C: stdout/stderr
     C->>C: parse_output()
     C->>C: handle_errors()
-    C-->>O: TaskResult
+    C-->>O: AgentResponse
 ```
 
 **Features:**
@@ -273,14 +321,15 @@ sequenceDiagram
     CLI->>O: execute_task(task, workflow)
     O->>O: Validate input
     O->>O: Load configuration
-    O->>W: execute_workflow(task)
+    O->>W: set_workflow(steps)
+    O->>W: execute_workflow_iteration(...)
 
     loop For each agent in workflow
-        W->>A: execute(task, context)
+        W->>A: execute_task(task, context)
         A->>AI: Send command
         AI-->>A: Response
-        A->>A: Parse & validate
-        A-->>W: TaskResult
+        A->>A: Parse & normalize
+        A-->>W: AgentResponse
         W->>W: Update context
     end
 
@@ -345,34 +394,25 @@ Adapters provide a consistent interface to heterogeneous AI agent CLIs:
 ### Adapter Implementation
 
 ```python
-class ClaudeAdapter(BaseAdapter):
+class OllamaAdapter(BaseAdapter):
     def __init__(self, config: Dict[str, Any]):
-        super().__init__(config)
-        self.command = config.get("command", "claude")
-        self.timeout = config.get("timeout", 300)
+        local_config = dict(config)
+        local_config.setdefault("offline", True)
+        super().__init__(local_config)
+        self.model = local_config.get("model", "codellama:13b")
+        self.endpoint = str(local_config.get("endpoint", "http://localhost:11434")).rstrip("/")
+        self.timeout = int(local_config.get("timeout", 300))
 
-    def execute(self, task: str, context: Dict[str, Any]) -> TaskResult:
-        # Build command
-        cmd = self._build_command(task, context)
-
-        # Execute with retry logic
-        response = self.communicator.execute(
-            cmd,
-            timeout=self.timeout,
-            retries=3
-        )
-
-        # Parse and validate
-        parsed = self._parse_response(response)
-        if not self.validate_response(parsed):
-            raise AdapterError("Invalid response")
-
-        return TaskResult(
-            agent=self.name,
-            output=parsed,
-            files=self._extract_files(parsed),
-            success=True
-        )
+    async def execute_task_async(self, task: str, context: Dict[str, Any]) -> AgentResponse:
+        prompt = self._build_local_llm_prompt(task, context)
+        async with httpx.AsyncClient(timeout=self.timeout) as client:
+            resp = await client.post(
+                f"{self.endpoint}/api/generate",
+                json={"model": self.model, "prompt": prompt, "stream": False},
+            )
+            resp.raise_for_status()
+            data = resp.json()
+            return AgentResponse(success=True, output=data.get("response", ""))
 ```
 
 ## Workflow Engine
@@ -411,30 +451,51 @@ Workflows are defined in YAML:
 ```yaml
 workflows:
   thorough:
-    max_iterations: 5
-    min_suggestions_threshold: 3
+    - agent: "codex"
+      task: "implement"
+      description: "Create initial implementation"
+    - agent: "copilot"
+      task: "suggestions"
+      description: "Get alternative approaches"
+    - agent: "gemini"
+      task: "review"
+      description: "Comprehensive code review"
+    - agent: "claude"
+      task: "refine"
+      description: "Implement feedback"
+    - agent: "gemini"
+      task: "review"
+      description: "Verify improvements"
+
+  hybrid:
+    description: "Local draft with cloud review + fallback"
     steps:
-      - agent: "codex"
-        task: "implement"
-        description: "Create initial implementation"
-
-      - agent: "copilot"
-        task: "suggestions"
-        description: "Get alternative approaches"
-        optional: true
-
-      - agent: "gemini"
-        task: "review"
-        description: "Comprehensive code review"
-
+      - agent: "local-code"
+        role: "implementer"
       - agent: "claude"
-        task: "refine"
-        description: "Implement feedback"
+        role: "reviewer"
+        fallback: "local-instruct"
 
-      - agent: "gemini"
-        task: "review"
-        description: "Verify improvements"
+settings:
+  max_iterations: 5
+  fallback:
+    enabled: true
+    map:
+      claude: local-instruct
+  offline:
+    enabled: false
+    auto_detect: true
 ```
+
+### Offline and Fallback Runtime
+
+`Orchestrator` resolves runtime mode and adapter availability before execution:
+
+1. Determine offline mode from `--offline`, `settings.offline.enabled`, and cached connectivity auto-detection.
+2. Initialize adapters dynamically from `agents.<name>.type`.
+3. In offline mode, skip non-local agents.
+4. For each step, try primary adapter.
+5. On recoverable connection/API failure, execute mapped or step-level fallback adapter.
 
 ## Security Architecture
 
@@ -662,7 +723,7 @@ def with_retry(max_attempts=3):
 
 @with_retry(max_attempts=3)
 def execute_agent_task(agent, task):
-    return agent.execute(task)
+    return agent.execute_task(task, {"role": "implement"})
 ```
 
 ## Performance Considerations
@@ -689,9 +750,9 @@ graph LR
 import asyncio
 
 async def execute_workflow_async(tasks: List[Task]):
-    # Parallel agent execution where possible
+    # Adapter-level async execution for HTTP-backed local agents
     results = await asyncio.gather(
-        *[agent.execute_async(task) for task in tasks],
+        *[agent.execute_task_async(task.description, task.context) for task in tasks],
         return_exceptions=True
     )
     return results
