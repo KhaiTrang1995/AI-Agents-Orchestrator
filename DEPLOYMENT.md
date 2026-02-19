@@ -118,6 +118,34 @@ Azure Virtual Network (10.0.0.0/16)
     └── Storage Private Endpoint
 ```
 
+### Runtime Profiles
+
+The orchestrator now supports three deployment/runtime profiles:
+
+1. **Cloud-only**
+   - Use CLI-backed cloud agents only (`type: cli`)
+   - Keep local agents disabled
+   - `settings.offline.enabled: false`
+
+2. **Hybrid (recommended for resilience)**
+   - Use cloud agents for primary steps
+   - Configure local agents (`type: ollama` / `type: llamacpp`) as fallback
+   - Enable fallback routing in `settings.fallback`
+
+3. **Offline/local-only**
+   - Enable local agents only
+   - Run with `--offline` in CLI jobs or set `settings.offline.enabled: true`
+   - Ensure local model endpoints are reachable from the runtime network namespace
+
+### Local Backend Connectivity in Kubernetes
+
+If using local model backends in cluster deployments, expose them as internal services:
+
+- `ollama.<namespace>.svc.cluster.local:11434`
+- `<llamacpp-service>.<namespace>.svc.cluster.local:8080`
+
+Then set agent endpoints accordingly in `config/agents.yaml`.
+
 ## Azure Services
 
 ### 1. Azure Kubernetes Service (AKS)
@@ -450,6 +478,47 @@ kubectl apply -f deployment/kubernetes/ -n ai-orchestrator
 
 # Wait for deployment
 kubectl rollout status deployment/ai-orchestrator-blue -n ai-orchestrator
+```
+
+### Step 6.1: Configure Agent Runtime Mode
+
+After deploying manifests, ensure `config/agents.yaml` (or ConfigMap-mounted equivalent) matches your runtime profile.
+
+**Hybrid example (cloud primary + local fallback):**
+
+```yaml
+agents:
+  claude:
+    type: cli
+    command: claude
+    enabled: true
+
+  local-instruct:
+    type: ollama
+    endpoint: http://ollama.ai-orchestrator.svc.cluster.local:11434
+    model: mistral:7b-instruct
+    offline: true
+    enabled: true
+
+workflows:
+  hybrid:
+    steps:
+      - agent: claude
+        role: reviewer
+        fallback: local-instruct
+
+settings:
+  fallback:
+    enabled: true
+    map:
+      claude: local-instruct
+```
+
+Apply config and restart pods after changes:
+
+```bash
+kubectl apply -f deployment/kubernetes/configmap.yaml -n ai-orchestrator
+kubectl rollout restart deployment/ai-orchestrator-blue -n ai-orchestrator
 ```
 
 ### Step 7: Build and Push Docker Image
@@ -1129,7 +1198,44 @@ kubectl apply -f ingress.yaml
 # Wait 1 hour if rate limited
 ```
 
-#### 4. Node Pool Issues
+#### 4. Local Model Fallback Not Triggering
+
+**Symptoms**:
+- Cloud step fails, but no fallback agent executes
+- Workflow logs show primary agent errors only
+
+**Diagnosis**:
+```bash
+# Confirm fallback settings are present in running config
+kubectl exec -n ai-orchestrator deploy/ai-orchestrator-blue -- \
+  sh -lc "grep -n \"fallback\" -n /app/config/agents.yaml || true"
+
+# Verify local endpoint connectivity from pod
+kubectl exec -n ai-orchestrator deploy/ai-orchestrator-blue -- \
+  sh -lc "curl -sf http://ollama.ai-orchestrator.svc.cluster.local:11434/api/tags | head"
+
+# Check orchestrator logs for fallback decisions
+kubectl logs -n ai-orchestrator -l app=ai-orchestrator | grep -i fallback
+```
+
+**Common Causes**:
+- `settings.fallback.enabled` is false
+- No mapping for the primary agent in `settings.fallback.map`
+- Step-level `fallback` points to a disabled/unavailable agent
+- Local endpoint DNS/service not reachable from orchestrator pod
+
+**Solutions**:
+```bash
+# Enable local agent(s) and fallback in config, then roll deployment
+kubectl apply -f deployment/kubernetes/configmap.yaml -n ai-orchestrator
+kubectl rollout restart deployment/ai-orchestrator-blue -n ai-orchestrator
+
+# Verify local endpoint from pod after restart
+kubectl exec -n ai-orchestrator deploy/ai-orchestrator-blue -- \
+  sh -lc "curl -sf http://ollama.ai-orchestrator.svc.cluster.local:11434/api/tags | head"
+```
+
+#### 5. Node Pool Issues
 
 **Diagnosis**:
 ```bash
@@ -1365,6 +1471,7 @@ jobs:
 - [Azure Monitor Documentation](https://docs.microsoft.com/azure/azure-monitor/)
 - [Terraform Azure Provider](https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs)
 - [Project Architecture](./ARCHITECTURE.md)
+- [Offline Mode Guide](./docs/OFFLINE_MODE.md)
 - [General Deployment Guide](./deployment/DEPLOYMENT.md)
 
 ## Support

@@ -2,6 +2,7 @@
 
 import logging
 import os
+import shlex
 import subprocess
 import tempfile
 import time
@@ -22,6 +23,9 @@ class CLICommunicator:
     def __init__(self, command: str, logger: Optional[logging.Logger] = None):
         """Initializes the CLI communicator."""
         self.command = command
+        parsed_command = shlex.split(command) if isinstance(command, str) else []
+        self.command_parts = parsed_command if parsed_command else [str(command)]
+        self.command_name = Path(self.command_parts[0]).name if self.command_parts else ""
         self.logger = logger or logging.getLogger(__name__)
         self.temp_dir = tempfile.mkdtemp(prefix="ai-orchestrator-")
 
@@ -29,7 +33,7 @@ class CLICommunicator:
         self,
         prompt: str,
         method: str = "stdin",
-        timeout: int = 300,
+        timeout: int = 1800,
         working_dir: Optional[str] = None,
     ) -> Tuple[bool, str, str]:
         """Execute CLI command with a prompt using the specified method.
@@ -118,7 +122,7 @@ class CLICommunicator:
             # Execute command
             # Common patterns: cli --input input.txt --output output.txt
             process = subprocess.Popen(
-                [self.command, "--input", str(input_file), "--output", str(output_file)],
+                [*self.command_parts, "--input", str(input_file), "--output", str(output_file)],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
@@ -159,7 +163,7 @@ class CLICommunicator:
             self.logger.debug(f"Executing {self.command} with argument")
 
             env = os.environ.copy()
-            if self.command in ["gemini", "gemini-cli"]:
+            if self.command_name in ["gemini", "gemini-cli"]:
                 env["NODE_OPTIONS"] = "--no-warnings"
 
             cmd = self._build_command_for_tool(prompt)
@@ -190,13 +194,34 @@ class CLICommunicator:
 
     def _build_command_for_tool(self, prompt: str) -> List[str]:
         """Build the command and arguments for a specific CLI tool."""
-        if self.command == "codex":
-            return [self.command, "exec", prompt]
-        if self.command in ["gemini", "gemini-cli"]:
-            return [self.command, prompt]
-        if self.command == "claude":
-            return [self.command, "--print", prompt]
-        return [self.command, prompt]
+        if self.command_name == "codex":
+            # Support configured args/profiles and both `codex ...` or `codex exec ...`.
+            if "exec" in self.command_parts[1:]:
+                return [*self.command_parts, prompt]
+            return [*self.command_parts, "exec", prompt]
+
+        if self.command_name in ["gemini", "gemini-cli"]:
+            # Gemini expects positional prompt.
+            return [*self.command_parts, prompt]
+
+        if self.command_name == "claude":
+            # Claude expects positional prompt.
+            return [*self.command_parts, prompt]
+
+        if self.command_name in ["copilot", "github-copilot-cli"]:
+            # Copilot CLI expects prompt with `-p`; allow all tools by default.
+            has_prompt_flag = any(part in {"-p", "--prompt"} for part in self.command_parts[1:])
+            has_allow_all_tools = "--allow-all-tools" in self.command_parts[1:]
+            cmd = [*self.command_parts]
+            if not has_prompt_flag:
+                cmd.extend(["-p", prompt])
+            else:
+                cmd.append(prompt)
+            if not has_allow_all_tools:
+                cmd.append("--allow-all-tools")
+            return cmd
+
+        return [*self.command_parts, prompt]
 
     def _execute_heredoc(
         self, prompt: str, timeout: int, working_dir: Optional[str]
@@ -226,7 +251,7 @@ EOF
             return False, "", str(e)
 
     def execute_in_workspace(
-        self, prompt: str, workspace_dir: str, timeout: int = 300, method: str = "arg"
+        self, prompt: str, workspace_dir: str, timeout: int = 1800, method: str = "arg"
     ) -> Tuple[bool, str, str, List[str]]:
         """Execute CLI in a workspace directory and track file changes.
 
@@ -310,14 +335,7 @@ EOF
         last_error = ""
         method = kwargs.get("method", "stdin")
 
-        # Define fallback methods to try
-        fallback_methods = []
-        if method == "stdin":
-            fallback_methods = ["stdin", "arg", "heredoc"]
-        elif method == "arg":
-            fallback_methods = ["arg", "stdin", "heredoc"]
-        else:
-            fallback_methods = [method, "stdin", "arg"]
+        fallback_methods = self._resolve_retry_methods(method)
 
         for attempt in range(max_retries):
             if attempt > 0:
@@ -351,6 +369,19 @@ EOF
 
         return False, "", f"Failed after {max_retries} attempts. Last error: {last_error}"
 
+    def _resolve_retry_methods(self, method: str) -> List[str]:
+        """Resolve retry method order for this CLI tool."""
+        # Codex should stay on non-interactive `exec` argument mode and never
+        # fall back to stdin/heredoc interactive patterns.
+        if self.command_name == "codex":
+            return ["arg"]
+
+        if method == "stdin":
+            return ["stdin", "arg", "heredoc"]
+        if method == "arg":
+            return ["arg", "stdin", "heredoc"]
+        return [method, "stdin", "arg"]
+
     def cleanup(self):
         """Clean up temporary directory."""
         import shutil
@@ -373,7 +404,6 @@ class AgentCLIRegistry:
         "claude": {
             "command": "claude",
             "method": "arg",
-            "prompt_flag": "--print",
             "supports_workspace": True,
             "output_format": "text",
         },

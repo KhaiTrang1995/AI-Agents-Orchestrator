@@ -229,7 +229,7 @@ Task completed successfully! ✓
 ├─────────┼──────────────┼────────────┼─────────────────
 │ codex   │ ✓ Available  │ codex      │ implementation │
 │ gemini  │ ✓ Available  │ gemini-cli │ review         │
-│ claude  │ ✓ Available  │ claude     │ refinement     │ 
+│ claude  │ ✓ Available  │ claude     │ refinement     │
 │ copilot │ ○ Disabled   │ gh         │ suggestions    │
 ╰─────────┴──────────────┴────────────┴─────────────────
 ```

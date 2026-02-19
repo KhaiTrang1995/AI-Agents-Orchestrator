@@ -1,4 +1,4 @@
-.PHONY: help install install-dev test test-unit test-integration test-coverage lint format type-check security clean build docker-build docker-run docs pre-commit
+.PHONY: help install install-dev test test-unit test-integration test-coverage lint format prettier-format format-all type-check security clean build docker-build docker-run docs pre-commit
 
 help:
 	@echo "Available commands:"
@@ -10,6 +10,8 @@ help:
 	@echo "  test-coverage    - Run tests with coverage report"
 	@echo "  lint             - Run all linters"
 	@echo "  format           - Format code with black and isort"
+	@echo "  prettier-format  - Format web/code assets with Prettier"
+	@echo "  format-all       - Run Python and Prettier formatting"
 	@echo "  type-check       - Run mypy type checking"
 	@echo "  security         - Run security checks (bandit, safety)"
 	@echo "  clean            - Remove build artifacts and cache"
@@ -45,6 +47,11 @@ lint:
 format:
 	black orchestrator adapters tests
 	isort orchestrator adapters tests
+
+prettier-format:
+	npm run format
+
+format-all: format prettier-format
 
 type-check:
 	mypy orchestrator adapters

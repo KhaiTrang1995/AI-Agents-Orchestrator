@@ -28,17 +28,23 @@ class WorkflowStep:
         Returns:
             AgentResponse from the agent
         """
-        # Build task description based on type
-        task = self._build_task_description(context)
-
-        # Add step-specific context
-        step_context = context.copy()
-        step_context.update({"role": self.task_type, "agent": self.agent_name})
-
-        # Execute using the adapter
+        task = self.build_task_description(context)
+        step_context = self.build_step_context(context)
         return self.adapter.execute_task(task, step_context)
 
-    def _build_task_description(self, context: Dict[str, Any]) -> str:
+    def execute_with_adapter(self, adapter: BaseAdapter, context: Dict[str, Any]) -> AgentResponse:
+        """Execute step logic with an explicitly provided adapter."""
+        task = self.build_task_description(context)
+        step_context = self.build_step_context(context)
+        return adapter.execute_task(task, step_context)
+
+    def build_step_context(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        """Build context passed to the adapter for this step."""
+        step_context = context.copy()
+        step_context.update({"role": self.task_type, "agent": self.agent_name})
+        return step_context
+
+    def build_task_description(self, context: Dict[str, Any]) -> str:
         """Build task description based on step type and context."""
         base_task = context.get("task", "")
 

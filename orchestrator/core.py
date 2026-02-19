@@ -8,8 +8,18 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
-from adapters import BaseAdapter, ClaudeAdapter, CodexAdapter, CopilotAdapter, GeminiAdapter
+from adapters import (
+    BaseAdapter,
+    ClaudeAdapter,
+    CodexAdapter,
+    CopilotAdapter,
+    GeminiAdapter,
+    LlamaCppAdapter,
+    OllamaAdapter,
+)
 
+from .fallback import FallbackManager
+from .offline import OfflineDetector
 from .task_manager import TaskManager
 from .workflow import WorkflowEngine, WorkflowStep
 
@@ -17,20 +27,31 @@ from .workflow import WorkflowEngine, WorkflowStep
 class Orchestrator:
     """Main orchestrator for coordinating AI agents."""
 
-    def __init__(self, config_path: Optional[str] = None):
+    def __init__(
+        self,
+        config_path: Optional[str] = None,
+        force_offline: bool = False,
+        offline_detector: Optional[OfflineDetector] = None,
+    ):
         """
         Initialize the orchestrator.
 
         Args:
             config_path: Path to configuration file
+            force_offline: If True, initialize local/offline agents only
+            offline_detector: Optional detector for auto-offline mode
         """
         self.logger = logging.getLogger("orchestrator")
         self.config = self._load_config(config_path)
+        self.force_offline = force_offline
+        self.offline_detector = offline_detector or OfflineDetector()
         self.adapters: Dict[str, BaseAdapter] = {}
         self.workflow_engine = WorkflowEngine()
         self.task_manager = TaskManager()
+        self.fallback_manager = FallbackManager(self.config, logger=self.logger)
         self.workspace_dir: Optional[Path] = None
         self.session_dir: Optional[Path] = None
+        self.is_offline_mode = self._resolve_offline_mode()
         self._initialize_adapters()
 
     def _load_config(self, config_path: Optional[str]) -> Dict[str, Any]:
@@ -45,19 +66,62 @@ class Orchestrator:
             return self._get_default_config()
 
         with open(config_path_obj) as f:
-            return yaml.safe_load(f)
+            return yaml.safe_load(f) or {}
 
     def _get_default_config(self) -> Dict[str, Any]:
         """Get default configuration."""
         return {
             "agents": {
-                "codex": {"enabled": True, "command": "codex", "role": "implementation"},
-                "gemini": {"enabled": True, "command": "gemini-cli", "role": "review"},
-                "claude": {"enabled": True, "command": "claude", "role": "refinement"},
+                "codex": {
+                    "type": "cli",
+                    "enabled": True,
+                    "command": "codex",
+                    "role": "implementation",
+                    "timeout": 1800,
+                },
+                "gemini": {
+                    "type": "cli",
+                    "enabled": True,
+                    "command": "gemini-cli",
+                    "role": "review",
+                    "timeout": 1800,
+                },
+                "claude": {
+                    "type": "cli",
+                    "enabled": True,
+                    "command": "claude",
+                    "role": "refinement",
+                    "timeout": 1800,
+                },
                 "copilot": {
+                    "type": "cli",
                     "enabled": False,
                     "command": "github-copilot-cli",
                     "role": "suggestions",
+                    "timeout": 1800,
+                },
+                "local-code": {
+                    "type": "ollama",
+                    "enabled": False,
+                    "model": "codellama:13b",
+                    "endpoint": "http://localhost:11434",
+                    "offline": True,
+                    "timeout": 1800,
+                },
+                "local-instruct": {
+                    "type": "ollama",
+                    "enabled": False,
+                    "model": "mistral:7b-instruct",
+                    "endpoint": "http://localhost:11434",
+                    "offline": True,
+                    "timeout": 1800,
+                },
+                "local-large": {
+                    "type": "llamacpp",
+                    "enabled": False,
+                    "endpoint": "http://localhost:8080",
+                    "offline": True,
+                    "timeout": 1800,
                 },
             },
             "workflows": {
@@ -65,20 +129,95 @@ class Orchestrator:
                     {"agent": "codex", "task": "implement"},
                     {"agent": "gemini", "task": "review"},
                     {"agent": "claude", "task": "refine"},
-                ]
+                ],
+                "offline-default": [
+                    {"agent": "local-code", "task": "implement"},
+                    {"agent": "local-instruct", "task": "review"},
+                ],
             },
-            "settings": {"max_iterations": 3, "output_dir": "./output", "log_level": "INFO"},
+            "settings": {
+                "max_iterations": 3,
+                "output_dir": "./output",
+                "log_level": "INFO",
+                "offline": {"enabled": False, "auto_detect": True},
+                "fallback": {
+                    "enabled": False,
+                    "map": {"claude": "local-instruct", "codex": "local-code"},
+                },
+            },
         }
 
-    def _initialize_adapters(self):
-        """Initialize all configured adapters."""
-        adapter_classes = {
+    def _resolve_offline_mode(self) -> bool:
+        """Resolve offline mode from CLI force flag and config auto-detection."""
+        if self.force_offline:
+            return True
+
+        offline_settings = self.config.get("settings", {}).get("offline", {})
+        if isinstance(offline_settings, dict):
+            if offline_settings.get("enabled", False):
+                return True
+            if offline_settings.get("auto_detect", False):
+                return self.offline_detector.is_offline()
+        return False
+
+    def _resolve_adapter_class(self, agent_name: str, agent_config: Dict[str, Any]):
+        """Resolve adapter class by explicit type first, then legacy name mapping."""
+        cli_adapter_classes = {
             "codex": CodexAdapter,
             "gemini": GeminiAdapter,
             "claude": ClaudeAdapter,
             "copilot": CopilotAdapter,
         }
+        cli_command_aliases = {
+            "gemini-cli": "gemini",
+            "github-copilot-cli": "copilot",
+            "gh-copilot": "copilot",
+        }
+        type_adapter_classes = {
+            "ollama": OllamaAdapter,
+            "llamacpp": LlamaCppAdapter,
+            "localai": LlamaCppAdapter,
+            "text-generation-webui": LlamaCppAdapter,
+            "openai-compatible": LlamaCppAdapter,
+        }
 
+        agent_type = str(agent_config.get("type", "")).strip().lower()
+        if agent_type:
+            if agent_type == "cli":
+                provider = (
+                    str(
+                        agent_config.get("provider")
+                        or agent_config.get("adapter")
+                        or agent_name
+                        or ""
+                    )
+                    .strip()
+                    .lower()
+                )
+                if provider in cli_adapter_classes:
+                    return cli_adapter_classes[provider]
+
+                command_name = str(agent_config.get("command", "")).strip().lower()
+                command_name = command_name.split("/")[-1]
+                command_name = cli_command_aliases.get(command_name, command_name)
+                return cli_adapter_classes.get(command_name)
+
+            return type_adapter_classes.get(agent_type)
+
+        return cli_adapter_classes.get(agent_name)
+
+    def _is_local_agent(self, agent_config: Dict[str, Any]) -> bool:
+        agent_type = str(agent_config.get("type", "")).strip().lower()
+        return bool(agent_config.get("offline", False)) or agent_type in {
+            "ollama",
+            "llamacpp",
+            "localai",
+            "text-generation-webui",
+            "openai-compatible",
+        }
+
+    def _initialize_adapters(self):
+        """Initialize all configured adapters."""
         agents_config = self.config.get("agents", {})
 
         for agent_name, agent_config in agents_config.items():
@@ -86,23 +225,41 @@ class Orchestrator:
                 self.logger.info(f"Agent {agent_name} is disabled")
                 continue
 
-            adapter_class = adapter_classes.get(agent_name)
+            if self.is_offline_mode and not self._is_local_agent(agent_config):
+                self.logger.info("Skipping non-local agent in offline mode: %s", agent_name)
+                continue
+
+            adapter_class = self._resolve_adapter_class(agent_name, agent_config)
             if adapter_class is None:
-                self.logger.warning(f"Unknown agent type: {agent_name}")
+                self.logger.warning(
+                    "Unknown agent type for '%s' (type=%s)",
+                    agent_name,
+                    agent_config.get("type"),
+                )
                 continue
 
             # Add name to config
-            agent_config["name"] = agent_name
+            agent_runtime_config = dict(agent_config)
+            agent_runtime_config["name"] = agent_name
 
             try:
-                adapter = adapter_class(agent_config)  # type: ignore[abstract]
+                adapter = adapter_class(agent_runtime_config)  # type: ignore[abstract]
 
                 # Check if available
                 if not adapter.is_available():
-                    self.logger.warning(
-                        f"Agent {agent_name} is not available. "
-                        f"Command '{adapter.command}' not found."
-                    )
+                    endpoint = agent_runtime_config.get("endpoint")
+                    if endpoint:
+                        self.logger.warning(
+                            "Agent %s is not available. Endpoint '%s' is unreachable.",
+                            agent_name,
+                            endpoint,
+                        )
+                    else:
+                        self.logger.warning(
+                            "Agent %s is not available. Command '%s' not found.",
+                            agent_name,
+                            adapter.command,
+                        )
                     continue
 
                 self.adapters[agent_name] = adapter
@@ -136,7 +293,13 @@ class Orchestrator:
             raise ValueError(f"Workflow '{workflow_name}' not found")
 
         # Build workflow steps
-        steps = self._build_workflow_steps(workflow_config)
+        workflow_steps_config = self._extract_workflow_steps(workflow_config)
+        steps = self._build_workflow_steps(workflow_steps_config)
+        if not steps:
+            raise ValueError(
+                f"Workflow '{workflow_name}' has no executable steps "
+                f"(check agent availability/offline mode)."
+            )
         self.workflow_engine.set_workflow(steps)
 
         # Get max iterations
@@ -149,6 +312,7 @@ class Orchestrator:
             "iteration": 0,
             "max_iterations": max_iterations,
             "working_dir": self.config.get("settings", {}).get("output_dir", "./output"),
+            "offline_mode": self.is_offline_mode,
         }
 
         results = {
@@ -185,13 +349,38 @@ class Orchestrator:
 
         return results
 
-    def _build_workflow_steps(self, workflow_config: List[Dict]) -> List[WorkflowStep]:
+    def _extract_workflow_steps(self, workflow_config: Any) -> List[Dict[str, Any]]:
+        """Normalize workflow config to a list of step dictionaries."""
+        if isinstance(workflow_config, list):
+            return workflow_config
+        if isinstance(workflow_config, dict):
+            steps = workflow_config.get("steps", [])
+            if isinstance(steps, list):
+                return steps
+        return []
+
+    def _normalize_task_type(self, raw_task: Optional[str]) -> str:
+        if not raw_task:
+            return "implement"
+        task = raw_task.strip().lower()
+        role_map = {
+            "implementer": "implement",
+            "reviewer": "review",
+            "refiner": "refine",
+            "writer": "document",
+            "tester": "test",
+        }
+        return role_map.get(task, task)
+
+    def _build_workflow_steps(self, workflow_config: List[Dict[str, Any]]) -> List[WorkflowStep]:
         """Build workflow steps from configuration."""
-        steps = []
+        steps: List[WorkflowStep] = []
 
         for step_config in workflow_config:
             agent_name = step_config.get("agent")
-            task_type = step_config.get("task")
+            task_type = self._normalize_task_type(
+                step_config.get("task") or step_config.get("role")
+            )
 
             if agent_name not in self.adapters:
                 self.logger.warning(f"Agent {agent_name} not available, skipping step")
@@ -217,11 +406,19 @@ class Orchestrator:
             self.logger.info(f"\nStep {i+1}: {step.agent_name} - {step.task_type}")
 
             try:
-                # Execute the step
-                response = step.execute(context)
+                task = step.build_task_description(context)
+                step_context = step.build_step_context(context)
+
+                agent_used, response, fallback_from = self.fallback_manager.execute_with_fallback(
+                    primary_agent=step.agent_name,
+                    adapters=self.adapters,
+                    task=task,
+                    context=step_context,
+                    explicit_fallback=step.config.get("fallback"),
+                )
 
                 step_result = {
-                    "agent": step.agent_name,
+                    "agent": agent_used,
                     "task": step.task_type,
                     "success": response.success,
                     "output": response.output,
@@ -229,20 +426,29 @@ class Orchestrator:
                     "files_modified": response.files_modified,
                     "suggestions": response.suggestions,
                 }
+                if fallback_from:
+                    step_result["fallback_from"] = fallback_from
 
                 iteration_results["steps"].append(step_result)
 
                 # Log the result
                 if response.success:
-                    self.logger.info(f"✓ {step.agent_name} completed successfully")
+                    if fallback_from:
+                        self.logger.info(
+                            "✓ %s completed successfully via fallback from %s",
+                            agent_used,
+                            fallback_from,
+                        )
+                    else:
+                        self.logger.info(f"✓ {agent_used} completed successfully")
                     if response.suggestions:
                         self.logger.info(f"  Suggestions: {len(response.suggestions)}")
                 else:
-                    self.logger.error(f"✗ {step.agent_name} failed: {response.error}")
+                    self.logger.error(f"✗ {agent_used} failed: {response.error}")
 
                 # Update context for next step
                 context["previous_output"] = response.output
-                context["previous_agent"] = step.agent_name
+                context["previous_agent"] = agent_used
 
                 if step.task_type == "review":
                     context["feedback"] = response.output

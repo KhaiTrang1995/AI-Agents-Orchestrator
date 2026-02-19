@@ -8,21 +8,26 @@ import json
 import logging
 import os
 import sys
+from copy import deepcopy
 from datetime import datetime
 from pathlib import Path
+from threading import Lock, get_ident
 from typing import Any, Dict, List, Optional
 
+import httpx
 from flask import Flask, jsonify, render_template, request
 from flask_cors import CORS
-from flask_socketio import SocketIO, emit
+from flask_socketio import SocketIO, emit, join_room
 
 
 class WebSocketLogHandler(logging.Handler):
     """Custom logging handler that emits logs via WebSocket."""
 
-    def __init__(self, socketio_instance):
+    def __init__(self, socketio_instance, progress_callback=None):
         super().__init__()
         self.socketio = socketio_instance
+        self.progress_callback = progress_callback
+        self.owner_thread_id = get_ident()
         # Set a simple formatter
         formatter = logging.Formatter("%(message)s")
         self.setFormatter(formatter)
@@ -30,6 +35,10 @@ class WebSocketLogHandler(logging.Handler):
     def emit(self, record):
         """Emit log record via WebSocket."""
         try:
+            # Prevent cross-job log leakage when multiple tasks run concurrently.
+            if record.thread != self.owner_thread_id:
+                return
+
             if not any(
                 record.name.startswith(prefix)
                 for prefix in ["orchestrator", "workflow", "adapter", "task_manager"]
@@ -48,7 +57,10 @@ class WebSocketLogHandler(logging.Handler):
                 # Fallback for plain string logs
                 payload = {"message": log_entry, "level": level, "timestamp": timestamp}
 
-            self.socketio.emit("progress_log", payload)
+            if self.progress_callback:
+                self.progress_callback(payload)
+            else:
+                self.socketio.emit("progress_log", payload, namespace="/")
         except Exception as e:
             print(f"[WebSocketLogHandler] Error: {e}")
             pass
@@ -62,7 +74,7 @@ from orchestrator import Orchestrator
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.config["SECRET_KEY"] = "ai-orchestrator-secret-key-change-in-production"
 CORS(app)
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -70,17 +82,105 @@ logger = logging.getLogger(__name__)
 
 # Global orchestrator instance
 orchestrator: Optional[Any] = None
-current_session: Dict[str, Any] = {
-    "task": None,
-    "workflow": "default",
-    "status": "idle",
-    "results": None,
-    "files": [],
-    "conversation_history": [],
-    "last_task": None,
-    "last_output": None,
-    "context": {},
+session_lock = Lock()
+MAX_SESSION_LOGS = 500
+DEFAULT_CLIENT_ID = "default"
+client_sessions: Dict[str, Dict[str, Any]] = {}
+sid_to_client: Dict[str, str] = {}
+LOCAL_BACKEND_DEFAULT_ENDPOINTS = {
+    "ollama": "http://localhost:11434",
+    "openai-compatible": "http://localhost:8080",
 }
+
+
+def _new_session_state() -> Dict[str, Any]:
+    """Create a fresh session state object."""
+    return {
+        "task": None,
+        "workflow": "default",
+        "status": "idle",
+        "results": None,
+        "files": [],
+        "conversation_history": [],
+        "last_task": None,
+        "last_output": None,
+        "context": {},
+        "logs": [],
+        "started_at": None,
+        "updated_at": datetime.now().isoformat(),
+    }
+
+
+def _normalize_client_id(raw_client_id: Optional[str]) -> str:
+    """Normalize external client id into an internal safe key."""
+    if not isinstance(raw_client_id, str):
+        return DEFAULT_CLIENT_ID
+    client_id = raw_client_id.strip()
+    if not client_id:
+        return DEFAULT_CLIENT_ID
+    return client_id[:128]
+
+
+def _get_client_id_from_request(payload: Optional[Dict[str, Any]] = None) -> str:
+    """Resolve client id from payload/query/header with sane fallback."""
+    payload_client_id = None
+    if isinstance(payload, dict):
+        payload_client_id = payload.get("client_id")
+    header_client_id = request.headers.get("X-Client-Id")
+    query_client_id = request.args.get("client_id")
+    return _normalize_client_id(payload_client_id or query_client_id or header_client_id)
+
+
+def _get_or_create_session(client_id: str) -> Dict[str, Any]:
+    """Get session for client, creating one if missing."""
+    normalized_client_id = _normalize_client_id(client_id)
+    with session_lock:
+        session = client_sessions.get(normalized_client_id)
+        if session is None:
+            session = _new_session_state()
+            client_sessions[normalized_client_id] = session
+        return session
+
+
+def _get_session_snapshot(client_id: str) -> Dict[str, Any]:
+    """Get deep copy of a client session for response serialization."""
+    normalized_client_id = _normalize_client_id(client_id)
+    with session_lock:
+        session = client_sessions.get(normalized_client_id)
+        if session is None:
+            session = _new_session_state()
+            client_sessions[normalized_client_id] = session
+        return deepcopy(session)
+
+
+def _record_progress_log(client_id: str, payload: Dict[str, Any]) -> None:
+    """Persist progress logs in session state for polling-based UI updates."""
+    message = payload.get("message")
+    if not isinstance(message, str) or not message.strip():
+        return
+
+    entry = {
+        "message": message.strip(),
+        "level": str(payload.get("level", "info")).lower(),
+        "timestamp": payload.get("timestamp") or datetime.now().isoformat(),
+    }
+
+    normalized_client_id = _normalize_client_id(client_id)
+    with session_lock:
+        session = client_sessions.setdefault(normalized_client_id, _new_session_state())
+        logs = session.setdefault("logs", [])
+        logs.append(entry)
+        if len(logs) > MAX_SESSION_LOGS:
+            del logs[: len(logs) - MAX_SESSION_LOGS]
+        session["updated_at"] = datetime.now().isoformat()
+
+
+def _emit_progress_log(client_id: str, payload: Dict[str, Any]) -> None:
+    """Emit progress log over socket and persist it in session state."""
+    if "timestamp" not in payload:
+        payload = {**payload, "timestamp": datetime.now().isoformat()}
+    _record_progress_log(client_id, payload)
+    socketio.emit("progress_log", payload, namespace="/", to=_normalize_client_id(client_id))
 
 
 def init_orchestrator() -> None:
@@ -88,6 +188,142 @@ def init_orchestrator() -> None:
     global orchestrator
     config_path = Path(__file__).parent.parent / "config" / "agents.yaml"
     orchestrator = Orchestrator(str(config_path))
+
+
+def _normalize_workflow_steps(workflow_config: Any) -> List[Dict[str, Any]]:
+    """Normalize workflow config to a list of step dictionaries."""
+    if isinstance(workflow_config, list):
+        return [step for step in workflow_config if isinstance(step, dict)]
+
+    if isinstance(workflow_config, dict):
+        steps = workflow_config.get("steps", [])
+        if isinstance(steps, list):
+            return [step for step in steps if isinstance(step, dict)]
+
+    return []
+
+
+def _normalize_step_task(step: Dict[str, Any]) -> str:
+    """Normalize task field; fallback to role aliases used by new workflow format."""
+    task = step.get("task")
+    if isinstance(task, str) and task.strip():
+        return task
+
+    role = step.get("role")
+    if not isinstance(role, str):
+        return ""
+
+    role_map = {
+        "implementer": "implement",
+        "reviewer": "review",
+        "refiner": "refine",
+        "writer": "document",
+        "tester": "test",
+    }
+    return role_map.get(role.strip().lower(), role)
+
+
+def _canonical_local_backend_type(agent_type: Any) -> Optional[str]:
+    """Map configured agent type to a local backend family."""
+    normalized = str(agent_type or "").strip().lower()
+    if normalized == "ollama":
+        return "ollama"
+    if normalized in {"llamacpp", "localai", "text-generation-webui", "openai-compatible"}:
+        return "openai-compatible"
+    return None
+
+
+def _probe_ollama_backend(endpoint: str) -> Dict[str, Any]:
+    """Probe Ollama endpoint and return model metadata."""
+    try:
+        response = httpx.get(f"{endpoint}/api/tags", timeout=3)
+        response.raise_for_status()
+        raw_models = response.json().get("models", [])
+        models: List[str] = []
+        models_detailed: List[Dict[str, Any]] = []
+        for item in raw_models:
+            name = str(item.get("name", "")).strip()
+            if not name:
+                continue
+            models.append(name)
+            models_detailed.append(
+                {
+                    "name": name,
+                    "size_bytes": item.get("size"),
+                    "modified_at": item.get("modified_at"),
+                    "digest": item.get("digest"),
+                }
+            )
+        return {
+            "online": True,
+            "models": models,
+            "models_detailed": models_detailed,
+            "error": None,
+        }
+    except Exception as exc:
+        return {"online": False, "models": [], "models_detailed": [], "error": str(exc)}
+
+
+def _probe_openai_compatible_backend(endpoint: str) -> Dict[str, Any]:
+    """Probe OpenAI-compatible local endpoint (llama.cpp/LocalAI/text-generation-webui)."""
+    online = False
+    health_error: Optional[str] = None
+
+    for url in [f"{endpoint}/health", f"{endpoint}/v1/models", endpoint]:
+        try:
+            resp = httpx.get(url, timeout=2)
+            if resp.status_code < 500:
+                online = True
+                break
+        except Exception as exc:
+            health_error = str(exc)
+
+    if not online:
+        return {
+            "online": False,
+            "models": [],
+            "models_detailed": [],
+            "error": health_error or "Endpoint is unreachable",
+        }
+
+    try:
+        resp = httpx.get(f"{endpoint}/v1/models", timeout=3)
+        resp.raise_for_status()
+        data = resp.json().get("data", [])
+        models: List[str] = []
+        models_detailed: List[Dict[str, Any]] = []
+        for item in data:
+            model_id = str(item.get("id", "")).strip()
+            if not model_id:
+                continue
+            models.append(model_id)
+            models_detailed.append(
+                {
+                    "id": model_id,
+                    "owned_by": item.get("owned_by"),
+                    "created": item.get("created"),
+                }
+            )
+        return {
+            "online": True,
+            "models": models,
+            "models_detailed": models_detailed,
+            "error": None,
+        }
+    except Exception as exc:
+        return {
+            "online": True,
+            "models": [],
+            "models_detailed": [],
+            "error": f"Model listing unavailable: {exc}",
+        }
+
+
+def _probe_local_backend(backend_type: str, endpoint: str) -> Dict[str, Any]:
+    """Probe a local backend and return normalized status payload."""
+    if backend_type == "ollama":
+        return _probe_ollama_backend(endpoint)
+    return _probe_openai_compatible_backend(endpoint)
 
 
 @app.route("/")
@@ -165,6 +401,11 @@ def metrics():
         agents_available = sum(
             1 for adapter in orchestrator.adapters.values() if adapter.is_available()
         )
+        with session_lock:
+            active_sessions = sum(
+                1 for session in client_sessions.values() if session.get("status") == "running"
+            )
+            total_sessions = len(client_sessions)
 
         metrics_output = f"""# HELP ai_orchestrator_agents_total Total number of agents
 # TYPE ai_orchestrator_agents_total gauge
@@ -176,7 +417,11 @@ ai_orchestrator_agents_available {agents_available}
 
 # HELP ai_orchestrator_session_active Is there an active session
 # TYPE ai_orchestrator_session_active gauge
-ai_orchestrator_session_active {1 if current_session["status"] != "idle" else 0}
+ai_orchestrator_session_active {active_sessions}
+
+# HELP ai_orchestrator_sessions_total Total number of known client sessions
+# TYPE ai_orchestrator_sessions_total gauge
+ai_orchestrator_sessions_total {total_sessions}
 
 # HELP ai_orchestrator_up Service is up
 # TYPE ai_orchestrator_up gauge
@@ -216,6 +461,96 @@ def get_agents():
     return jsonify({"agents": agents_list})
 
 
+@app.route("/api/models/status", methods=["GET"])
+def get_local_models_status():
+    """Get detailed status for configured local model backends and agents."""
+    if not orchestrator:
+        init_orchestrator()
+
+    agents_config = orchestrator.config.get("agents", {})
+    backend_probe_cache: Dict[str, Dict[str, Any]] = {}
+    backend_status_map: Dict[str, Dict[str, Any]] = {}
+    local_agents: List[Dict[str, Any]] = []
+
+    for agent_name, agent_config in agents_config.items():
+        backend_type = _canonical_local_backend_type(agent_config.get("type"))
+        if backend_type is None:
+            continue
+
+        endpoint = str(
+            agent_config.get("endpoint") or LOCAL_BACKEND_DEFAULT_ENDPOINTS.get(backend_type, "")
+        ).rstrip("/")
+        if not endpoint:
+            endpoint = LOCAL_BACKEND_DEFAULT_ENDPOINTS.get(backend_type, "")
+
+        probe_key = f"{backend_type}::{endpoint}"
+        if probe_key not in backend_probe_cache:
+            backend_probe_cache[probe_key] = _probe_local_backend(backend_type, endpoint)
+        probe = backend_probe_cache[probe_key]
+
+        configured_model = agent_config.get("model")
+        configured_model_present: Optional[bool] = None
+        if isinstance(configured_model, str) and configured_model.strip():
+            configured_model_present = configured_model in set(probe.get("models", []))
+
+        enabled = bool(agent_config.get("enabled", False))
+        agent_status = {
+            "name": agent_name,
+            "type": str(agent_config.get("type", "")),
+            "backend_type": backend_type,
+            "enabled": enabled,
+            "offline": bool(agent_config.get("offline", False)),
+            "endpoint": endpoint,
+            "capabilities": agent_config.get("capabilities", []),
+            "configured_model": configured_model,
+            "configured_model_present": configured_model_present,
+            "endpoint_online": bool(probe.get("online", False)),
+            "available_for_execution": enabled and bool(probe.get("online", False)),
+            "model_count": len(probe.get("models", [])),
+            "discovered_models": probe.get("models", []),
+            "probe_error": probe.get("error"),
+        }
+        local_agents.append(agent_status)
+
+        backend = backend_status_map.get(probe_key)
+        if backend is None:
+            backend = {
+                "backend_type": backend_type,
+                "endpoint": endpoint,
+                "online": bool(probe.get("online", False)),
+                "models": list(probe.get("models", [])),
+                "models_detailed": list(probe.get("models_detailed", [])),
+                "model_count": len(probe.get("models", [])),
+                "agents": [],
+                "enabled_agents": 0,
+                "available_agents": 0,
+                "probe_error": probe.get("error"),
+            }
+            backend_status_map[probe_key] = backend
+
+        backend["agents"].append(agent_name)
+        if enabled:
+            backend["enabled_agents"] += 1
+        if agent_status["available_for_execution"]:
+            backend["available_agents"] += 1
+
+    backends = sorted(
+        backend_status_map.values(),
+        key=lambda item: (item.get("backend_type", ""), item.get("endpoint", "")),
+    )
+    local_agents = sorted(local_agents, key=lambda item: item.get("name", ""))
+
+    summary = {
+        "local_agents": len(local_agents),
+        "enabled_local_agents": sum(1 for item in local_agents if item.get("enabled")),
+        "online_backends": sum(1 for item in backends if item.get("online")),
+        "backends": len(backends),
+        "models": sum(int(item.get("model_count", 0)) for item in backends),
+    }
+
+    return jsonify({"summary": summary, "backends": backends, "agents": local_agents})
+
+
 @app.route("/api/workflows", methods=["GET"])
 def get_workflows():
     """Get list of available workflows."""
@@ -225,14 +560,27 @@ def get_workflows():
     workflows_config = orchestrator.config.get("workflows", {})
     workflows_list = []
 
-    for name, steps in workflows_config.items():
+    for name, workflow_config in workflows_config.items():
+        steps = _normalize_workflow_steps(workflow_config)
+        description = ""
+        offline = False
+
+        if isinstance(workflow_config, dict):
+            description = workflow_config.get("description", "")
+            offline = bool(workflow_config.get("offline", False))
+        elif steps:
+            description = steps[0].get("description", "")
+
         workflow_info = {
             "name": name,
+            "description": description,
+            "offline": offline,
             "steps": [
                 {
                     "agent": step.get("agent"),
-                    "task": step.get("task"),
+                    "task": _normalize_step_task(step),
                     "description": step.get("description", ""),
+                    "fallback": step.get("fallback"),
                 }
                 for step in steps
             ],
@@ -245,11 +593,12 @@ def get_workflows():
 @app.route("/api/execute", methods=["POST"])
 def execute_task():
     """Execute a task via the API with conversation support."""
-    data = request.json
+    data = request.get_json(silent=True) or {}
     task = data.get("task")
     workflow = data.get("workflow", "default")
     max_iterations = data.get("max_iterations", 3)
     is_followup = data.get("is_followup", False)
+    client_id = _get_client_id_from_request(data)
 
     if not task:
         return jsonify({"error": "Task is required"}), 400
@@ -259,31 +608,38 @@ def execute_task():
 
     # Handle follow-up context
     actual_task = task
-    if is_followup and current_session.get("last_task"):
-        # Inject previous context for follow-ups
-        previous_task = current_session["last_task"]
-        previous_output = current_session.get("last_output", "")
+    session = _get_or_create_session(client_id)
+    if is_followup and session.get("last_task"):
+        # Inject previous context for follow-ups in this client session.
+        previous_task = session["last_task"]
+        previous_output = session.get("last_output", "")
         actual_task = f"Previous task: {previous_task}\nPrevious result: {previous_output}\n\nFollow-up: {task}"
 
     # Update session
-    current_session["task"] = task
-    current_session["workflow"] = workflow
-    current_session["status"] = "running"
-    current_session["files"] = []
+    with session_lock:
+        session = client_sessions.setdefault(client_id, _new_session_state())
+        session["task"] = task
+        session["workflow"] = workflow
+        session["status"] = "running"
+        session["results"] = None
+        session["files"] = []
+        session["logs"] = []
+        session["started_at"] = datetime.now().isoformat()
+        session["updated_at"] = datetime.now().isoformat()
 
-    # Add to conversation history
-    current_session["conversation_history"].append(
-        {
-            "role": "user",
-            "content": task,
-            "is_followup": is_followup,
-            "timestamp": datetime.now().isoformat(),
-        }
-    )
+        # Add to conversation history
+        session["conversation_history"].append(
+            {
+                "role": "user",
+                "content": task,
+                "is_followup": is_followup,
+                "timestamp": datetime.now().isoformat(),
+            }
+        )
 
     # Execute via socket for real-time updates
     socketio.start_background_task(
-        execute_task_async, actual_task, workflow, max_iterations, is_followup
+        execute_task_async, client_id, actual_task, workflow, max_iterations, is_followup
     )
 
     return jsonify(
@@ -291,39 +647,42 @@ def execute_task():
             "message": "Task started",
             "session_id": datetime.now().isoformat(),
             "is_followup": is_followup,
+            "client_id": client_id,
         }
     )
 
 
-def execute_task_async(task: str, workflow: str, max_iterations: int, is_followup: bool = False):
+def execute_task_async(
+    client_id: str, task: str, workflow: str, max_iterations: int, is_followup: bool = False
+):
     """Execute task asynchronously and send updates via WebSocket."""
-    global current_session
+    normalized_client_id = _normalize_client_id(client_id)
 
     try:
-        # Send start event (broadcast to all clients)
+        # Send start event to the originating client session only.
         socketio.emit(
-            "task_started", {"task": task, "workflow": workflow, "is_followup": is_followup}
+            "task_started",
+            {"task": task, "workflow": workflow, "is_followup": is_followup},
+            namespace="/",
+            to=normalized_client_id,
         )
 
         # Emit progress log
-        socketio.emit(
-            "progress_log",
+        _emit_progress_log(
+            normalized_client_id,
             {"message": f"Starting task execution with workflow: {workflow}", "level": "info"},
         )
 
         # Setup logging handler to capture all orchestrator-related logs
-        log_handler = WebSocketLogHandler(socketio)
+        log_handler = WebSocketLogHandler(
+            socketio,
+            progress_callback=lambda payload: _emit_progress_log(normalized_client_id, payload),
+        )
         log_handler.setLevel(logging.INFO)
 
         # Attach to root logger to capture all logs
         root_logger = logging.getLogger()
         root_logger.addHandler(log_handler)
-
-        # Debug: verify handler is attached
-        print(
-            f"[DEBUG] WebSocketLogHandler attached. Root logger handlers: {len(root_logger.handlers)}"
-        )
-        print(f"[DEBUG] Root logger level: {root_logger.level}")
 
         # Keep track for cleanup
         loggers_to_capture = [root_logger]
@@ -339,7 +698,9 @@ def execute_task_async(task: str, workflow: str, max_iterations: int, is_followu
                 logger_obj.removeHandler(log_handler)
 
         # Emit completion log
-        socketio.emit("progress_log", {"message": "Task execution completed", "level": "success"})
+        _emit_progress_log(
+            normalized_client_id, {"message": "Task execution completed", "level": "success"}
+        )
 
         # Collect files from all iterations
         files_created = []
@@ -348,60 +709,76 @@ def execute_task_async(task: str, workflow: str, max_iterations: int, is_followu
                 if step.get("files_modified"):
                     files_created.extend(step["files_modified"])
 
-        current_session["results"] = results
-        current_session["files"] = files_created
-        current_session["status"] = "completed" if results.get("success") else "failed"
-
-        # Store for future follow-ups
         final_output = results.get("final_output", "")
-        current_session["last_task"] = current_session["task"]
-        current_session["last_output"] = final_output
-        current_session["context"]["files"] = files_created
-        current_session["context"]["workspace"] = "./workspace"
+        with session_lock:
+            session = client_sessions.setdefault(normalized_client_id, _new_session_state())
+            session["results"] = results
+            session["files"] = files_created
+            session["status"] = "completed" if results.get("success") else "failed"
 
-        # Add to conversation history
-        current_session["conversation_history"].append(
-            {
-                "role": "assistant",
-                "content": final_output,
-                "files": files_created,
-                "timestamp": datetime.now().isoformat(),
-            }
-        )
+            # Store for future follow-ups
+            session["last_task"] = session["task"]
+            session["last_output"] = final_output
+            session["context"]["files"] = files_created
+            session["context"]["workspace"] = "./workspace"
+            session["updated_at"] = datetime.now().isoformat()
+
+            # Add to conversation history
+            session["conversation_history"].append(
+                {
+                    "role": "assistant",
+                    "content": final_output,
+                    "files": files_created,
+                    "timestamp": datetime.now().isoformat(),
+                }
+            )
 
         # Send completion event
         socketio.emit(
             "task_completed",
             {
-                "task": current_session["task"],
+                "task": session.get("task"),
                 "success": results.get("success"),
                 "output": final_output,
                 "files": files_created,
                 "iterations": results.get("iterations", []),
                 "can_followup": True,
             },
+            namespace="/",
+            to=normalized_client_id,
         )
 
     except Exception as e:
         logger.error(f"Error executing task: {e}", exc_info=True)
-        current_session["status"] = "error"
-        socketio.emit("progress_log", {"message": f"Task error: {str(e)}", "level": "error"})
-        socketio.emit("task_error", {"error": str(e)})
+        with session_lock:
+            session = client_sessions.setdefault(normalized_client_id, _new_session_state())
+            session["status"] = "error"
+            session["updated_at"] = datetime.now().isoformat()
+        _emit_progress_log(
+            normalized_client_id, {"message": f"Task error: {str(e)}", "level": "error"}
+        )
+        socketio.emit("task_error", {"error": str(e)}, namespace="/", to=normalized_client_id)
 
 
 @app.route("/api/status", methods=["GET"])
 def get_status():
     """Get current session status."""
-    return jsonify(current_session)
+    client_id = _get_client_id_from_request()
+    session_snapshot = _get_session_snapshot(client_id)
+    session_snapshot["client_id"] = client_id
+    return jsonify(session_snapshot)
 
 
 @app.route("/api/conversation", methods=["GET"])
 def get_conversation():
     """Get conversation history."""
+    client_id = _get_client_id_from_request()
+    session_snapshot = _get_session_snapshot(client_id)
     return jsonify(
         {
-            "history": current_session.get("conversation_history", []),
-            "can_followup": bool(current_session.get("last_task")),
+            "history": session_snapshot.get("conversation_history", []),
+            "can_followup": bool(session_snapshot.get("last_task")),
+            "client_id": client_id,
         }
     )
 
@@ -409,19 +786,11 @@ def get_conversation():
 @app.route("/api/conversation/clear", methods=["POST"])
 def clear_conversation():
     """Clear conversation history and start fresh."""
-    global current_session
-    current_session = {
-        "task": None,
-        "workflow": "default",
-        "status": "idle",
-        "results": None,
-        "files": [],
-        "conversation_history": [],
-        "last_task": None,
-        "last_output": None,
-        "context": {},
-    }
-    return jsonify({"message": "Conversation cleared"})
+    data = request.get_json(silent=True) or {}
+    client_id = _get_client_id_from_request(data)
+    with session_lock:
+        client_sessions[client_id] = _new_session_state()
+    return jsonify({"message": "Conversation cleared", "client_id": client_id})
 
 
 @app.route("/api/files/<path:filename>", methods=["GET"])
@@ -473,12 +842,19 @@ def detect_language(filename: str) -> str:
 @socketio.on("connect")
 def handle_connect():
     """Handle client connection."""
-    logger.info("Client connected")
+    client_id = _normalize_client_id(request.args.get("client_id"))
+    join_room(client_id)
+    with session_lock:
+        sid_to_client[request.sid] = client_id
+    logger.info("Client connected sid=%s client_id=%s", request.sid, client_id)
+    session_snapshot = _get_session_snapshot(client_id)
     emit(
         "connected",
         {
             "message": "Connected to AI Orchestrator",
-            "can_followup": bool(current_session.get("last_task")),
+            "can_followup": bool(session_snapshot.get("last_task")),
+            "status": session_snapshot.get("status", "idle"),
+            "client_id": client_id,
         },
     )
 
@@ -486,7 +862,9 @@ def handle_connect():
 @socketio.on("disconnect")
 def handle_disconnect():
     """Handle client disconnection."""
-    logger.info("Client disconnected")
+    with session_lock:
+        client_id = sid_to_client.pop(request.sid, None)
+    logger.info("Client disconnected sid=%s client_id=%s", request.sid, client_id)
 
 
 if __name__ == "__main__":

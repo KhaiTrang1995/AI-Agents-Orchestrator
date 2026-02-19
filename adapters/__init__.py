@@ -9,6 +9,8 @@ from .claude_adapter import ClaudeAdapter
 from .codex_adapter import CodexAdapter
 from .copilot_adapter import CopilotAdapter
 from .gemini_adapter import GeminiAdapter
+from .llama_cpp_adapter import LlamaCppAdapter
+from .ollama_adapter import OllamaAdapter
 
 __all__ = [
     "BaseAdapter",
@@ -18,4 +20,6 @@ __all__ = [
     "CodexAdapter",
     "GeminiAdapter",
     "CopilotAdapter",
+    "OllamaAdapter",
+    "LlamaCppAdapter",
 ]
