@@ -28,6 +28,7 @@ spec:
     - hosts:
         - ai-orchestrator.example.com
         - www.ai-orchestrator.example.com
+        - agentic-team.example.com
       secretName: ai-orchestrator-tls
   rules:
     - host: ai-orchestrator.example.com
@@ -57,6 +58,23 @@ spec:
                 name: ai-orchestrator-service
                 port:
                   number: 80
+    - host: agentic-team.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: agentic-team-service
+                port:
+                  number: 80
+          - path: /metrics
+            pathType: Prefix
+            backend:
+              service:
+                name: agentic-team-service
+                port:
+                  number: 9090
 
 ---
 apiVersion: v1

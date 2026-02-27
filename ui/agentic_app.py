@@ -234,9 +234,11 @@ def _team_validation_payload() -> Dict[str, Any]:
         "valid": len(missing_roles) == 0,
         "available_agents": available,
         "missing_roles": missing_roles,
-        "reason": "no_available_agents"
-        if not available
-        else ("invalid_mappings" if missing_roles else ""),
+        "reason": (
+            "no_available_agents"
+            if not available
+            else ("invalid_mappings" if missing_roles else "")
+        ),
     }
 
 

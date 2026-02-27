@@ -28,7 +28,7 @@ def _coerce_positive_int(raw: Any, fallback: int) -> int:
 
 
 def default_roles(
-    pick_preferred_agent: Callable[[list[str]], str | None]
+    pick_preferred_agent: Callable[[list[str]], str | None],
 ) -> dict[str, dict[str, Any]]:
     """Build default role specs with best-effort preferred agent picks."""
     return {
@@ -94,9 +94,11 @@ def resolve_team_config(
         else ROLE_PROJECT_MANAGER
     )
     max_turns = _coerce_positive_int(
-        raw.get("max_turns", DEFAULT_TEAM_MAX_TURNS)
-        if isinstance(raw, dict)
-        else DEFAULT_TEAM_MAX_TURNS,
+        (
+            raw.get("max_turns", DEFAULT_TEAM_MAX_TURNS)
+            if isinstance(raw, dict)
+            else DEFAULT_TEAM_MAX_TURNS
+        ),
         DEFAULT_TEAM_MAX_TURNS,
     )
 

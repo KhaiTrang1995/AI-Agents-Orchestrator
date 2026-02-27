@@ -1,18 +1,19 @@
 version: '3.8'
 
 services:
-  ai-orchestrator:
+  ai-orchestrator-ui:
     build:
       context: .
       dockerfile: Dockerfile
     image: ai-orchestrator:latest
-    container_name: ai-orchestrator
+    container_name: ai-orchestrator-ui
     restart: unless-stopped
     environment:
       - APP_ENV=${APP_ENV:-production}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - ENABLE_METRICS=${ENABLE_METRICS:-true}
       - METRICS_PORT=9090
+      - UI_BACKEND_PORT=5001
     volumes:
       # Mount configuration
       - ./config:/app/config:ro
@@ -23,18 +24,53 @@ services:
       - ./sessions:/app/sessions
       - ./logs:/app/logs
     ports:
+      - "5001:5001"  # Orchestrator UI backend
       - "9090:9090"  # Metrics
     networks:
       - orchestrator-network
-    command: ["shell"]
+    command: ["ui/app.py"]
     stdin_open: true
     tty: true
     healthcheck:
-      test: ["CMD", "python", "-c", "import sys; sys.exit(0)"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5001/health', timeout=5)"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 5s
+      start_period: 10s
+
+  agentic-team-ui:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: ai-orchestrator:latest
+    container_name: agentic-team-ui
+    restart: unless-stopped
+    environment:
+      - APP_ENV=${APP_ENV:-production}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - ENABLE_METRICS=${ENABLE_METRICS:-true}
+      - METRICS_PORT=9090
+      - AGENTIC_UI_BACKEND_PORT=5002
+    volumes:
+      - ./config:/app/config:ro
+      - ./output:/app/output
+      - ./workspace:/app/workspace
+      - ./reports:/app/reports
+      - ./sessions:/app/sessions
+      - ./logs:/app/logs
+    ports:
+      - "5002:5002"  # Standalone Agentic Team UI backend
+    networks:
+      - orchestrator-network
+    command: ["ui/agentic_app.py"]
+    stdin_open: true
+    tty: true
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5002/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 
   # Prometheus for metrics collection (optional)
   prometheus:

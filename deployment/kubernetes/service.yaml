@@ -17,6 +17,47 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
+  name: agentic-team
+  labels:
+    app: agentic-team
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5002
+      targetPort: http
+      protocol: TCP
+      name: http
+    - port: 9090
+      targetPort: metrics
+      protocol: TCP
+      name: metrics
+  selector:
+    app: agentic-team
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: agentic-team-headless
+  labels:
+    app: agentic-team
+spec:
+  type: ClusterIP
+  clusterIP: None
+  ports:
+    - port: 5002
+      targetPort: http
+      protocol: TCP
+      name: http
+    - port: 9090
+      targetPort: metrics
+      protocol: TCP
+      name: metrics
+  selector:
+    app: agentic-team
+---
+apiVersion: v1
+kind: Service
+metadata:
   name: ai-orchestrator-headless
   labels:
     app: ai-orchestrator

@@ -5,8 +5,11 @@ set -euo pipefail
 # Gradually increases traffic to canary deployment
 
 NAMESPACE="${NAMESPACE:-ai-orchestrator}"
-STABLE_DEPLOYMENT="ai-orchestrator-stable"
-CANARY_DEPLOYMENT="ai-orchestrator-canary"
+APP_NAME="${APP_NAME:-ai-orchestrator}"
+APP_PORT="${APP_PORT:-5001}"
+CONTAINER_NAME="${CONTAINER_NAME:-$APP_NAME}"
+STABLE_DEPLOYMENT="${APP_NAME}-stable"
+CANARY_DEPLOYMENT="${APP_NAME}-canary"
 STABLE_REPLICAS=5
 CANARY_REPLICAS=1
 
@@ -14,8 +17,10 @@ echo "================================================"
 echo "Canary Deployment Rollout"
 echo "================================================"
 echo "Namespace: $NAMESPACE"
+echo "Application: $APP_NAME"
 echo "Stable Deployment: $STABLE_DEPLOYMENT"
 echo "Canary Deployment: $CANARY_DEPLOYMENT"
+echo "App Port: $APP_PORT"
 echo "================================================"
 
 # Traffic distribution stages: 10% -> 25% -> 50% -> 100%
@@ -131,7 +136,7 @@ promote_canary() {
         -o jsonpath='{.spec.template.spec.containers[0].image}')
 
     kubectl set image deployment/"$STABLE_DEPLOYMENT" \
-        ai-orchestrator="$canary_image" \
+        "$CONTAINER_NAME"="$canary_image" \
         -n "$NAMESPACE"
 
     # Scale stable back to normal
