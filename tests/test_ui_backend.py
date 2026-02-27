@@ -226,3 +226,49 @@ def test_models_status_returns_detailed_local_backend_data():
         assert backends["http://localhost:8080"]["online"] is True
     finally:
         ui_app.orchestrator = original_orchestrator
+
+
+def test_config_endpoints_support_structured_payload(monkeypatch, tmp_path):
+    _reset_session_state()
+    original_init = ui_app.init_orchestrator
+    config_file = tmp_path / "agents.yaml"
+    config_file.write_text(
+        "agents: {}\nworkflows: {}\nsettings:\n  max_iterations: 3\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("AI_ORCHESTRATOR_CONFIG_PATH", str(config_file))
+
+    init_calls = {"count": 0}
+
+    def fake_init():
+        init_calls["count"] += 1
+
+    try:
+        ui_app.init_orchestrator = fake_init
+        with ui_app.app.test_client() as client:
+            get_response = client.get("/api/config")
+            put_response = client.put(
+                "/api/config",
+                json={
+                    "config": {
+                        "agents": {"codex": {"enabled": True, "type": "cli"}},
+                        "workflows": {"default": {"steps": []}},
+                        "settings": {"max_iterations": 2},
+                        "agentic_team": {"lead_role": "project_manager", "roles": {}},
+                    }
+                },
+            )
+
+        assert get_response.status_code == 200
+        get_payload = get_response.get_json()
+        assert isinstance(get_payload["parsed"], dict)
+        assert "settings" in get_payload["parsed"]
+
+        assert put_response.status_code == 200
+        put_payload = put_response.get_json()
+        assert "updated" in put_payload["message"].lower()
+        assert put_payload["parsed"]["settings"]["max_iterations"] == 2
+        assert init_calls["count"] == 1
+        assert "agentic_team" in config_file.read_text(encoding="utf-8")
+    finally:
+        ui_app.init_orchestrator = original_init

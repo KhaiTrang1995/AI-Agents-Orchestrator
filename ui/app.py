@@ -15,7 +15,8 @@ from threading import Lock, get_ident
 from typing import Any, Dict, List, Optional
 
 import httpx
-from flask import Flask, jsonify, render_template, request
+import yaml
+from flask import Flask, jsonify, render_template, request, send_from_directory
 from flask_cors import CORS
 from flask_socketio import SocketIO, emit, join_room
 
@@ -75,6 +76,7 @@ app = Flask(__name__, template_folder="templates", static_folder="static")
 app.config["SECRET_KEY"] = "ai-orchestrator-secret-key-change-in-production"
 CORS(app)
 socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
+FRONTEND_PUBLIC_DIR = Path(__file__).parent / "frontend" / "public"
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -186,8 +188,57 @@ def _emit_progress_log(client_id: str, payload: Dict[str, Any]) -> None:
 def init_orchestrator() -> None:
     """Initialize the orchestrator."""
     global orchestrator
-    config_path = Path(__file__).parent.parent / "config" / "agents.yaml"
+    config_path = _config_path()
     orchestrator = Orchestrator(str(config_path))
+
+
+def _config_path() -> Path:
+    """Resolve config path from env override or default project path."""
+    override = os.getenv("AI_ORCHESTRATOR_CONFIG_PATH", "").strip()
+    if override:
+        return Path(override)
+    return Path(__file__).parent.parent / "config" / "agents.yaml"
+
+
+def _validate_config_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
+    """Validate config payload from JSON body and return normalized config dict."""
+    config_obj = payload.get("config")
+    content = payload.get("content")
+
+    if isinstance(config_obj, dict):
+        parsed = config_obj
+    elif isinstance(content, str) and content.strip():
+        try:
+            parsed = yaml.safe_load(content)
+        except yaml.YAMLError as exc:
+            raise ValueError(f"Invalid YAML: {exc}") from exc
+    else:
+        raise ValueError("Provide either 'config' object or non-empty 'content' YAML")
+
+    if not isinstance(parsed, dict):
+        raise ValueError("Top-level YAML must be a mapping/object")
+
+    for section in ["agents", "workflows", "settings"]:
+        if section not in parsed:
+            raise ValueError(f"Missing required section: {section}")
+        if not isinstance(parsed.get(section), dict):
+            raise ValueError(f"Section '{section}' must be a mapping/object")
+
+    team_cfg = parsed.get("agentic_team")
+    if team_cfg is not None and not isinstance(team_cfg, dict):
+        raise ValueError("'agentic_team' must be a mapping/object when provided")
+
+    return parsed
+
+
+def _dump_config_yaml(config_obj: Dict[str, Any]) -> str:
+    """Serialize config object to YAML string."""
+    return yaml.safe_dump(
+        config_obj,
+        sort_keys=False,
+        default_flow_style=False,
+        allow_unicode=False,
+    )
 
 
 def _normalize_workflow_steps(workflow_config: Any) -> List[Dict[str, Any]]:
@@ -324,6 +375,102 @@ def _probe_local_backend(backend_type: str, endpoint: str) -> Dict[str, Any]:
     if backend_type == "ollama":
         return _probe_ollama_backend(endpoint)
     return _probe_openai_compatible_backend(endpoint)
+
+
+def _serve_frontend_public_asset(filename: str, mimetype: Optional[str] = None):
+    """Serve shared favicon/PWA assets from the frontend public directory."""
+    return send_from_directory(str(FRONTEND_PUBLIC_DIR), filename, mimetype=mimetype)
+
+
+@app.route("/favicon.ico")
+def favicon():
+    return _serve_frontend_public_asset("favicon.ico", "image/x-icon")
+
+
+@app.route("/favicon-16x16.png")
+def favicon_16():
+    return _serve_frontend_public_asset("favicon-16x16.png", "image/png")
+
+
+@app.route("/favicon-32x32.png")
+def favicon_32():
+    return _serve_frontend_public_asset("favicon-32x32.png", "image/png")
+
+
+@app.route("/apple-touch-icon.png")
+def apple_touch_icon():
+    return _serve_frontend_public_asset("apple-touch-icon.png", "image/png")
+
+
+@app.route("/android-chrome-192x192.png")
+def android_chrome_192():
+    return _serve_frontend_public_asset("android-chrome-192x192.png", "image/png")
+
+
+@app.route("/android-chrome-512x512.png")
+def android_chrome_512():
+    return _serve_frontend_public_asset("android-chrome-512x512.png", "image/png")
+
+
+@app.route("/site.webmanifest")
+def site_webmanifest():
+    return _serve_frontend_public_asset("site.webmanifest", "application/manifest+json")
+
+
+@app.route("/api/config", methods=["GET"])
+def get_config():
+    """Return raw and parsed orchestrator configuration."""
+    path = _config_path()
+    if not path.exists():
+        return jsonify({"error": f"Config file not found: {path}"}), 404
+
+    content = path.read_text(encoding="utf-8")
+    parsed: Dict[str, Any] = {}
+    try:
+        loaded = yaml.safe_load(content)
+        if isinstance(loaded, dict):
+            parsed = loaded
+    except yaml.YAMLError:
+        # Keep endpoint resilient even if file is temporarily malformed.
+        parsed = {}
+
+    return jsonify(
+        {
+            "path": str(path),
+            "content": content,
+            "parsed": parsed,
+            "last_modified": datetime.fromtimestamp(path.stat().st_mtime).isoformat(),
+        }
+    )
+
+
+@app.route("/api/config", methods=["PUT"])
+def put_config():
+    """Update orchestrator config from structured JSON object or YAML content."""
+    data = request.get_json(silent=True) or {}
+    try:
+        parsed = _validate_config_payload(data)
+        serialized = _dump_config_yaml(parsed)
+
+        path = _config_path()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(serialized, encoding="utf-8")
+        init_orchestrator()
+
+        return jsonify(
+            {
+                "message": "Configuration updated and orchestrator reloaded",
+                "path": str(path),
+                "content": serialized,
+                "parsed": parsed,
+                "last_modified": datetime.fromtimestamp(path.stat().st_mtime).isoformat(),
+            }
+        )
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+    except Exception as exc:
+        logger.error("Config update failed: %s", exc, exc_info=True)
+        return jsonify({"error": f"Failed to update config: {exc}"}), 500
 
 
 @app.route("/")

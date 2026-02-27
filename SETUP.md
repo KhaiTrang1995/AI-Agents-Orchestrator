@@ -8,6 +8,7 @@
 - [AI CLI Tools Setup](#ai-cli-tools-setup)
 - [Configuration](#configuration)
 - [Web UI Setup](#web-ui-setup)
+- [Standalone Agentic Team Setup](#standalone-agentic-team-setup)
 - [Docker Setup](#docker-setup)
 - [Production Deployment](#production-deployment)
 - [Troubleshooting](#troubleshooting)
@@ -54,8 +55,8 @@ You need **at least one** of these AI CLI tools installed:
 
 ```bash
 # 1. Clone repository
-git clone <repository-url>
-cd AI-Agents-Orchestrator
+git clone https://github.com/hoangsonww/AI-Agents-Orchestrator.git
+cd AI-Coding-Tools-Collaborative
 
 # 2. Install Python dependencies
 pip3 install -r requirements.txt
@@ -71,6 +72,12 @@ chmod +x ai-orchestrator
 
 # 6. Start interactive shell
 ./ai-orchestrator shell
+
+# 7. (Optional) Start standalone Agentic Team REPL
+./ai-orchestrator agentic-shell
+
+# 8. (Optional) Start standalone Agentic Team UI
+./start-agentic-ui.sh
 ```
 
 ## Detailed Installation
@@ -78,8 +85,8 @@ chmod +x ai-orchestrator
 ### Step 1: Clone Repository
 
 ```bash
-git clone <repository-url>
-cd AI-Agents-Orchestrator
+git clone https://github.com/hoangsonww/AI-Agents-Orchestrator.git
+cd AI-Coding-Tools-Collaborative
 ```
 
 ### Step 2: Create Virtual Environment (Recommended)
@@ -512,6 +519,8 @@ export RATE_LIMIT_PER_MINUTE="20"
 
 ## Web UI Setup
 
+### Orchestrator UI
+
 ### Prerequisites
 
 ```bash
@@ -608,7 +617,52 @@ chmod +x start-ui.sh
 1. Checks dependencies
 2. Starts backend in background
 3. Starts frontend in foreground
-4. Opens browser automatically
+4. Serves orchestrator UI at `http://localhost:3000` and API at `http://localhost:5000`
+
+## Standalone Agentic Team Setup
+
+This mode is separate from orchestrator workflows. It has its own backend/UI runtime and communication graph.
+
+### Option A: One-Command Startup (Recommended)
+
+```bash
+# From project root
+chmod +x start-agentic-ui.sh
+./start-agentic-ui.sh
+```
+
+Agentic Team UI URL: `http://localhost:5002`
+
+### Option B: Manual Startup
+
+```bash
+# From project root
+cd ui
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+pip install httpx
+
+# Run dedicated backend/UI
+python agentic_app.py
+```
+
+### Agentic Team CLI REPL
+
+```bash
+# From project root
+./ai-orchestrator agentic-shell
+
+# Optional controls
+./ai-orchestrator agentic-shell --max-turns 16
+./ai-orchestrator agentic-shell --offline
+```
+
+### Agentic Team Config Notes
+
+- Agentic team role mappings are loaded from `config/agents.yaml` under `agentic_team.roles`.
+- Each role must map to an available agent name in `agents`.
+- The dedicated UI includes a guided config editor (no YAML editor required).
 
 ## Docker Setup
 
@@ -813,7 +867,7 @@ chmod +x ai-orchestrator
 python3 ai-orchestrator --help
 ```
 
-#### Issue: Web UI won't start
+#### Issue: Orchestrator Web UI won't start
 
 **Solution:**
 ```bash
@@ -833,6 +887,36 @@ npm install
 curl http://localhost:5000/health
 ```
 
+#### Issue: Agentic Team UI won't start
+
+**Solution:**
+```bash
+# Run from project root (relative path, no leading slash)
+./start-agentic-ui.sh
+
+# If script is not executable
+chmod +x start-agentic-ui.sh
+./start-agentic-ui.sh
+
+# Or run directly
+source ui/venv/bin/activate
+python ui/agentic_app.py
+
+# Verify dedicated UI backend
+curl http://localhost:5002/health
+```
+
+#### Issue: "zsh: no such file or directory: /start-agentic-ui.sh"
+
+**Solution:**
+```bash
+# Wrong:
+/start-agentic-ui.sh
+
+# Correct (run from repo root):
+./start-agentic-ui.sh
+```
+
 #### Issue: "Port already in use"
 
 **Solution:**
@@ -840,6 +924,7 @@ curl http://localhost:5000/health
 # Find process using port
 lsof -i :5000  # Backend
 lsof -i :3000  # Frontend
+lsof -i :5002  # Agentic Team UI backend
 
 # Kill process
 kill -9 <PID>
@@ -847,6 +932,26 @@ kill -9 <PID>
 # Or use different ports
 export BACKEND_PORT=5001
 export FRONTEND_PORT=3001
+export AGENTIC_UI_BACKEND_PORT=5003
+```
+
+#### Issue: Agentic Team role mappings unavailable
+
+**Symptom examples:**
+- `Unavailable mappings: project_manager:null, ...`
+- `roles mapped to unavailable agents`
+
+**Solution:**
+```bash
+# 1) Ensure at least one agent is enabled and available
+./ai-orchestrator agents
+
+# 2) Open config and map agentic_team.roles.*.agent to valid agent names
+#    (names must match keys under agents:)
+python -c "import yaml; d=yaml.safe_load(open('config/agents.yaml')); print(sorted((d.get('agents') or {}).keys()))"
+
+# 3) Validate config
+./ai-orchestrator validate
 ```
 
 #### Issue: Configuration validation fails
@@ -893,6 +998,10 @@ tail -f ai-orchestrator.log
 
 # Test with dry run
 ./ai-orchestrator run "test task" --dry-run
+
+# Check agentic team UI health/readiness (if running)
+curl http://localhost:5002/health
+curl http://localhost:5002/ready
 ```
 
 ### Getting Help
@@ -938,6 +1047,12 @@ pip list | grep -E "click|pyyaml|rich|pydantic"
 # ✓ Interactive shell works
 echo "/exit" | ./ai-orchestrator shell
 
+# ✓ Agentic team REPL starts
+echo "/exit" | ./ai-orchestrator agentic-shell
+
+# ✓ Agentic team backend health (if running)
+curl http://localhost:5002/health
+
 # ✓ Metrics enabled (optional)
 curl http://localhost:9090/metrics
 
@@ -977,7 +1092,14 @@ You should see:
    ./start-ui.sh
    ```
 
-5. **Read Documentation**
+5. **Try Standalone Agentic Team**
+   ```bash
+   ./ai-orchestrator agentic-shell
+   # or
+   ./start-agentic-ui.sh
+   ```
+
+6. **Read Documentation**
    - [Features Guide](FEATURES.md)
    - [Architecture](ARCHITECTURE.md)
    - [Add Agents Guide](ADD_AGENTS.md)

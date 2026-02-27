@@ -4,6 +4,7 @@
 
 - [Overview](#overview)
 - [System Architecture](#system-architecture)
+- [Agentic Team Architecture](#agentic-team-architecture)
 - [Component Design](#component-design)
 - [Data Flow](#data-flow)
 - [Adapter Pattern](#adapter-pattern)
@@ -116,6 +117,148 @@ graph TD
 4. **Adapter Layer** - AI agent integrations
 5. **Runtime Controls** - Offline detection and fallback routing
 6. **External Services** - Third-party AI CLIs and local model APIs
+
+## Agentic Team Architecture
+
+`AGENTIC_TEAM` is a separate runtime path for role-based autonomous team communication. It does not execute through the orchestrator workflow engine.
+
+### Runtime Boundary
+
+```mermaid
+flowchart TB
+    subgraph Orchestrator Runtime
+        OCLI[ai-orchestrator run/shell]
+        OCORE[orchestrator.core]
+        OWF[Workflow Engine]
+    end
+
+    subgraph Agentic Team Runtime
+        AUI[ui/agentic_app.py]
+        ASHELL[ai-orchestrator agentic-shell]
+        AENGINE[agentic_team.engine]
+    end
+
+    OCLI --> OCORE --> OWF
+    AUI --> AENGINE
+    ASHELL --> AENGINE
+```
+
+### Core Components
+
+```mermaid
+graph TD
+    subgraph Agentic Team Runtime
+        ENG[AgenticTeamEngine]
+        CFG[Team Config Loader]
+        VAL[Role Mapping Validator]
+        FB[Fallback Manager]
+        ADP[Adapter Pool]
+    end
+
+    subgraph Interfaces
+        UIAPI[Standalone UI Backend]
+        REPL[Agentic Shell REPL]
+    end
+
+    subgraph UI Runtime
+        EVT[Socket Events]
+        GRAPH[Live Communication Graph]
+        TL[Turn Timeline]
+        LOGS[Runtime Logs]
+    end
+
+    UIAPI --> ENG
+    REPL --> ENG
+    ENG --> CFG
+    ENG --> VAL
+    ENG --> FB
+    ENG --> ADP
+    UIAPI --> EVT
+    EVT --> GRAPH
+    EVT --> TL
+    EVT --> LOGS
+```
+
+### Turn Loop and Decision Routing
+
+```mermaid
+sequenceDiagram
+    participant Lead as Lead Role
+    participant Engine as AgenticTeamEngine
+    participant Role as Target Role
+    participant Adapter as Bound Model Adapter
+
+    Lead->>Engine: initial request + message
+    loop each turn
+        Engine->>Adapter: role prompt (task + roster + transcript + incoming message)
+        Adapter-->>Engine: decision JSON
+        Engine->>Engine: parse/normalize action and route
+        alt action=message
+            Engine->>Role: next turn handoff
+        else action=finalize and role=lead
+            Engine-->>Lead: final output complete
+        end
+    end
+```
+
+### Communication Event Pipeline
+
+```mermaid
+flowchart LR
+    STEP[Engine turn_callback step] --> T1[team_turn event]
+    STEP --> T2[team_communication event]
+    STEP --> T3[progress_log event]
+
+    T1 --> UI1[Timeline]
+    T2 --> UI2[Directed edge graph]
+    T3 --> UI3[Runtime log panel]
+```
+
+### Graph Aggregation Model
+
+```mermaid
+classDiagram
+    class TeamTurn {
+      +int turn
+      +string from_role
+      +string to_role
+      +string from_agent
+      +string to_agent
+      +string action
+      +string message
+    }
+
+    class CommunicationEdge {
+      +string from_role
+      +string to_role
+      +int count
+      +bool latest
+      +bool selected
+    }
+
+    TeamTurn --> CommunicationEdge : grouped by route
+```
+
+### Validation and Fallback Pipeline
+
+```mermaid
+flowchart TD
+    START[Task request] --> V1{Any available agents?}
+    V1 -->|No| ERR1[Reject run]
+    V1 -->|Yes| V2{All role mappings valid?}
+    V2 -->|No| ERR2[Reject run with missing role:agent map]
+    V2 -->|Yes| RUN[Execute turn loop]
+
+    RUN --> EXE[Execute role agent via fallback manager]
+    EXE --> F{Primary success?}
+    F -->|Yes| DEC[Parse decision]
+    F -->|No| FBTRY[Try fallback adapter]
+    FBTRY --> DEC
+    DEC --> NEXT{Lead finalized?}
+    NEXT -->|Yes| DONE[Return final output]
+    NEXT -->|No and max turns reached| TIMEOUT[Return bounded fallback output]
+    NEXT -->|No| RUN
+```
 
 ## Component Design
 
@@ -789,5 +932,6 @@ async def execute_workflow_async(tasks: List[Task]):
 
 For more information:
 - [Features Documentation](FEATURES.md)
+- [Agentic Team Documentation](AGENTIC_TEAM.md)
 - [Setup Guide](SETUP.md)
 - [Adding Agents Guide](ADD_AGENTS.md)

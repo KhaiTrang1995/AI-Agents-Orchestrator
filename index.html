@@ -31,6 +31,7 @@
           <li><a href="#overview" class="nav-link">Overview</a></li>
           <li><a href="#features" class="nav-link">Features</a></li>
           <li><a href="#architecture" class="nav-link">Architecture</a></li>
+          <li><a href="#agentic-team" class="nav-link">Agentic Team</a></li>
           <li><a href="#quick-start" class="nav-link">Quick Start</a></li>
           <li><a href="#workflows" class="nav-link">Workflows</a></li>
           <li><a href="#documentation" class="nav-link">Docs</a></li>
@@ -457,6 +458,190 @@ flowchart TB
       </div>
     </section>
 
+    <!-- Agentic Team Section -->
+    <section id="agentic-team" class="section section-dark">
+      <div class="container">
+        <h2 class="section-title">Standalone Agentic Team Runtime</h2>
+
+        <div class="architecture-description">
+          <p>
+            Agentic Team is a separate runtime path from orchestrator workflows.
+            It models a true software team where roles route work to each other
+            at runtime, and only the lead role can finalize the user-facing
+            response.
+          </p>
+          <p>
+            This path has its own backend/UI (<code>ui/agentic_app.py</code>),
+            its own CLI REPL (<code>./ai-orchestrator agentic-shell</code>),
+            dedicated validation, and live communication graph/timeline
+            streaming.
+          </p>
+        </div>
+
+        <div class="diagram-container">
+          <h3 class="diagram-title">Runtime Separation and Role Routing</h3>
+          <pre class="mermaid">
+flowchart LR
+    subgraph Orchestrator Path
+      OCLI[ai-orchestrator run/shell] --> OCORE[orchestrator.core]
+      OCORE --> OWF[predefined workflow steps]
+    end
+
+    subgraph Agentic Team Path
+      AUI[ui/agentic_app.py]
+      ASHELL[ai-orchestrator agentic-shell]
+      AUI --> AENGINE[agentic_team.engine]
+      ASHELL --> AENGINE
+      AENGINE --> PM[project_manager]
+      PM --> SA[software_architect]
+      PM --> SD[software_developer]
+      PM --> QA[qa_engineer]
+      PM --> DO[devops_engineer]
+      SA --> SD
+      SD --> QA
+      SD --> DO
+      QA --> PM
+      DO --> PM
+      PM --> USER[final response to user]
+    end
+
+    style OCLI fill:#667eea,stroke:#667eea,color:#fff
+    style OCORE fill:#764ba2,stroke:#764ba2,color:#fff
+    style AENGINE fill:#43e97b,stroke:#43e97b,color:#000
+    style PM fill:#ffe082,stroke:#ffca28,color:#000
+    style USER fill:#4facfe,stroke:#4facfe,color:#fff
+          </pre>
+        </div>
+
+        <div class="features-grid">
+          <div class="feature-card">
+            <div class="feature-icon">🧠</div>
+            <h3>True Runtime Routing</h3>
+            <ul class="feature-list">
+              <li>Any role can route to any team role at runtime</li>
+              <li>
+                Decision output supports <code>message</code> and
+                <code>finalize</code>
+              </li>
+              <li>Non-lead finalize attempts are normalized to lead handoff</li>
+              <li>Invalid destinations are rerouted to lead safely</li>
+            </ul>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">📡</div>
+            <h3>Live Communications</h3>
+            <ul class="feature-list">
+              <li>
+                Socket events: <code>team_turn</code>,
+                <code>team_communication</code>, <code>progress_log</code>
+              </li>
+              <li>
+                Directed live graph with edge counts and latest path highlight
+              </li>
+              <li>
+                Readable communication stream panel in dedicated UI section
+              </li>
+              <li>Session snapshots preserve turn and communication history</li>
+            </ul>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">✅</div>
+            <h3>Config + Validation Gate</h3>
+            <ul class="feature-list">
+              <li>Guided config editor for <code>agentic_team.roles</code></li>
+              <li>Role-to-agent mappings validated before every run</li>
+              <li>Missing/unavailable mappings block execution early</li>
+              <li>Defaults are merged when team config is incomplete</li>
+            </ul>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">🛠️</div>
+            <h3>Production Controls</h3>
+            <ul class="feature-list">
+              <li>Execution IDs, timestamps, duration, and turn stats</li>
+              <li>Fallback manager integration for recoverable failures</li>
+              <li>Repeat-route escalation protection to lead role</li>
+              <li>Runtime settings for message and routing safety limits</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="workflow-table" style="margin-top: 2rem">
+          <table>
+            <thead>
+              <tr>
+                <th>Role</th>
+                <th>Purpose</th>
+                <th>Typical Outgoing Handoffs</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>project_manager</strong></td>
+                <td>Lead, planning, gating final response</td>
+                <td>architect, developer, QA, DevOps, or finalize to user</td>
+              </tr>
+              <tr>
+                <td><strong>software_architect</strong></td>
+                <td>Architecture and constraints</td>
+                <td>developer or PM</td>
+              </tr>
+              <tr>
+                <td><strong>software_developer</strong></td>
+                <td>Implementation</td>
+                <td>QA, DevOps, or PM</td>
+              </tr>
+              <tr>
+                <td><strong>qa_engineer</strong></td>
+                <td>Validation and regressions</td>
+                <td>developer or PM</td>
+              </tr>
+              <tr>
+                <td><strong>devops_engineer</strong></td>
+                <td>Runtime and deployability</td>
+                <td>developer or PM</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="diagram-container">
+          <h3 class="diagram-title">Example Communication Sequence</h3>
+          <pre class="mermaid">
+sequenceDiagram
+    participant PM as project_manager (claude)
+    participant DEV as software_developer (codex)
+    participant QA as qa_engineer (gemini)
+    participant USER as user
+
+    PM->>DEV: action=message<br/>"Implement endpoint + tests"
+    DEV->>QA: action=message<br/>"Implementation complete, validate"
+    QA->>PM: action=message<br/>"Validation passed"
+    PM->>USER: action=finalize<br/>"Ready to ship"
+          </pre>
+        </div>
+
+        <div class="example-usage">
+          <h3>Agentic Team Run Commands</h3>
+          <pre><code># Start standalone UI backend
+./start-agentic-ui.sh
+
+# Start standalone REPL
+./ai-orchestrator agentic-shell
+
+# Inspect team mappings in REPL
+/team
+/validate
+
+# Full docs (protocol, examples, failure handling)
+open AGENTIC_TEAM.md</code></pre>
+        </div>
+      </div>
+    </section>
+
     <!-- Quick Start Section -->
     <section id="quick-start" class="section section-dark">
       <div class="container">
@@ -694,6 +879,12 @@ workflows:
             <div class="doc-icon">✨</div>
             <h3>Features</h3>
             <p>Comprehensive feature documentation</p>
+          </a>
+
+          <a href="AGENTIC_TEAM.md" class="doc-card">
+            <div class="doc-icon">🧩</div>
+            <h3>Agentic Team</h3>
+            <p>Standalone runtime, communication protocol, and examples</p>
           </a>
 
           <a href="SETUP.md" class="doc-card">

@@ -1,0 +1,603 @@
+# Agentic Team Documentation
+
+## Table of Contents
+
+- [Overview](#overview)
+- [Why It Exists](#why-it-exists)
+- [Separation from Orchestrator](#separation-from-orchestrator)
+- [Core Concepts](#core-concepts)
+- [Role Model](#role-model)
+- [Execution Lifecycle](#execution-lifecycle)
+- [Communication Protocol](#communication-protocol)
+- [Communication Examples](#communication-examples)
+- [Configuration Model](#configuration-model)
+- [UI: Agentic Team Studio](#ui-agentic-team-studio)
+- [CLI: Agentic Team REPL](#cli-agentic-team-repl)
+- [Validation and Failure Handling](#validation-and-failure-handling)
+- [Observability](#observability)
+- [Security and Safety](#security-and-safety)
+- [Extension Guide](#extension-guide)
+- [Operational Commands](#operational-commands)
+
+## Overview
+
+`AGENTIC_TEAM` is a standalone runtime for true role-based multi-agent collaboration. It is not a workflow preset inside the orchestrator. The runtime simulates an autonomous software team where roles communicate by passing scoped messages and subtasks.
+
+The default team includes:
+- `project_manager` (team lead and final gatekeeper)
+- `software_architect`
+- `software_developer`
+- `qa_engineer`
+- `devops_engineer`
+
+Each role is mapped to any enabled model adapter from `config/agents.yaml` and is intentionally model-agnostic.
+
+```mermaid
+flowchart LR
+    U[User Task] --> PM[Project Manager]
+    PM --> A[Software Architect]
+    PM --> D[Software Developer]
+    PM --> Q[QA Engineer]
+    PM --> O[DevOps Engineer]
+
+    A --> D
+    D --> Q
+    Q --> PM
+    O --> PM
+    D --> O
+
+    PM --> R[Final Response to User]
+```
+
+## Why It Exists
+
+The orchestrator is optimized for predefined workflow execution. `AGENTIC_TEAM` is optimized for open-ended inter-role delegation where:
+- routing is chosen by the AI role at runtime,
+- inter-role communication is first-class,
+- the team lead controls finalization,
+- all role-to-model bindings are configurable.
+
+## Separation from Orchestrator
+
+The project keeps strict boundary lines between both systems.
+
+```mermaid
+flowchart TB
+    subgraph Orchestrator System
+        OCLI[ai-orchestrator run/shell]
+        OCore[orchestrator.core.Orchestrator]
+        OWF[Workflow Engine]
+    end
+
+    subgraph Agentic Team System
+        AUI[ui/agentic_app.py]
+        ACore[agentic_team.engine.AgenticTeamEngine]
+        AShell[ai-orchestrator agentic-shell]
+    end
+
+    OCLI --> OCore --> OWF
+    AUI --> ACore
+    AShell --> ACore
+```
+
+Separation guarantees:
+- No agentic-team logic embedded into orchestrator workflow execution.
+- No orchestrator workflow dependency for agentic team turns.
+- Independent UI backend (`ui/agentic_app.py`) and independent CLI REPL (`agentic-shell`).
+
+## Core Concepts
+
+1. `Role`: domain responsibility (PM, architect, developer, QA, DevOps).
+2. `Agent`: concrete model adapter backing a role (`claude`, `codex`, `gemini`, `copilot`, local adapters).
+3. `Turn`: one role receives a message, reasons, and emits one decision.
+4. `Decision`: either:
+- `message` (handoff to another role)
+- `finalize` (lead role only; emits user response)
+5. `Team Transcript`: ordered list of role-to-role turns.
+
+```mermaid
+stateDiagram-v2
+    [*] --> ReceiveMessage
+    ReceiveMessage --> BuildPrompt
+    BuildPrompt --> ExecuteRoleAgent
+    ExecuteRoleAgent --> ParseDecision
+    ParseDecision --> RouteMessage: action=message
+    ParseDecision --> Finalize: action=finalize and role=lead
+    ParseDecision --> RouteMessage: invalid finalize/non-lead
+    RouteMessage --> ReceiveMessage
+    Finalize --> [*]
+```
+
+## Role Model
+
+The team is configurable but defaults are generated if mappings are absent.
+
+```mermaid
+graph TD
+    PM[project_manager\nLead + Gatekeeper]
+    SA[software_architect\nSystem design]
+    SD[software_developer\nImplementation]
+    QA[qa_engineer\nValidation + regressions]
+    DO[devops_engineer\nRuntime/deployability]
+
+    PM --> SA
+    PM --> SD
+    PM --> QA
+    PM --> DO
+
+    SA --> SD
+    SD --> QA
+    QA --> PM
+    SD --> DO
+    DO --> PM
+```
+
+Role responsibilities matrix:
+
+| Role | Main Responsibility | Typical Outgoing Messages |
+|------|----------------------|---------------------------|
+| `project_manager` | Initiation, prioritization, acceptance | Architecting, implementation, verification, finalization |
+| `software_architect` | Design constraints, interfaces, decomposition | Implementation guidance to developer/PM |
+| `software_developer` | Code generation and code changes | Validation request to QA, deployability request to DevOps |
+| `qa_engineer` | Test strategy, defects, regressions | Bug report back to developer/PM, release signal to PM |
+| `devops_engineer` | Runtime, environment, deployment concerns | Operability feedback to PM/developer |
+
+## Execution Lifecycle
+
+A task starts at `lead_role` and loops until finalization or max turns.
+
+```mermaid
+sequenceDiagram
+    participant U as User
+    participant PM as Project Manager
+    participant R as Any Team Role
+    participant E as AgenticTeamEngine
+
+    U->>E: execute_task(task)
+    E->>PM: turn 1 prompt
+    PM-->>E: decision (message/finalize)
+
+    loop until finalize or max_turns
+        E->>R: routed prompt with transcript
+        R-->>E: decision JSON
+        E->>E: validate route/action
+    end
+
+    E-->>U: final_output (or max-turn fallback output)
+```
+
+Turn payload (normalized):
+
+```yaml
+turn: 3
+action: message
+from_role: software_developer
+to_role: qa_engineer
+from_agent: codex
+to_agent: gemini
+message: "Implementation complete. Validate edge cases and regressions."
+communication_type: inter_role
+success: true
+```
+
+## Communication Protocol
+
+Each role receives:
+- original user task,
+- roster and role bindings,
+- recent transcript window,
+- incoming message from previous role.
+
+Each role returns strict JSON:
+
+```json
+{
+  "action": "message | finalize",
+  "to_role": "<role name when action=message>",
+  "message": "<handoff content>",
+  "final_response": "<required when lead finalizes>"
+}
+```
+
+Route semantics:
+
+```mermaid
+flowchart TD
+    D[Role Decision] --> A{Action}
+    A -->|message| B[Validate to_role]
+    A -->|finalize| C{Current role == lead_role?}
+
+    B -->|valid| E[Emit team_turn]
+    B -->|invalid| F[Force route to lead_role]
+
+    C -->|yes| G[Finalize for user]
+    C -->|no| H[Convert to message -> lead_role]
+
+    F --> E
+    H --> E
+```
+
+## Communication Examples
+
+The examples below mirror what the runtime emits through `team_turn`, `team_communication`, and logs.
+
+### Example A: Normal Implementation Handoff
+
+```mermaid
+sequenceDiagram
+    participant PM as project_manager (claude)
+    participant DEV as software_developer (codex)
+    participant QA as qa_engineer (gemini)
+    participant USER as user
+
+    PM->>DEV: action=message, "Implement endpoint + tests"
+    DEV->>QA: action=message, "Implementation complete, validate"
+    QA->>PM: action=message, "Validation passed"
+    PM->>USER: action=finalize, "Ready to ship"
+```
+
+Example per-turn payloads:
+
+```json
+{
+  "turn": 1,
+  "action": "message",
+  "from_role": "project_manager",
+  "to_role": "software_developer",
+  "from_agent": "claude",
+  "to_agent": "codex",
+  "message": "Implement endpoint + tests",
+  "communication_type": "inter_role",
+  "success": true
+}
+```
+
+```json
+{
+  "turn": 4,
+  "action": "finalize",
+  "from_role": "project_manager",
+  "to_role": "user",
+  "from_agent": "claude",
+  "to_agent": "user",
+  "message": "Validation complete and approved",
+  "success": true
+}
+```
+
+### Example B: Invalid Non-Lead Finalize Is Auto-Corrected
+
+If a non-lead role tries to finalize, runtime rewrites it to a lead-directed message.
+
+Input decision from developer:
+
+```json
+{
+  "action": "finalize",
+  "final_response": "Done"
+}
+```
+
+Normalized routing outcome:
+
+```json
+{
+  "action": "message",
+  "to_role": "project_manager",
+  "message": "Done"
+}
+```
+
+### Example C: UI Live Communication Event
+
+Socket event emitted to UI:
+
+```json
+{
+  "event": "team_communication",
+  "timestamp": "2026-02-27T19:45:21.531Z",
+  "turn": 2,
+  "action": "message",
+  "from_role": "software_developer",
+  "to_role": "qa_engineer",
+  "from_agent": "codex",
+  "to_agent": "gemini",
+  "message": "Please validate edge cases and regressions.",
+  "success": true
+}
+```
+
+How graph edges aggregate in UI:
+
+```text
+project_manager -> software_developer : 1x
+software_developer -> qa_engineer     : 2x
+qa_engineer -> project_manager        : 1x
+project_manager -> user               : finalize
+```
+
+### Example D: Repetition Escalation Safety
+
+When the same route+message pattern repeats over the configured threshold, the engine escalates to lead:
+
+```json
+{
+  "action": "message",
+  "from_role": "software_developer",
+  "to_role": "project_manager",
+  "message": "Still implementing.\n\n[System] Repetition detected in team routing. Escalating to lead for decision."
+}
+```
+
+## Configuration Model
+
+`AGENTIC_TEAM` lives under `agentic_team` in `config/agents.yaml`.
+
+```yaml
+agentic_team:
+  lead_role: "project_manager"
+  max_turns: 12
+  roles:
+    project_manager:
+      title: "Project Manager (Team Lead)"
+      agent: "claude"
+      responsibilities: "Initiate work, route subtasks, and perform final approval."
+    software_architect:
+      title: "Software Architect"
+      agent: "gemini"
+      responsibilities: "Define architecture and technical design."
+    software_developer:
+      title: "Software Developer"
+      agent: "codex"
+      responsibilities: "Implement and update source code."
+    qa_engineer:
+      title: "QA Engineer"
+      agent: "gemini"
+      responsibilities: "Validate behavior and identify regressions."
+    devops_engineer:
+      title: "DevOps Engineer"
+      agent: "claude"
+      responsibilities: "Handle deployment, runtime, and operational concerns."
+```
+
+Config behavior:
+- Missing `agentic_team` section: defaults are generated.
+- Missing role mappings: defaults are merged.
+- Invalid mappings (role -> unavailable agent): execution is blocked until corrected.
+
+```mermaid
+flowchart LR
+    C[Load YAML] --> D[Merge Defaults]
+    D --> V[Validate Roles + Lead]
+    V --> A{Mapped agents available?}
+    A -->|Yes| R[Execution allowed]
+    A -->|No| B[Return validation error + missing mappings]
+```
+
+## UI: Agentic Team Studio
+
+The standalone UI is served by `ui/agentic_app.py` and `ui/templates/agentic_team.html`.
+
+Key capabilities:
+- Live communication timeline
+- Live communication graph with directed edges
+- Guided config editor (form-based, no YAML editor)
+- Runtime logs for each routed handoff
+- Conversation memory with follow-up mode
+
+```mermaid
+sequenceDiagram
+    participant Browser
+    participant API as Agentic UI Backend
+    participant Engine as AgenticTeamEngine
+
+    Browser->>API: POST /api/execute
+    API->>Engine: execute_task(..., turn_callback)
+
+    loop per turn
+      Engine-->>API: step payload
+      API-->>Browser: socket team_turn
+      API-->>Browser: socket team_communication
+      API-->>Browser: socket progress_log
+    end
+
+    Engine-->>API: final result
+    API-->>Browser: socket task_completed
+```
+
+Live graph rendering model:
+
+```mermaid
+classDiagram
+    class TeamTurn {
+      +int turn
+      +string from_role
+      +string to_role
+      +string from_agent
+      +string to_agent
+      +string action
+      +string message
+    }
+
+    class CommunicationEdge {
+      +string from_role
+      +string to_role
+      +int count
+      +bool latest
+      +bool selected
+    }
+
+    TeamTurn --> CommunicationEdge : aggregates into
+```
+
+## CLI: Agentic Team REPL
+
+Standalone CLI command:
+
+```bash
+./ai-orchestrator agentic-shell
+```
+
+This REPL is independent from orchestrator workflow shell.
+
+Supported commands:
+- `/help`
+- `/agents`
+- `/team`
+- `/maxturns <n>`
+- `/followup <message>`
+- `/history`
+- `/save [file]`
+- `/load <file>`
+- `/reset`
+- `/reload`
+- `/validate`
+- `/clear`
+- `/info`
+- `/exit`
+
+```mermaid
+flowchart TD
+    S[Start agentic-shell] --> I[Load team config + adapters]
+    I --> P[Prompt user task]
+    P --> E[Execute team turns]
+    E --> D[Display communication table + final output]
+    D --> Q{Another input?}
+    Q -->|Yes| P
+    Q -->|No| X[Exit]
+```
+
+## Validation and Failure Handling
+
+Pre-run checks:
+- Task must be non-empty.
+- At least one available agent must exist.
+- Every configured role must map to an available agent.
+- Lead role must exist in role map.
+
+Runtime protections:
+- Non-lead `finalize` is rewritten to `message -> lead_role`.
+- Invalid `to_role` is rerouted to `lead_role`.
+- Role execution failures route a failure message back to lead.
+- If no finalize by `max_turns`, engine returns a bounded fallback result.
+
+```mermaid
+flowchart TD
+    START[Run request] --> C1{Any available agents?}
+    C1 -->|No| E1[Reject run]
+    C1 -->|Yes| C2{Role mappings valid?}
+    C2 -->|No| E2[Reject run with missing mappings]
+    C2 -->|Yes| LOOP[Turn loop]
+
+    LOOP --> D{Decision valid?}
+    D -->|No| FIX[Normalize decision]
+    D -->|Yes| NEXT[Next turn or finalize]
+    FIX --> NEXT
+
+    NEXT --> END{Finalized by lead?}
+    END -->|Yes| OUT[Return final output]
+    END -->|No and max turns reached| FOUT[Return max-turn fallback output]
+```
+
+Fallback behavior leverages existing adapter fallback mappings where configured.
+
+```mermaid
+sequenceDiagram
+    participant Role as Current Role
+    participant FB as Fallback Manager
+    participant P as Primary Agent
+    participant F as Fallback Agent
+
+    Role->>FB: execute_with_fallback(primary)
+    FB->>P: execute
+    alt recoverable failure
+        FB->>F: execute fallback
+        F-->>FB: response
+    else success
+        P-->>FB: response
+    end
+    FB-->>Role: agent_used + response
+```
+
+## Observability
+
+Agentic team telemetry is surfaced through:
+- `team_turn` socket events
+- `team_communication` socket events
+- `progress_log` socket events
+- `/api/status` session snapshots
+
+Session state stores:
+- current status,
+- turn history,
+- logs,
+- conversation history,
+- last task/output for follow-up.
+
+```mermaid
+flowchart LR
+    T[turn_callback] --> E1[team_turn]
+    T --> E2[team_communication]
+    T --> E3[progress_log]
+    E1 --> UI[Timeline + status]
+    E2 --> G[Live communication graph]
+    E3 --> L[Runtime logs panel]
+```
+
+## Security and Safety
+
+- Config updates validate required top-level sections before write.
+- Invalid role mappings are blocked before execution.
+- Session data is isolated per client id.
+- UI renders communication text escaped in HTML.
+
+## Extension Guide
+
+To add a new role:
+1. Add role mapping in `config/agents.yaml` under `agentic_team.roles`.
+2. Bind the role to any available agent.
+3. Set role title and responsibilities.
+4. Optionally set role-specific fallback via existing fallback mapping.
+
+To add a new model for existing roles:
+1. Add agent in `agents` section with correct adapter type.
+2. Ensure `enabled: true` and runtime availability.
+3. Rebind role `agent` value in `agentic_team.roles`.
+
+```mermaid
+flowchart TB
+    A[Add or enable agent in agents] --> B[Reload config]
+    B --> C[Team validation]
+    C --> D{Valid mapping?}
+    D -->|Yes| E[Run team]
+    D -->|No| F[Fix role bindings in config form]
+```
+
+## Operational Commands
+
+Start standalone Agentic Team UI backend:
+
+```bash
+python ui/agentic_app.py
+```
+
+Start standalone Agentic Team UI helper script:
+
+```bash
+./start-agentic-ui.sh
+```
+
+Start standalone Agentic Team CLI:
+
+```bash
+./ai-orchestrator agentic-shell
+./ai-orchestrator agentic-shell --max-turns 16
+./ai-orchestrator agentic-shell --offline
+```
+
+Validate base config and agents:
+
+```bash
+./ai-orchestrator validate
+./ai-orchestrator agents
+```

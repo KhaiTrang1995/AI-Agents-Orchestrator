@@ -31,7 +31,7 @@
 
 **Production-ready orchestration system that coordinates cloud and local AI coding assistants (Claude, Codex, Gemini, Copilot, Ollama, llama.cpp-compatible) to collaborate on software development tasks**
 
-[Features](#-features) • [Quick Start](#-quick-start) • [Documentation](#-documentation) • [Architecture](ARCHITECTURE.md) • [Setup Guide](SETUP.md) • [Feature Docs](FEATURES.md) • [Add New Agents](ADD_AGENTS.md) • [Deployment](DEPLOYMENT.md)
+[Features](#-features) • [Quick Start](#-quick-start) • [Documentation](#-documentation) • [Agentic Team](AGENTIC_TEAM.md) • [Architecture](ARCHITECTURE.md) • [Setup Guide](SETUP.md) • [Feature Docs](FEATURES.md) • [Add New Agents](ADD_AGENTS.md) • [Deployment](DEPLOYMENT.md)
 
 </div>
 
@@ -40,6 +40,8 @@
 ## 🎯 Overview
 
 AI Coding Tools Orchestrator is an enterprise-grade system that enables multiple AI coding assistants to work together collaboratively. It provides a unified interface (CLI and Web UI) to coordinate cloud CLIs (Claude Code, OpenAI Codex, Google Gemini, GitHub Copilot) and local backends (Ollama and OpenAI-compatible local servers) for complex software development tasks.
+
+In addition to orchestrator workflows, this repository now includes a fully standalone **Agentic Team runtime** with its own UI backend and CLI REPL for free role-to-role communication and lead-gated final responses.
 
 ### How It Works
 
@@ -133,6 +135,49 @@ flowchart TB
   <img src="docs/images/cli-2.png" alt="System Architecture" width="100%"/>
 </p>
 
+### Standalone Agentic Team (Separate Runtime)
+
+The Agentic Team runtime is intentionally separate from the orchestrator workflow engine.
+
+Concrete turn-by-turn handoff examples are documented in:
+- [AGENTIC_TEAM.md - Communication Examples](AGENTIC_TEAM.md#communication-examples)
+
+```mermaid
+flowchart LR
+    U[User Task] --> PM[Project Manager Lead]
+    PM --> SA[Software Architect]
+    PM --> SD[Software Developer]
+    PM --> QA[QA Engineer]
+    PM --> DO[DevOps Engineer]
+    SA --> SD
+    SD --> QA
+    SD --> DO
+    QA --> PM
+    DO --> PM
+    PM --> OUT[Final Lead Response]
+```
+
+```mermaid
+flowchart TB
+    subgraph Orchestrator Path
+        ORCHCLI[ai-orchestrator run/shell]
+        ORCHCORE[orchestrator.core]
+        ORCHWF[workflow execution]
+    end
+    subgraph Agentic Team Path
+        AUI[ui/agentic_app.py]
+        AENGINE[agentic_team.engine]
+        ASHELL[ai-orchestrator agentic-shell]
+    end
+    ORCHCLI --> ORCHCORE --> ORCHWF
+    AUI --> AENGINE
+    ASHELL --> AENGINE
+```
+
+<p align="center">
+  <img src="docs/images/agentic-team.png" alt="Agentic Team Architecture" width="100%"/>
+</p>
+
 ## ✨ Features
 
 ### Core Capabilities
@@ -144,6 +189,7 @@ flowchart TB
 - 📝 **Conversation Mode** - ChatGPT-like experience with context preservation
 - 💾 **Session Management** - Save and restore conversation history
 - ⚙️ **Configurable Workflows** - Define custom collaboration patterns (default, quick, thorough)
+- 🧩 **Standalone Agentic Team Mode** - True role-based communication runtime separate from orchestrator workflows
 - 🔧 **Extensible Architecture** - Easy to add new AI agents
 - 🔁 **Cloud-to-Local Fallback** - Automatic fallback to local models if cloud agents are unavailable
 - 📴 **Offline/Local LLM Support** - Run with Ollama and OpenAI-compatible local endpoints
@@ -209,6 +255,9 @@ chmod +x ai-orchestrator
 
 # Or run a one-shot task
 ./ai-orchestrator run "Create a Python calculator function" --workflow quick
+
+# Start standalone Agentic Team REPL
+./ai-orchestrator agentic-shell
 ```
 
 ## 💻 Usage
@@ -275,6 +324,45 @@ Open http://localhost:3000
 - Syntax highlighting
 - Iteration details view
 
+### Agentic Team UI (Standalone)
+
+<p align="center">
+  <img src="docs/images/agentic-team.png" alt="Agentic Team UI" width="100%"/>
+</p>
+
+Run the dedicated Agentic Team UI backend:
+
+```bash
+python ui/agentic_app.py
+# or
+./start-agentic-ui.sh
+```
+
+Open http://localhost:5002
+
+```mermaid
+sequenceDiagram
+    participant B as Browser
+    participant API as ui/agentic_app.py
+    participant ENG as AgenticTeamEngine
+    B->>API: POST /api/execute
+    API->>ENG: execute_task(..., turn_callback)
+    loop each team turn
+        ENG-->>API: step payload
+        API-->>B: team_turn
+        API-->>B: team_communication
+        API-->>B: progress_log
+    end
+    API-->>B: task_completed
+```
+
+```mermaid
+flowchart LR
+    C[Config Studio Form] --> V[Role mapping validation]
+    V -->|valid| X[Execution enabled]
+    V -->|invalid| E[Blocking warning in UI]
+```
+
 ### Available Workflows
 
 | Workflow | Description | Use Case |
@@ -293,10 +381,13 @@ Open http://localhost:3000
 # Basic usage
 ./ai-orchestrator run "task description"
 ./ai-orchestrator shell
+./ai-orchestrator agentic-shell
 
 # With options
 ./ai-orchestrator run "task" --workflow thorough --max-iterations 5
 ./ai-orchestrator run "task" --verbose --dry-run
+./ai-orchestrator agentic-shell --max-turns 16
+./ai-orchestrator agentic-shell --offline
 
 # Utility commands
 ./ai-orchestrator agents       # List available agents
@@ -349,14 +440,21 @@ AI-Agents-Orchestrator/
 │   ├── ollama_adapter.py     # Ollama local model integration
 │   ├── llama_cpp_adapter.py  # llama.cpp/OpenAI-compatible local integration
 │   └── cli_communicator.py   # Robust CLI communication
+├── agentic_team/             # Standalone agentic team runtime
+│   ├── engine.py             # Role-based free communication engine
+│   ├── shell.py              # Standalone REPL (agentic-shell)
+│   └── __init__.py
 ├── ui/                       # Web UI
 │   ├── app.py                # Flask backend with Socket.IO
+│   ├── agentic_app.py        # Standalone agentic team backend
 │   ├── frontend/             # Vue 3 frontend
 │   │   ├── src/
 │   │   │   ├── App.vue
 │   │   │   ├── components/
 │   │   │   └── stores/       # Pinia state management
 │   │   └── package.json
+│   ├── static/               # Standalone agentic team static assets
+│   ├── templates/            # Includes agentic_team.html
 │   └── requirements.txt
 ├── config/
 │   └── agents.yaml           # Agent and workflow configuration
@@ -375,11 +473,13 @@ AI-Agents-Orchestrator/
 ├── Makefile                  # Development commands
 ├── ARCHITECTURE.md
 ├── FEATURES.md
+├── AGENTIC_TEAM.md
 ├── SETUP.md
 ├── ADD_AGENTS.md
 ├── OFFLINE_MODE.md           # Offline mode and local model guide
 ├── pyproject.toml            # Project metadata
 ├── requirements.txt
+├── start-agentic-ui.sh
 └── README.md
 ```
 
@@ -471,6 +571,7 @@ pre-commit run --all-files
 
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** - System architecture and design patterns
 - **[FEATURES.md](FEATURES.md)** - Comprehensive feature documentation
+- **[AGENTIC_TEAM.md](AGENTIC_TEAM.md)** - Standalone agentic team runtime, UI, and CLI details
 - **[SETUP.md](SETUP.md)** - Installation and setup guide
 - **[ADD_AGENTS.md](ADD_AGENTS.md)** - Guide for adding new AI agents
 - **[docs/OFFLINE_MODE.md](OFFLINE_MODE.md)** - Offline mode setup, fallback, and local model workflows
