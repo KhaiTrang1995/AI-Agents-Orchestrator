@@ -135,6 +135,10 @@ flowchart TB
   <img src="docs/images/cli-2.png" alt="System Architecture" width="100%"/>
 </p>
 
+<p align="center">
+  <img src="docs/images/ui.png" alt="Workflow Example" width="100%"/>
+</p>
+
 ### Standalone Agentic Team (Separate Runtime)
 
 The Agentic Team runtime is intentionally separate from the orchestrator workflow engine.
@@ -173,6 +177,10 @@ flowchart TB
     AUI --> AENGINE
     ASHELL --> AENGINE
 ```
+
+<p align="center">
+  <img src="docs/images/cli-3.png" alt="Agentic Shell REPL" width="100%"/>
+</p>
 
 <p align="center">
   <img src="docs/images/agentic-team.png" alt="Agentic Team Architecture" width="100%"/>

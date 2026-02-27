@@ -49,6 +49,10 @@ flowchart LR
     PM --> R[Final Response to User]
 ```
 
+<p align="center">
+  <img src="docs/images/agentic-team.png" alt="Agentic Team Architecture" width="100%"/>
+</p>
+
 ## Why It Exists
 
 The orchestrator is optimized for predefined workflow execution. `AGENTIC_TEAM` is optimized for open-ended inter-role delegation where:
