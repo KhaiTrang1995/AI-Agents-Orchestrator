@@ -1365,7 +1365,7 @@
   const connectSocket = () => {
     const socket = io({
       path: "/socket.io",
-      transports: ["websocket", "polling"],
+      transports: ["polling"],
       query: { client_id: state.clientId },
     });
 
