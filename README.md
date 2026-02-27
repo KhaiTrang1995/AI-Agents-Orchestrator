@@ -630,3 +630,5 @@ If you find this project useful, please consider giving it a star!
 [⬆ Back to Top](#ai-coding-tools-orchestrator)
 
 </div>
+
+> **Easter egg:** Go to our [wiki page](https://hoangsonww.github.io/AI-Agents-Orchestrator/) and enter Konami code (↑ ↑ ↓ ↓ ← → ← → B A) for a surprise!
