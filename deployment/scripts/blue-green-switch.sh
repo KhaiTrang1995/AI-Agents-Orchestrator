@@ -5,7 +5,9 @@ set -euo pipefail
 # This script handles the traffic switching between blue and green deployments
 
 NAMESPACE="${NAMESPACE:-ai-orchestrator}"
-SERVICE_NAME="${SERVICE_NAME:-ai-orchestrator-service}"
+APP_NAME="${APP_NAME:-ai-orchestrator}"
+APP_PORT="${APP_PORT:-5001}"
+SERVICE_NAME="${SERVICE_NAME:-${APP_NAME}-service}"
 CURRENT_ENV="${1:-blue}"
 TARGET_ENV="${2:-green}"
 
@@ -13,6 +15,8 @@ echo "================================================"
 echo "Blue-Green Deployment Switcher"
 echo "================================================"
 echo "Namespace: $NAMESPACE"
+echo "Application: $APP_NAME"
+echo "App Port: $APP_PORT"
 echo "Service: $SERVICE_NAME"
 echo "Current Environment: $CURRENT_ENV"
 echo "Target Environment: $TARGET_ENV"
@@ -27,7 +31,7 @@ get_active_env() {
 # Function to check deployment health
 check_deployment_health() {
     local env=$1
-    local deployment="ai-orchestrator-$env"
+    local deployment="${APP_NAME}-$env"
 
     echo "Checking health of $deployment..."
 
@@ -58,7 +62,7 @@ check_deployment_health() {
 run_health_checks() {
     local env=$1
     local pod=$(kubectl get pods -n "$NAMESPACE" \
-        -l "app=ai-orchestrator,version=$env" \
+        -l "app=$APP_NAME,version=$env" \
         -o jsonpath='{.items[0].metadata.name}')
 
     if [ -z "$pod" ]; then
@@ -69,7 +73,7 @@ run_health_checks() {
     echo "Running health checks on pod $pod..."
 
     # Check health endpoint
-    if kubectl exec -n "$NAMESPACE" "$pod" -- curl -sf http://localhost:5001/health > /dev/null; then
+    if kubectl exec -n "$NAMESPACE" "$pod" -- curl -sf "http://localhost:${APP_PORT}/health" > /dev/null; then
         echo "✅ Health check passed"
     else
         echo "❌ Health check failed"
@@ -77,7 +81,7 @@ run_health_checks() {
     fi
 
     # Check readiness endpoint
-    if kubectl exec -n "$NAMESPACE" "$pod" -- curl -sf http://localhost:5001/ready > /dev/null; then
+    if kubectl exec -n "$NAMESPACE" "$pod" -- curl -sf "http://localhost:${APP_PORT}/ready" > /dev/null; then
         echo "✅ Readiness check passed"
     else
         echo "❌ Readiness check failed"

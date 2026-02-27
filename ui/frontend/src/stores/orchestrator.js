@@ -52,6 +52,17 @@ export const useOrchestratorStore = defineStore("orchestrator", () => {
   const agents = ref([]);
   const localModelStatus = ref({ summary: {}, backends: [], agents: [] });
   const workflows = ref([]);
+  const configData = ref({
+    agents: {},
+    workflows: {},
+    settings: {},
+    agentic_team: { roles: {} },
+  });
+  const configPath = ref("");
+  const configLastModified = ref("");
+  const configStatus = ref("");
+  const configLoading = ref(false);
+  const configSaving = ref(false);
   const currentFile = ref(null);
   const fileContent = ref("");
   const lastTask = ref("");
@@ -75,6 +86,29 @@ export const useOrchestratorStore = defineStore("orchestrator", () => {
       (localModelStatus.value?.backends?.length || 0) > 0 ||
       (localModelStatus.value?.agents?.length || 0) > 0,
   );
+  const hasConfig = computed(() => !!configPath.value);
+
+  const deepClone = (value) => JSON.parse(JSON.stringify(value));
+
+  const normalizeConfigObject = (value) => {
+    const base = value && typeof value === "object" ? deepClone(value) : {};
+
+    if (!base.agents || typeof base.agents !== "object") base.agents = {};
+    if (!base.workflows || typeof base.workflows !== "object")
+      base.workflows = {};
+    if (!base.settings || typeof base.settings !== "object") base.settings = {};
+    if (!base.agentic_team || typeof base.agentic_team !== "object") {
+      base.agentic_team = {};
+    }
+    if (
+      !base.agentic_team.roles ||
+      typeof base.agentic_team.roles !== "object"
+    ) {
+      base.agentic_team.roles = {};
+    }
+
+    return base;
+  };
 
   const buildApiErrorMessage = (error, context) => {
     if (error?.response) {
@@ -365,6 +399,7 @@ export const useOrchestratorStore = defineStore("orchestrator", () => {
     loadAgents();
     loadLocalModelStatus();
     loadWorkflows();
+    loadConfig();
     // Recover session state if backend already has one
     loadStatusOnce();
   }
@@ -403,6 +438,62 @@ export const useOrchestratorStore = defineStore("orchestrator", () => {
     } catch (error) {
       console.error("Failed to load local model status:", error);
       addLog("Unable to load local model status", "warn");
+    }
+  }
+
+  async function loadConfig() {
+    configLoading.value = true;
+    configStatus.value = "Loading config...";
+    try {
+      const response = await api.get("/api/config");
+      const payload = response.data || {};
+      configPath.value = payload.path || "";
+      configLastModified.value = payload.last_modified || "";
+      configData.value = normalizeConfigObject(payload.parsed);
+      configStatus.value = configLastModified.value
+        ? `Loaded • ${new Date(configLastModified.value).toLocaleString()}`
+        : "Loaded";
+      setError("");
+    } catch (error) {
+      console.error("Failed to load config:", error);
+      configStatus.value = "Failed to load config";
+      setError(buildApiErrorMessage(error, "Failed to load config"));
+    } finally {
+      configLoading.value = false;
+    }
+  }
+
+  async function saveConfig() {
+    configSaving.value = true;
+    configStatus.value = "Saving config...";
+    try {
+      const response = await api.put("/api/config", {
+        config: configData.value,
+        client_id: clientId,
+      });
+      const payload = response.data || {};
+      configPath.value = payload.path || configPath.value;
+      configLastModified.value =
+        payload.last_modified || configLastModified.value;
+      configData.value = normalizeConfigObject(
+        payload.parsed || configData.value,
+      );
+      configStatus.value = configLastModified.value
+        ? `${payload.message || "Configuration saved"} • ${new Date(configLastModified.value).toLocaleString()}`
+        : payload.message || "Configuration saved";
+      setError("");
+      await Promise.all([
+        loadAgents(),
+        loadWorkflows(),
+        loadLocalModelStatus(),
+      ]);
+    } catch (error) {
+      console.error("Failed to save config:", error);
+      const serverError = error?.response?.data?.error;
+      configStatus.value = serverError || "Failed to save config";
+      setError(buildApiErrorMessage(error, "Failed to save config"));
+    } finally {
+      configSaving.value = false;
     }
   }
 
@@ -530,6 +621,12 @@ export const useOrchestratorStore = defineStore("orchestrator", () => {
     agents,
     localModelStatus,
     workflows,
+    configData,
+    configPath,
+    configLastModified,
+    configStatus,
+    configLoading,
+    configSaving,
     currentFile,
     fileContent,
     lastTask,
@@ -544,12 +641,15 @@ export const useOrchestratorStore = defineStore("orchestrator", () => {
     hasError,
     hasLogs,
     hasLocalModelStatus,
+    hasConfig,
     // Actions
     init,
     executeTask,
     executeFollowUp,
     loadFile,
     loadLocalModelStatus,
+    loadConfig,
+    saveConfig,
     clear,
     clearLogs,
     clearError: () => setError(""),

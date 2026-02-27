@@ -81,10 +81,10 @@ spec:
                         container('python') {
                             sh '''
                                 echo "Running Black..."
-                                black --check orchestrator adapters tests || true
+                                black --check orchestrator adapters agentic_team tests ui/agentic_app.py || true
 
                                 echo "Running Flake8..."
-                                flake8 orchestrator adapters tests || true
+                                flake8 orchestrator adapters agentic_team tests ui/agentic_app.py || true
                             '''
                         }
                     }
@@ -93,7 +93,7 @@ spec:
                 stage('Type Checking') {
                     steps {
                         container('python') {
-                            sh 'mypy orchestrator adapters || true'
+                            sh 'mypy orchestrator adapters agentic_team || true'
                         }
                     }
                 }
@@ -101,7 +101,7 @@ spec:
                 stage('Security Scan') {
                     steps {
                         container('python') {
-                            sh 'bandit -r orchestrator adapters -f json -o bandit-report.json || true'
+                            sh 'bandit -r orchestrator adapters agentic_team ui/agentic_app.py -f json -o bandit-report.json || true'
                         }
                     }
                 }
@@ -115,6 +115,7 @@ spec:
                         pytest tests/ \
                             --cov=orchestrator \
                             --cov=adapters \
+                            --cov=agentic_team \
                             --cov-report=xml \
                             --cov-report=html \
                             --junitxml=pytest-report.xml \
@@ -197,7 +198,11 @@ spec:
                         kubectl set image deployment/ai-orchestrator-blue \
                             ai-orchestrator=${DOCKER_IMAGE}:${DOCKER_TAG} \
                             -n ai-orchestrator
+                        kubectl set image deployment/agentic-team-blue \
+                            agentic-team=${DOCKER_IMAGE}:${DOCKER_TAG} \
+                            -n ai-orchestrator
                         kubectl rollout status deployment/ai-orchestrator-blue -n ai-orchestrator
+                        kubectl rollout status deployment/agentic-team-blue -n ai-orchestrator
                     '''
                 }
             }
@@ -218,12 +223,17 @@ spec:
                                 kubectl set image deployment/ai-orchestrator-green \
                                     ai-orchestrator=${DOCKER_IMAGE}:${DOCKER_TAG} \
                                     -n ai-orchestrator
+                                kubectl set image deployment/agentic-team-green \
+                                    agentic-team=${DOCKER_IMAGE}:${DOCKER_TAG} \
+                                    -n ai-orchestrator
 
                                 # Scale up green deployment
                                 kubectl scale deployment/ai-orchestrator-green --replicas=3 -n ai-orchestrator
+                                kubectl scale deployment/agentic-team-green --replicas=3 -n ai-orchestrator
 
                                 # Wait for green to be ready
                                 kubectl rollout status deployment/ai-orchestrator-green -n ai-orchestrator
+                                kubectl rollout status deployment/agentic-team-green -n ai-orchestrator
                             '''
                         }
                     }
@@ -254,6 +264,9 @@ spec:
                                 kubectl patch service ai-orchestrator-service \
                                     -n ai-orchestrator \
                                     -p '{"spec":{"selector":{"version":"green"}}}'
+                                kubectl patch service agentic-team-service \
+                                    -n ai-orchestrator \
+                                    -p '{"spec":{"selector":{"version":"green"}}}'
 
                                 echo "Traffic switched to green environment"
                                 sleep 30
@@ -281,6 +294,7 @@ spec:
                             sh '''
                                 # Scale down blue environment
                                 kubectl scale deployment/ai-orchestrator-blue --replicas=0 -n ai-orchestrator
+                                kubectl scale deployment/agentic-team-blue --replicas=0 -n ai-orchestrator
 
                                 # Swap labels: current green becomes new blue
                                 echo "Blue/Green swap completed"
@@ -300,6 +314,7 @@ spec:
                     sh '''
                         echo "Rolling back deployment..."
                         kubectl rollout undo deployment/ai-orchestrator-blue -n ai-orchestrator
+                        kubectl rollout undo deployment/agentic-team-blue -n ai-orchestrator || true
                     '''
                 }
             }

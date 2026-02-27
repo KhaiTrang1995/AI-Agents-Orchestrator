@@ -155,6 +155,12 @@
           Execution logs will appear here in real-time...
         </div>
       </div>
+
+      <!-- Config Editor Tab -->
+      <div v-show="activeTab === 'config'">
+        <GuidedConfigEditor />
+      </div>
+
     </div>
   </div>
 </template>
@@ -163,6 +169,7 @@
 import { ref } from 'vue'
 import { useOrchestratorStore } from '../stores/orchestrator'
 import MonacoEditor from './MonacoEditor.vue'
+import GuidedConfigEditor from './GuidedConfigEditor.vue'
 
 const store = useOrchestratorStore()
 
@@ -171,7 +178,8 @@ const tabs = [
   { id: 'output', label: 'Output' },
   { id: 'editor', label: 'Code Editor' },
   { id: 'iterations', label: 'Iterations' },
-  { id: 'logs', label: 'Logs' }
+  { id: 'logs', label: 'Logs' },
+  { id: 'config', label: 'Config Editor' }
 ]
 
 const downloadFile = () => {

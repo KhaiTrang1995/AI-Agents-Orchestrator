@@ -3,6 +3,7 @@
 ## Table of Contents
 
 - [Core Features](#core-features)
+- [Agentic Team Features](#agentic-team-features)
 - [CLI Features](#cli-features)
 - [Web UI Features](#web-ui-features)
 - [Conversation Mode](#conversation-mode)
@@ -65,6 +66,127 @@ workflows:
         task: "security_review"
       - agent: "claude"
         task: "refine"
+```
+
+## Agentic Team Features
+
+`AGENTIC_TEAM` is a standalone runtime that is separate from predefined orchestrator workflows. It models a true role-based software team with open routing between roles.
+
+### True Inter-Role Communication
+
+Roles pass messages and subtasks to each other dynamically on every turn.
+
+```mermaid
+graph LR
+    U[User Task] --> PM[Project Manager]
+    PM --> SA[Software Architect]
+    PM --> SD[Software Developer]
+    PM --> QA[QA Engineer]
+    PM --> DO[DevOps Engineer]
+    SA --> SD
+    SD --> QA
+    SD --> DO
+    QA --> PM
+    DO --> PM
+```
+
+What this enables:
+- Runtime routing decisions instead of fixed step chains.
+- Cross-functional handoffs (for example developer -> QA -> PM).
+- Role-level context accumulation through transcript history.
+
+### Team Lead Gatekeeping
+
+Only the lead role can finalize and return output to the user.
+
+```mermaid
+flowchart TD
+    A[Role Decision] --> B{Action = finalize?}
+    B -->|No| C[Message routed to target role]
+    B -->|Yes| D{Current role is lead?}
+    D -->|Yes| E[Return final response to user]
+    D -->|No| F[Normalize to message -> lead role]
+    F --> C
+```
+
+Behavioral guarantees:
+- Non-lead finalize requests are rewritten to lead-directed messages.
+- Invalid `to_role` routes are normalized to lead role.
+- Team can run until lead finalization or max-turn cap.
+
+### Model-Agnostic Role Mapping
+
+Every role can be bound to any available model adapter (cloud or local).
+
+```mermaid
+flowchart TB
+    R1[project_manager] --> A1[claude or gemini or codex or copilot]
+    R2[software_architect] --> A2[Any enabled adapter]
+    R3[software_developer] --> A3[Any enabled adapter]
+    R4[qa_engineer] --> A4[Any enabled adapter]
+    R5[devops_engineer] --> A5[Any enabled adapter]
+```
+
+Validation rules:
+- Run is blocked if any role maps to an unavailable agent.
+- Defaults are auto-populated when mappings are missing.
+- Guided config forms in UI keep values constrained.
+
+### Live Communication Graph and Timeline
+
+Standalone Agentic Team UI streams communication events in real time.
+
+```mermaid
+sequenceDiagram
+    participant UI as Browser
+    participant API as ui/agentic_app.py
+    participant ENG as AgenticTeamEngine
+    UI->>API: POST /api/execute
+    API->>ENG: execute_task(turn_callback)
+    loop per turn
+        ENG-->>API: step payload
+        API-->>UI: team_turn
+        API-->>UI: team_communication
+        API-->>UI: progress_log
+    end
+    API-->>UI: task_completed
+```
+
+```mermaid
+flowchart LR
+    T[team_turn events] --> TL[Timeline panel]
+    C[team_communication events] --> G[Directed graph edges]
+    L[progress_log events] --> R[Runtime logs]
+    TL --> S[Selected turn]
+    S --> G
+```
+
+UI capabilities:
+- Directed edge visualization for inter-role communication.
+- Edge aggregation counts for repeated routes.
+- Highlighting of latest and selected communication paths.
+- Guided config editor for `agents`, `workflows`, `settings`, and `agentic_team`.
+
+### Standalone Agentic CLI REPL
+
+Agentic team mode is available in dedicated CLI mode:
+
+```bash
+./ai-orchestrator agentic-shell
+./ai-orchestrator agentic-shell --max-turns 16
+./ai-orchestrator agentic-shell --offline
+```
+
+```mermaid
+flowchart TD
+    S[agentic-shell start] --> C[Load team config]
+    C --> I[Show agents + role map]
+    I --> P[Prompt task]
+    P --> E[Execute team loop]
+    E --> O[Render communication table + final output]
+    O --> N{Next input?}
+    N -->|yes| P
+    N -->|no| X[Exit]
 ```
 
 ## CLI Features
@@ -793,5 +915,8 @@ stateDiagram-v2
 
 For more information:
 - [Architecture Documentation](ARCHITECTURE.md)
+- [Agentic Team Documentation](AGENTIC_TEAM.md)
 - [Setup Guide](SETUP.md)
 - [Adding Agents Guide](ADD_AGENTS.md)
+
+> **Easter egg:** Go to our [wiki page](https://hoangsonww.github.io/AI-Agents-Orchestrator/) and enter Konami code (↑ ↑ ↓ ↓ ← → ← → B A) for a surprise!

@@ -13,8 +13,8 @@ deployment/
 │   ├── service.yaml           # Service configuration
 │   ├── configmap.yaml         # Configuration
 │   ├── pvc.yaml              # Persistent volumes
-│   ├── blue-green-deployment.yaml   # Blue/Green setup
-│   ├── canary-deployment.yaml       # Canary setup with Flagger
+│   ├── blue-green-deployment.yaml   # Blue/Green setup (orchestrator + agentic-team)
+│   ├── canary-deployment.yaml       # Canary setup with Flagger (orchestrator + agentic-team)
 │   ├── ingress-nginx.yaml           # Ingress + TLS
 │   └── hpa.yaml                     # Auto-scaling
 ├── load-balancer/             # Load balancer configs
@@ -24,6 +24,8 @@ deployment/
 │   ├── blue-green-switch.sh  # Blue/Green switcher
 │   └── canary-rollout.sh     # Canary rollout
 └── systemd/                   # Systemd service files
+    ├── ai-orchestrator.service
+    └── agentic-team.service
 ```
 
 ## 🚀 Quick Start
@@ -34,10 +36,13 @@ deployment/
 # Deploy to green environment
 kubectl apply -f kubernetes/blue-green-deployment.yaml
 
-# Switch traffic from blue to green
+# Switch orchestrator traffic from blue to green
 ./scripts/blue-green-switch.sh blue green
 
-# Rollback if needed
+# Switch standalone agentic-team traffic from blue to green
+APP_NAME=agentic-team APP_PORT=5002 ./scripts/blue-green-switch.sh blue green
+
+# Rollback if needed (orchestrator example)
 ./scripts/blue-green-switch.sh green blue
 ```
 
@@ -47,8 +52,11 @@ kubectl apply -f kubernetes/blue-green-deployment.yaml
 # Apply canary configuration
 kubectl apply -f kubernetes/canary-deployment.yaml
 
-# Run progressive canary rollout (10% → 25% → 50% → 100%)
+# Run progressive canary rollout for orchestrator (10% → 25% → 50% → 100%)
 ./scripts/canary-rollout.sh
+
+# Run progressive canary rollout for standalone agentic-team
+APP_NAME=agentic-team APP_PORT=5002 CONTAINER_NAME=agentic-team ./scripts/canary-rollout.sh
 ```
 
 ### 3. Load Balancer Setup
@@ -78,7 +86,7 @@ docker run -d \
 The project includes a complete Jenkinsfile at the root with:
 - Automated testing and quality checks
 - Docker image building and scanning
-- Blue-green deployment to production
+- Blue-green deployment to production for both orchestrator and agentic-team
 - Automated rollback on failure
 
 ```bash
@@ -92,7 +100,7 @@ Configuration file: `../.gitlab-ci.yml`
 Pipeline stages:
 1. **test**: Linting, type checking, security scans, unit tests
 2. **build**: Docker image creation and security scanning
-3. **deploy**: Staging (auto) + Production (manual approval)
+3. **deploy**: Staging (auto) + Production (manual approval) for orchestrator + agentic-team
 4. **verify**: Smoke tests
 
 ### CircleCI
@@ -103,6 +111,7 @@ Features:
 - Parallel test execution
 - Docker layer caching
 - Manual approval gates
+- Deploy/switch steps include orchestrator and standalone agentic-team services
 - Slack notifications
 
 ## 📊 Deployment Strategies

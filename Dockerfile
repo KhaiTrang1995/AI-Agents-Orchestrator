@@ -67,9 +67,11 @@ COPY --from=builder --chown=orchestrator:orchestrator /root/.local /home/orchest
 # Copy application code with proper ownership
 COPY --chown=orchestrator:orchestrator orchestrator/ ./orchestrator/
 COPY --chown=orchestrator:orchestrator adapters/ ./adapters/
+COPY --chown=orchestrator:orchestrator agentic_team/ ./agentic_team/
 COPY --chown=orchestrator:orchestrator ui/ ./ui/
 COPY --chown=orchestrator:orchestrator config/ ./config/
 COPY --chown=orchestrator:orchestrator ai-orchestrator ./ai-orchestrator
+COPY --chown=orchestrator:orchestrator start-agentic-ui.sh ./start-agentic-ui.sh
 COPY --chown=orchestrator:orchestrator setup.py .
 COPY --chown=orchestrator:orchestrator pyproject.toml .
 COPY --chown=orchestrator:orchestrator README.md .
@@ -77,6 +79,7 @@ COPY --chown=orchestrator:orchestrator LICENSE .
 
 # Make scripts executable
 RUN chmod +x ai-orchestrator && \
+    chmod +x start-agentic-ui.sh && \
     chmod +x ui/*.py 2>/dev/null || true
 
 # Create necessary directories with proper permissions
@@ -101,6 +104,7 @@ ENV PATH="/home/orchestrator/.local/bin:${PATH}"
 
 # Expose application port
 EXPOSE 5001
+EXPOSE 5002
 
 # Health check - curl to health endpoint
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \

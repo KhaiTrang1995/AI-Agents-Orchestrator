@@ -117,18 +117,18 @@ jobs:
           name: Run Black
           command: |
             . venv/bin/activate
-            black --check orchestrator adapters tests
+            black --check orchestrator adapters agentic_team tests ui/agentic_app.py
       - run:
           name: Run Flake8
           command: |
             . venv/bin/activate
-            flake8 orchestrator adapters tests
+            flake8 orchestrator adapters agentic_team tests ui/agentic_app.py
       - run:
           name: Run isort
           command: |
             . venv/bin/activate
             pip install isort
-            isort --check-only orchestrator adapters tests
+            isort --check-only orchestrator adapters agentic_team tests ui/agentic_app.py
 
   type-check:
     executor: python-executor
@@ -140,7 +140,7 @@ jobs:
           command: |
             . venv/bin/activate
             pip install types-PyYAML types-click
-            mypy orchestrator adapters || true
+            mypy orchestrator adapters agentic_team || true
 
   security-scan:
     executor: python-executor
@@ -151,7 +151,7 @@ jobs:
           name: Run Bandit
           command: |
             . venv/bin/activate
-            bandit -r orchestrator adapters -f json -o bandit-report.json
+            bandit -r orchestrator adapters agentic_team ui/agentic_app.py -f json -o bandit-report.json
       - run:
           name: Run Safety
           command: |
@@ -175,6 +175,7 @@ jobs:
             pytest tests/ \
               --cov=orchestrator \
               --cov=adapters \
+              --cov=agentic_team \
               --cov-report=xml \
               --cov-report=html \
               --junitxml=test-results/junit.xml \
@@ -238,7 +239,12 @@ jobs:
             kubectl set image deployment/ai-orchestrator-blue \
               ai-orchestrator=ai-orchestrator:${CIRCLE_SHA1:0:8} \
               -n ai-orchestrator
+            kubectl set image deployment/agentic-team-blue \
+              agentic-team=ai-orchestrator:${CIRCLE_SHA1:0:8} \
+              -n ai-orchestrator
             kubectl rollout status deployment/ai-orchestrator-blue \
+              -n ai-orchestrator --timeout=5m
+            kubectl rollout status deployment/agentic-team-blue \
               -n ai-orchestrator --timeout=5m
       - notify-slack-success
 
@@ -256,8 +262,14 @@ jobs:
             kubectl set image deployment/ai-orchestrator-green \
               ai-orchestrator=ai-orchestrator:${CIRCLE_SHA1:0:8} \
               -n ai-orchestrator
+            kubectl set image deployment/agentic-team-green \
+              agentic-team=ai-orchestrator:${CIRCLE_SHA1:0:8} \
+              -n ai-orchestrator
             kubectl scale deployment/ai-orchestrator-green --replicas=3 -n ai-orchestrator
+            kubectl scale deployment/agentic-team-green --replicas=3 -n ai-orchestrator
             kubectl rollout status deployment/ai-orchestrator-green \
+              -n ai-orchestrator --timeout=5m
+            kubectl rollout status deployment/agentic-team-green \
               -n ai-orchestrator --timeout=5m
 
   switch-production-traffic:
@@ -274,9 +286,13 @@ jobs:
             kubectl patch service ai-orchestrator-service \
               -n ai-orchestrator \
               -p '{"spec":{"selector":{"version":"green"}}}'
+            kubectl patch service agentic-team-service \
+              -n ai-orchestrator \
+              -p '{"spec":{"selector":{"version":"green"}}}'
             echo "Traffic switched to green"
             sleep 30
             kubectl scale deployment/ai-orchestrator-blue --replicas=0 -n ai-orchestrator
+            kubectl scale deployment/agentic-team-blue --replicas=0 -n ai-orchestrator
       - notify-slack-success
 
   smoke-tests:

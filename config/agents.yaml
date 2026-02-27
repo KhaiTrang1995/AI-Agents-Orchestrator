@@ -134,7 +134,6 @@ workflows:
         role: "reviewer"
         fallback: "local-instruct"
 
-# Global Settings
 settings:
   max_iterations: 3
   output_dir: "./output"
@@ -158,3 +157,36 @@ settings:
       codex: local-code
       claude: local-instruct
       gemini: local-instruct
+
+agentic_team:
+  # Team lead role key. Must exist under agentic_team.roles.
+  lead_role: "project_manager"
+  # Maximum free-communication turns before forced stop.
+  max_turns: 12
+  roles:
+    # Role keys should stay snake_case for consistency with the UI/editor.
+    project_manager:
+      title: "Project Manager (Team Lead)"
+      # Pick an enabled + available agent id from top-level `agents`.
+      agent: "claude"
+      responsibilities: "Initiate work, route subtasks dynamically, and decide final readiness."
+    software_architect:
+      title: "Software Architect"
+      agent: "gemini"
+      responsibilities: "Define architecture, interfaces, and technical constraints."
+    software_developer:
+      title: "Software Developer"
+      agent: "codex"
+      responsibilities: "Implement required code changes."
+    qa_engineer:
+      title: "QA Engineer"
+      agent: "gemini"
+      responsibilities: "Validate quality, edge cases, and regressions."
+    devops_engineer:
+      title: "DevOps Engineer"
+      agent: "claude"
+      responsibilities: "Handle deployment/runtime concerns and operational readiness."
+
+# Notes:
+# - If a role agent is set to a disabled/unavailable agent, execution is blocked.
+# - Use the UI Config Studio dropdowns to avoid invalid mappings.

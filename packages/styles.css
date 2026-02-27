@@ -545,6 +545,14 @@ body {
   line-height: 1.8;
 }
 
+.section-dark .architecture-description {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.section-dark .architecture-description code {
+  color: #c7f9cc;
+}
+
 .architecture-layers {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -788,6 +796,11 @@ tbody tr:hover {
 
 tbody tr:last-child {
   border-bottom: none;
+}
+
+#agentic-team .workflow-table tbody td,
+#agentic-team .workflow-table tbody td strong {
+  color: #000;
 }
 
 .custom-workflow {
@@ -1287,15 +1300,7 @@ tbody tr:last-child {
    Responsive Design
    =========================== */
 
-@media (max-width: 768px) {
-  .container {
-    padding: 0 var(--spacing-sm);
-  }
-
-  .section {
-    padding: var(--spacing-xl) var(--spacing-sm);
-  }
-
+@media (max-width: 1127px) {
   .nav-menu {
     position: fixed;
     top: 70px;
@@ -1328,6 +1333,16 @@ tbody tr:last-child {
 
   .hamburger {
     display: flex;
+  }
+}
+
+@media (max-width: 768px) {
+  .container {
+    padding: 0 var(--spacing-sm);
+  }
+
+  .section {
+    padding: var(--spacing-xl) var(--spacing-sm);
   }
 
   .hero {

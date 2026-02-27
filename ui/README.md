@@ -11,6 +11,28 @@ Modern Vue 3 + Nuxt web interface for the AI Orchestrator with real-time updates
 - ✅ **Iteration Tracking** - See detailed progress of each AI agent step
 - ✅ **Responsive Design** - Built with Tailwind CSS
 
+## Standalone Agentic Team UI
+
+There is now a dedicated, separate UI/backend for the true agentic team experience.
+
+### Run Agentic Team UI
+
+```bash
+# From project root
+./start-agentic-ui.sh
+```
+
+Or run directly:
+
+```bash
+source ui/venv/bin/activate
+python ui/agentic_app.py
+```
+
+Default URL: `http://localhost:5002`
+
+This app is independent from the orchestrator UI (`ui/app.py` + Vue frontend).
+
 ## Architecture
 
 ```

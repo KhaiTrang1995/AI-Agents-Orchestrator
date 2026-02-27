@@ -22,6 +22,7 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
 from adapters import LlamaCppAdapter, OllamaAdapter
+from agentic_team import AgenticInteractiveShell
 
 
 # Setup Node.js environment before anything else
@@ -634,6 +635,40 @@ def interactive(config, workflow):
     # Just call shell with same parameters
     ctx = click.get_current_context()
     ctx.invoke(shell, config=config, workflow=workflow)
+
+
+@cli.command("agentic-shell")
+@click.option("--config", "-c", type=click.Path(exists=True), help="Path to configuration file")
+@click.option("--max-turns", "-t", type=int, default=12, help="Max team communication turns")
+@click.option(
+    "--offline",
+    is_flag=True,
+    help="Force local/offline agents only for agentic team mode",
+)
+def agentic_shell(config, max_turns, offline):
+    """
+    Start standalone Agentic Team REPL (separate from orchestrator workflows).
+
+    Examples:
+        ai-orchestrator agentic-shell
+        ai-orchestrator agentic-shell --max-turns 16
+        ai-orchestrator agentic-shell --offline
+    """
+    config_path = config or Path(__file__).parent / "config" / "agents.yaml"
+    setup_logging("INFO", "ai-orchestrator.log")
+
+    try:
+        shell = AgenticInteractiveShell(
+            config_path=str(config_path) if config_path else None,
+            default_max_turns=max_turns,
+            force_offline=offline,
+        )
+        shell.start()
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Exiting...[/yellow]")
+    except Exception as e:
+        console.print(f"[red]Error starting agentic shell: {e}[/red]")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
