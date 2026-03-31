@@ -16,7 +16,11 @@ from .constants import (
 
 def normalize_role(role: str) -> str:
     """Normalize a role name into canonical snake_case form."""
-    return str(role or "").strip().lower().replace("-", "_").replace(" ", "_")
+    import re
+
+    raw = str(role or "").strip().lower().replace("-", "_").replace(" ", "_")
+    # Collapse consecutive underscores
+    return re.sub(r"_+", "_", raw).strip("_")
 
 
 def _coerce_positive_int(raw: Any, fallback: int) -> int:
@@ -85,7 +89,10 @@ def resolve_team_config(
                 merged.update(spec)
                 merged.setdefault("title", role_name.replace("_", " ").title())
                 if not merged.get("agent"):
-                    merged["agent"] = pick_preferred_agent([])
+                    fallback_agent = pick_preferred_agent([])
+                    if fallback_agent:
+                        merged["agent"] = fallback_agent
+                    # Even if None, we still store the role; validation catches it later
                 roles[role_name] = merged
 
     lead_role = normalize_role(

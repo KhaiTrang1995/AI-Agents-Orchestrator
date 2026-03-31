@@ -3,6 +3,7 @@
 import functools
 import logging
 import time
+from enum import Enum
 from typing import Any, Callable, Optional, Tuple, Type, TypeVar, Union
 
 from tenacity import (
@@ -21,6 +22,14 @@ from .exceptions import AgentExecutionError, AgentTimeoutError
 T = TypeVar("T")
 
 logger = logging.getLogger(__name__)
+
+
+class CircuitState(Enum):
+    """Possible states of a circuit breaker."""
+
+    CLOSED = "closed"
+    OPEN = "open"
+    HALF_OPEN = "half_open"
 
 
 def retry_on_error(
@@ -107,7 +116,7 @@ class CircuitBreaker:
 
         self.failure_count = 0
         self.last_failure_time: Optional[float] = None
-        self.state = "closed"  # closed, open, half_open
+        self.state = CircuitState.CLOSED
 
     def call(self, func: Callable[..., T], *args: Any, **kwargs: Any) -> T:
         """
@@ -124,13 +133,17 @@ class CircuitBreaker:
         Raises:
             Exception: If circuit is open or function fails
         """
-        if self.state == "open":
+        if self.state == CircuitState.OPEN:
             if self._should_attempt_reset():
-                self.state = "half_open"
+                self.state = CircuitState.HALF_OPEN
             else:
+                wait_remaining = self.recovery_timeout - (
+                    time.time() - (self.last_failure_time or 0)
+                )
                 raise Exception(
-                    f"Circuit breaker is OPEN. Service unavailable. "
-                    f"Retry after {self.recovery_timeout}s"
+                    f"Circuit breaker is OPEN after {self.failure_count} failures. "
+                    f"Retry in {max(0, wait_remaining):.1f}s "
+                    f"(recovery timeout: {self.recovery_timeout}s)"
                 )
 
         try:
@@ -149,9 +162,11 @@ class CircuitBreaker:
 
     def _on_success(self) -> None:
         """Handle successful execution."""
+        prev_state = self.state
         self.failure_count = 0
-        self.state = "closed"
-        logger.info("Circuit breaker: Reset to CLOSED state")
+        self.state = CircuitState.CLOSED
+        if prev_state != CircuitState.CLOSED:
+            logger.info("Circuit breaker: Reset to CLOSED (was %s)", prev_state.value)
 
     def _on_failure(self) -> None:
         """Handle failed execution."""
@@ -159,10 +174,12 @@ class CircuitBreaker:
         self.last_failure_time = time.time()
 
         if self.failure_count >= self.failure_threshold:
-            self.state = "open"
+            self.state = CircuitState.OPEN
             logger.error(
-                f"Circuit breaker: Opened after {self.failure_count} failures. "
-                f"Will retry after {self.recovery_timeout}s"
+                "Circuit breaker OPEN: %d/%d failures reached threshold. " "Recovery in %ss.",
+                self.failure_count,
+                self.failure_threshold,
+                self.recovery_timeout,
             )
 
 

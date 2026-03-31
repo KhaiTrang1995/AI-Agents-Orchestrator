@@ -5,9 +5,10 @@ Base adapter interface for AI coding assistants.
 import asyncio
 import logging
 import shlex
+import shutil
 import subprocess
 from abc import ABC, abstractmethod
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Dict, List, Optional
 
@@ -35,18 +36,9 @@ class AgentResponse:
     success: bool
     output: str
     error: Optional[str] = None
-    files_modified: List[str] = None
-    suggestions: List[str] = None
-    metadata: Dict[str, Any] = None
-
-    def __post_init__(self):
-        """Initializes lists to avoid mutable default arguments."""
-        if self.files_modified is None:
-            self.files_modified = []
-        if self.suggestions is None:
-            self.suggestions = []
-        if self.metadata is None:
-            self.metadata = {}
+    files_modified: List[str] = field(default_factory=list)
+    suggestions: List[str] = field(default_factory=list)
+    metadata: Dict[str, Any] = field(default_factory=dict)
 
 
 class BaseAdapter(ABC):
@@ -107,7 +99,7 @@ class BaseAdapter(ABC):
         return await loop.run_in_executor(None, self.execute_task, task, context)
 
     def is_available(self) -> bool:
-        """Check if the agent CLI tool is available.
+        """Check if the agent CLI tool is available (platform-independent).
 
         Returns:
             True if available, False otherwise
@@ -122,11 +114,7 @@ class BaseAdapter(ABC):
                 if parts:
                     command_to_check = parts[0]
 
-            # Check if command exists
-            result = subprocess.run(
-                ["which", str(command_to_check)], capture_output=True, text=True, timeout=5
-            )
-            return result.returncode == 0
+            return shutil.which(str(command_to_check)) is not None
         except Exception as e:
             self.logger.warning(f"Failed to check availability: {e}")
             return False
@@ -144,6 +132,13 @@ class BaseAdapter(ABC):
         Returns:
             AgentResponse with command results
         """
+        if self.cli_communicator is None:
+            return AgentResponse(
+                success=False,
+                output="",
+                error="CLI communicator not initialized (offline mode or missing command config)",
+            )
+
         try:
             self.logger.info(
                 f"Executing {self.command} with prompt (method: {self.communication_method})"
@@ -208,7 +203,8 @@ class BaseAdapter(ABC):
 
             return AgentResponse(
                 success=True,
-                output=data,
+                output=str(data) if not isinstance(data, str) else data,
+                metadata=data if isinstance(data, dict) else {},
             )
         except httpx.HTTPStatusError as e:
             self.logger.error(f"{self.name} returned error status: {e}", exc_info=True)
@@ -267,6 +263,7 @@ class BaseAdapter(ABC):
         except subprocess.TimeoutExpired:
             self.logger.error(f"Command timed out after {self.timeout}s")
             process.kill()
+            process.wait(timeout=5)
             return AgentResponse(
                 success=False, output="", error=f"Command timed out after {self.timeout} seconds"
             )

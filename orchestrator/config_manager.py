@@ -263,22 +263,28 @@ class ConfigManager:
         return True
 
 
+import threading as _threading
+
 # Global config instance
 _config_manager: Optional[ConfigManager] = None
+_config_lock = _threading.Lock()
 
 
 def get_config_manager() -> ConfigManager:
-    """Get or create global config manager."""
+    """Get or create global config manager (thread-safe)."""
     global _config_manager
     if _config_manager is None:
-        _config_manager = ConfigManager()
+        with _config_lock:
+            if _config_manager is None:
+                _config_manager = ConfigManager()
     return _config_manager
 
 
 def init_config(
     config_file: Optional[Path] = None, env_file: Optional[Path] = None
 ) -> ConfigManager:
-    """Initialize configuration manager."""
+    """Initialize configuration manager (thread-safe)."""
     global _config_manager
-    _config_manager = ConfigManager(config_file=config_file, env_file=env_file)
+    with _config_lock:
+        _config_manager = ConfigManager(config_file=config_file, env_file=env_file)
     return _config_manager

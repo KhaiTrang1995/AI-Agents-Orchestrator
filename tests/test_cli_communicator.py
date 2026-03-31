@@ -32,12 +32,10 @@ def test_base_adapter_is_available_uses_binary_when_command_has_args():
     config = {"name": "test", "command": "codex -m gpt-5", "enabled": True}
     adapter = _DummyAdapter(config)
 
-    with patch("subprocess.run") as mock_run:
-        mock_run.return_value = Mock(returncode=0)
+    with patch("adapters.base.shutil.which") as mock_which:
+        mock_which.return_value = "/usr/bin/codex"
         assert adapter.is_available() is True
-        mock_run.assert_called_once()
-        called_args = mock_run.call_args[0][0]
-        assert called_args == ["which", "codex"]
+        mock_which.assert_called_once_with("codex")
 
 
 def test_retry_methods_codex_stay_arg_only():

@@ -296,7 +296,7 @@ class AgenticTeamEngine:
         )
 
     def _extract_json_payload(self, output: str) -> dict[str, Any] | None:
-        return self.decision_parser._extract_first_json_object(output)
+        return self.decision_parser.extract_json_object(output)
 
     def _parse_decision(
         self, output: str, current_role: str, lead_role: str
@@ -346,6 +346,11 @@ class AgenticTeamEngine:
         repeated_route_counts: dict[str, int] = {}
 
         for turn in range(1, max_turns_effective + 1):
+            if current_role not in roles:
+                self.logger.warning(
+                    "Role '%s' not found in team config, falling back to lead", current_role
+                )
+                current_role = lead_role
             role_spec = roles[current_role]
             prompt = self._build_prompt(
                 original_task=task,
@@ -360,13 +365,19 @@ class AgenticTeamEngine:
                 max_turns=max_turns_effective,
             )
 
+            # Resolve working dir: fall back to project root if configured dir missing.
+            configured_dir = self.config.get("settings", {}).get("output_dir", "./output")
+            _working_dir = str(configured_dir)
+            if not Path(_working_dir).is_dir():
+                _working_dir = str(Path(__file__).resolve().parent.parent)
+
             turn_context = {
                 "role": "team_member",
                 "team_role": current_role,
                 "lead_role": lead_role,
                 "sender_role": sender_role,
                 "incoming_message": incoming_message,
-                "working_dir": self.config.get("settings", {}).get("output_dir", "./output"),
+                "working_dir": _working_dir,
                 "offline_mode": self.is_offline_mode,
                 "execution_id": execution_id,
             }

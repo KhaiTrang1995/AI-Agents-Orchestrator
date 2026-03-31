@@ -163,15 +163,20 @@ class MetricsCollector:
         return CONTENT_TYPE_LATEST
 
 
+import threading as _threading
+
 # Global metrics instance
 _metrics_collector: Optional[MetricsCollector] = None
+_metrics_lock = _threading.Lock()
 
 
 def get_metrics_collector() -> MetricsCollector:
-    """Get or create global metrics collector."""
+    """Get or create global metrics collector (thread-safe)."""
     global _metrics_collector
     if _metrics_collector is None:
-        _metrics_collector = MetricsCollector()
+        with _metrics_lock:
+            if _metrics_collector is None:
+                _metrics_collector = MetricsCollector()
     return _metrics_collector
 
 
@@ -196,7 +201,12 @@ def track_execution_time(metric_name: str, labels: Optional[Dict[str, str]] = No
                 return result
             finally:
                 duration = time.time() - start_time
-                # Record metric (implementation depends on metric type)
+                try:
+                    metrics = get_metrics_collector()
+                    agent = (labels or {}).get("agent", metric_name)
+                    metrics.agent_duration.labels(agent=agent).observe(duration)
+                except Exception:
+                    pass
 
         return wrapper
 

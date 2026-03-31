@@ -11,6 +11,10 @@ from .base import AgentCapability, AgentResponse, BaseAdapter
 class GeminiAdapter(BaseAdapter):
     """Adapter for interacting with Google Gemini CLI."""
 
+    _NUMBERED_ITEM_RE = re.compile(r"^\d+\.")
+    _BULLETED_ITEM_RE = re.compile(r"^[-*•]")
+    _FILE_PATTERN_RE = re.compile(r"`([^`]+\.(py|js|ts|java|go|rs|cpp|h))`")
+
     def __init__(self, config: Dict[str, Any]):
         super().__init__(config)
         self.command = config.get("command", "gemini-cli")
@@ -99,20 +103,13 @@ class GeminiAdapter(BaseAdapter):
         """Parse structured feedback from Gemini's review."""
         suggestions = []
 
-        # Look for numbered or bulleted lists
-        lines = output.split("\n")
-        for line in lines:
+        for line in output.split("\n"):
             line = line.strip()
 
-            # Match numbered items: 1. , 2. , etc.
-            if re.match(r"^\d+\.", line):
+            if self._NUMBERED_ITEM_RE.match(line):
                 suggestions.append(line)
-
-            # Match bulleted items: - , * , etc.
-            elif re.match(r"^[-*•]", line):
+            elif self._BULLETED_ITEM_RE.match(line):
                 suggestions.append(line[1:].strip())
-
-            # Match severity markers
             elif any(
                 severity in line.lower() for severity in ["critical:", "high:", "medium:", "low:"]
             ):
@@ -126,12 +123,9 @@ class GeminiAdapter(BaseAdapter):
 
         files: Set[str] = set()
 
-        # Look for file path patterns
-        file_pattern = r"`([^`]+\.(py|js|ts|java|go|rs|cpp|h))`"
-        matches = re.findall(file_pattern, output)
+        matches = self._FILE_PATTERN_RE.findall(output)
         files.update(match[0] for match in matches)
 
-        # Add files from context
         if context.get("files"):
             files.update(context["files"])
 

@@ -81,7 +81,7 @@ def configure_logging(
         log_path.parent.mkdir(parents=True, exist_ok=True)
 
         file_handler = logging.FileHandler(log_file)
-        file_handler.setLevel(logging.DEBUG)  # Log everything to file
+        file_handler.setLevel(getattr(logging, log_level.upper(), logging.DEBUG))
 
         if json_logs:
             formatter = logging.Formatter("%(message)s")

@@ -23,6 +23,7 @@ class AsyncExecutor:
         """
         self.max_workers = max_workers
         self.executor = ThreadPoolExecutor(max_workers=max_workers)
+        self._shutdown = False
 
     def execute_parallel(
         self,
@@ -116,7 +117,13 @@ class AsyncExecutor:
 
     def shutdown(self, wait: bool = True) -> None:
         """Shutdown executor."""
-        self.executor.shutdown(wait=wait)
+        if not self._shutdown:
+            self.executor.shutdown(wait=wait)
+            self._shutdown = True
+
+    def __del__(self) -> None:
+        """Ensure cleanup on garbage collection."""
+        self.shutdown(wait=False)
 
     def __enter__(self) -> "AsyncExecutor":
         """Context manager entry."""
@@ -209,8 +216,9 @@ async def run_async_task(func: Callable[..., T], *args: Any, **kwargs: Any) -> T
     Returns:
         Function result
     """
-    loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(None, func, *args, **kwargs)
+    loop = asyncio.get_running_loop()
+    # run_in_executor does not accept **kwargs; use a lambda wrapper
+    return await loop.run_in_executor(None, lambda: func(*args, **kwargs))
 
 
 async def gather_with_concurrency(

@@ -127,13 +127,16 @@ class InputValidator:
         return name
 
     @classmethod
-    def validate_file_path(cls, path: str, must_exist: bool = False) -> Path:
+    def validate_file_path(
+        cls, path: str, must_exist: bool = False, allowed_root: Optional[Path] = None
+    ) -> Path:
         """
         Validate file path.
 
         Args:
             path: File path
             must_exist: Whether file must exist
+            allowed_root: If set, enforce path must be under this directory
 
         Returns:
             Validated Path object
@@ -152,6 +155,14 @@ class InputValidator:
 
         # Prevent path traversal
         resolved_path = Path(path).resolve()
+
+        if allowed_root is not None:
+            allowed_root_resolved = allowed_root.resolve()
+            if not str(resolved_path).startswith(str(allowed_root_resolved)):
+                raise ValidationError(
+                    "Path traversal detected: path is outside allowed directory",
+                    field="path",
+                )
 
         if must_exist and not resolved_path.exists():
             raise ValidationError(f"File does not exist: {path}", field="path")
@@ -334,10 +345,11 @@ class AuditLogger:
     ) -> None:
         """Log security audit event."""
         import json
-        from datetime import datetime
+        import os
+        from datetime import datetime, timezone
 
         event = {
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
             "event_type": event_type,
             "user": user,
             "action": action,
@@ -346,5 +358,13 @@ class AuditLogger:
             "details": details or {},
         }
 
-        with open(self.log_file, "a") as f:
-            f.write(json.dumps(event) + "\n")
+        try:
+            fd = os.open(
+                str(self.log_file),
+                os.O_WRONLY | os.O_CREAT | os.O_APPEND,
+                0o600,
+            )
+            with os.fdopen(fd, "a") as f:
+                f.write(json.dumps(event) + "\n")
+        except OSError:
+            pass

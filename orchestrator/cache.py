@@ -117,10 +117,11 @@ class InMemoryCache:
         Returns:
             Number of entries removed
         """
-        expired_keys = [key for key, entry in self.cache.items() if entry.is_expired()]
+        # Snapshot keys to avoid RuntimeError from dict mutation during iteration
+        expired_keys = [key for key, entry in list(self.cache.items()) if entry.is_expired()]
 
         for key in expired_keys:
-            del self.cache[key]
+            self.cache.pop(key, None)
 
         return len(expired_keys)
 
@@ -196,9 +197,13 @@ class FileCache:
         try:
             with open(cache_path, "w") as f:
                 json.dump(data, f)
-        except (TypeError, OSError):
-            # Value not JSON serializable or IO error
+        except TypeError:
+            # Value not JSON serializable - expected for complex objects
             pass
+        except OSError as e:
+            import logging
+
+            logging.getLogger(__name__).warning("FileCache write failed for key: %s", e)
 
     def delete(self, key: str) -> bool:
         """Delete key from cache."""
@@ -215,15 +220,22 @@ class FileCache:
             cache_file.unlink()
 
 
+import threading as _threading
+
+_CACHE_SENTINEL = object()
+
 # Global cache instance
 _cache: Optional[InMemoryCache] = None
+_cache_lock = _threading.Lock()
 
 
 def get_cache() -> InMemoryCache:
-    """Get or create global cache instance."""
+    """Get or create global cache instance (thread-safe)."""
     global _cache
     if _cache is None:
-        _cache = InMemoryCache()
+        with _cache_lock:
+            if _cache is None:
+                _cache = InMemoryCache()
     return _cache
 
 
@@ -262,14 +274,16 @@ def cache_result(
 
             cache_key = ":".join(key_parts)
 
-            # Try to get from cache
+            # Try to get from cache - use sentinel to distinguish None values
             cached_value = cache.get(cache_key)
+            if cached_value is _CACHE_SENTINEL:
+                return None
             if cached_value is not None:
                 return cached_value
 
             # Execute function and cache result
             result = func(*args, **kwargs)
-            cache.set(cache_key, result, ttl)
+            cache.set(cache_key, _CACHE_SENTINEL if result is None else result, ttl)
 
             return result
 

@@ -38,8 +38,8 @@ class TestBaseAdapter:
         assert adapter.enabled is True
         assert adapter.timeout == 60
 
-    @patch("subprocess.run")
-    def test_is_available(self, mock_run):
+    @patch("adapters.base.shutil.which")
+    def test_is_available(self, mock_which):
         """Test checking if an agent is available."""
         config = {"name": "test", "command": "test_cmd", "enabled": True}
 
@@ -53,11 +53,11 @@ class TestBaseAdapter:
         adapter = TestAdapter(config)
 
         # Mock successful command check
-        mock_run.return_value = Mock(returncode=0)
+        mock_which.return_value = "/usr/bin/test_cmd"
         assert adapter.is_available() is True
 
         # Mock failed command check
-        mock_run.return_value = Mock(returncode=1)
+        mock_which.return_value = None
         assert adapter.is_available() is False
 
     def test_format_task_prompt(self):

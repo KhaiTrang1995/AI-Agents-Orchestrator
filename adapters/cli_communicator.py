@@ -47,16 +47,19 @@ class CLICommunicator:
         Returns:
             Tuple of (success, stdout, stderr)
         """
+        valid_methods = {"stdin", "file", "arg", "heredoc"}
+        if method not in valid_methods:
+            self.logger.warning("Unknown method '%s', falling back to 'arg'", method)
+            method = "arg"
+
         if method == "stdin":
             return self._execute_stdin(prompt, timeout, working_dir)
         elif method == "file":
             return self._execute_file_based(prompt, timeout, working_dir)
         elif method == "arg":
             return self._execute_argument(prompt, timeout, working_dir)
-        elif method == "heredoc":
-            return self._execute_heredoc(prompt, timeout, working_dir)
         else:
-            raise ValueError(f"Unknown method: {method}")
+            return self._execute_heredoc(prompt, timeout, working_dir)
 
     def _execute_stdin(
         self, prompt: str, timeout: int, working_dir: Optional[str]
@@ -82,10 +85,12 @@ class CLICommunicator:
                 input_file_path = input_file.name
                 input_file.write(prompt)
 
-            script_cmd = f"cat {input_file_path} | script -q {temp_file_path} {self.command}"
+            script_cmd = (
+                f"cat {shlex.quote(input_file_path)} | "
+                f"script -q {shlex.quote(temp_file_path)} {self.command}"
+            )
             process = subprocess.Popen(
-                script_cmd,
-                shell=True,
+                ["bash", "-c", script_cmd],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
                 text=True,
@@ -98,10 +103,12 @@ class CLICommunicator:
 
             return process.returncode == 0, output_content or stdout, stderr
         finally:
-            if temp_file_path:
-                os.unlink(temp_file_path)
-            if input_file_path:
-                os.unlink(input_file_path)
+            for path in (temp_file_path, input_file_path):
+                if path:
+                    try:
+                        os.unlink(path)
+                    except OSError:
+                        pass
 
     def _execute_file_based(
         self, prompt: str, timeout: int, working_dir: Optional[str]
@@ -142,6 +149,7 @@ class CLICommunicator:
 
         except subprocess.TimeoutExpired:
             process.kill()
+            process.wait(timeout=5)
             return False, "", f"Timeout after {timeout}s"
 
         except Exception as e:
@@ -384,14 +392,20 @@ EOF
 
     def cleanup(self):
         """Clean up temporary directory."""
-        import shutil
+        try:
+            import shutil as _shutil
 
-        if os.path.exists(self.temp_dir):
-            shutil.rmtree(self.temp_dir)
+            if os.path.exists(self.temp_dir):
+                _shutil.rmtree(self.temp_dir, ignore_errors=True)
+        except Exception:
+            pass
 
     def __del__(self):
-        """Cleanup on deletion."""
-        self.cleanup()
+        """Cleanup on deletion. Silences errors during interpreter shutdown."""
+        try:
+            self.cleanup()
+        except Exception:
+            pass
 
 
 class AgentCLIRegistry:
