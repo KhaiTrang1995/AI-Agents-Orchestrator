@@ -25,9 +25,13 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from agentic_team import AgenticTeamEngine  # noqa: E402
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
-app.config["SECRET_KEY"] = "agentic-team-ui-secret-change-in-production"
-CORS(app)
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
+app.config["SECRET_KEY"] = os.environ.get("FLASK_SECRET_KEY_AGENTIC", os.urandom(32).hex())
+CORS(app, origins=os.environ.get("CORS_ALLOWED_ORIGINS", "*").split(","))
+socketio = SocketIO(
+    app,
+    cors_allowed_origins=os.environ.get("CORS_ALLOWED_ORIGINS", "*").split(","),
+    async_mode="threading",
+)
 FRONTEND_PUBLIC_DIR = Path(__file__).parent / "frontend" / "public"
 
 logging.basicConfig(level=logging.INFO)
@@ -414,7 +418,10 @@ def execute():
     """Start async agentic-team execution for a task."""
     data = request.get_json(silent=True) or {}
     task = data.get("task")
-    max_turns = int(data.get("max_turns", 12))
+    try:
+        max_turns = int(data.get("max_turns", 12))
+    except (TypeError, ValueError):
+        max_turns = 12
     is_followup = bool(data.get("is_followup", False))
     client_id = _get_client_id_from_request(data)
 
@@ -612,4 +619,5 @@ def on_disconnect():
 if __name__ == "__main__":
     _init_engine()
     port = int(os.environ.get("AGENTIC_UI_BACKEND_PORT") or os.environ.get("PORT", "5002"))
-    socketio.run(app, host="0.0.0.0", port=port, debug=True)
+    debug = os.environ.get("FLASK_DEBUG", "false").lower() in ("true", "1", "yes")
+    socketio.run(app, host="0.0.0.0", port=port, debug=debug)

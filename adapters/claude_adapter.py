@@ -39,12 +39,15 @@ class ClaudeAdapter(BaseAdapter):
             prompt=prompt, working_dir=working_dir, use_workspace=True
         )
 
-        # Parse Claude's response to extract suggestions
         if response.success:
             suggestions = self._extract_suggestions(response.output)
             response.suggestions = suggestions
+            # Supplement workspace-tracked files with output-parsed file references
+            parsed_files = self._extract_modified_files(response.output, context)
+            for f in parsed_files:
+                if f not in response.files_modified:
+                    response.files_modified.append(f)
 
-        # Files are already tracked by the workspace monitor
         return response
 
     def _build_claude_prompt(self, task: str, context: Dict[str, Any]) -> str:

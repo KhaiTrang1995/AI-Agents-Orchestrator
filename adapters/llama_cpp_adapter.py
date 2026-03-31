@@ -20,9 +20,18 @@ class LlamaCppAdapter(BaseAdapter):
         self.endpoint = str(local_config.get("endpoint", "http://localhost:8080")).rstrip("/")
         self.model = local_config.get("model")
         self.model_path = local_config.get("model_path")
-        self.max_tokens = int(local_config.get("max_tokens", 4096))
-        self.temperature = float(local_config.get("temperature", 0.7))
-        self.timeout = int(local_config.get("timeout", 3600))
+        try:
+            self.max_tokens = max(1, int(local_config.get("max_tokens", 4096)))
+        except (TypeError, ValueError):
+            self.max_tokens = 4096
+        try:
+            self.temperature = max(0.0, min(2.0, float(local_config.get("temperature", 0.7))))
+        except (TypeError, ValueError):
+            self.temperature = 0.7
+        try:
+            self.timeout = max(1, int(local_config.get("timeout", 3600)))
+        except (TypeError, ValueError):
+            self.timeout = 3600
 
     def get_capabilities(self) -> list[AgentCapability]:
         """Return supported coding and review capabilities."""
@@ -54,10 +63,15 @@ class LlamaCppAdapter(BaseAdapter):
         return payload
 
     def _parse_text_response(self, data: dict[str, Any]) -> str:
-        choices = data.get("choices", [])
-        if not choices:
+        if not isinstance(data, dict):
             return ""
-        return str(choices[0].get("text", ""))
+        choices = data.get("choices", [])
+        if not choices or not isinstance(choices, list):
+            return ""
+        first = choices[0]
+        if not isinstance(first, dict):
+            return str(first) if first else ""
+        return str(first.get("text", ""))
 
     def _execute_task_sync(self, task: str, context: dict[str, Any]) -> AgentResponse:
         payload = self._build_payload(task, context)
@@ -101,17 +115,17 @@ class LlamaCppAdapter(BaseAdapter):
     def health_check(self) -> bool:
         """Check whether the endpoint responds as an OpenAI-compatible server."""
         checks = [
-            f"{self.endpoint}/health",
-            f"{self.endpoint}/v1/models",
-            self.endpoint,
+            (f"{self.endpoint}/health", {200}),
+            (f"{self.endpoint}/v1/models", {200}),
+            (self.endpoint, {200, 301, 302, 404}),
         ]
-        for url in checks:
+        for url, ok_codes in checks:
             try:
-                resp = httpx.get(url, timeout=2)
-                if resp.status_code < 500:
+                resp = httpx.get(url, timeout=2, follow_redirects=False)
+                if resp.status_code in ok_codes:
                     return True
-            except Exception:
-                pass
+            except Exception:  # nosec B112 - health probe; failure means offline
+                continue
         return False
 
     def is_available(self) -> bool:

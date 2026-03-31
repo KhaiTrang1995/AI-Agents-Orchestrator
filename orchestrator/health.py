@@ -1,6 +1,6 @@
 """Health checks and readiness probes for production deployment."""
 
-import subprocess
+import shutil
 import time
 from dataclasses import dataclass
 from enum import Enum
@@ -252,20 +252,14 @@ class HealthChecker:
             )
 
     def check_agent_availability(self, agent_name: str, command: str) -> HealthCheckResult:
-        """Check if an agent is available."""
+        """Check if an agent is available (platform-independent)."""
         start = time.time()
         try:
-            # Check if command exists
-            result = subprocess.run(
-                ["which", command],
-                capture_output=True,
-                text=True,
-                timeout=5,
-            )
+            command_path = shutil.which(command)
 
-            if result.returncode == 0:
+            if command_path:
                 status = HealthStatus.HEALTHY
-                message = f"Agent {agent_name} available at {result.stdout.strip()}"
+                message = f"Agent {agent_name} available at {command_path}"
             else:
                 status = HealthStatus.DEGRADED
                 message = f"Agent {agent_name} command '{command}' not found"

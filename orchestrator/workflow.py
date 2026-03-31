@@ -115,8 +115,9 @@ class WorkflowEngine:
 
     def get_progress(self) -> Dict[str, Any]:
         """Get current workflow progress."""
+        total = len(self.steps)
         return {
             "current_step": self.current_step,
-            "total_steps": len(self.steps),
-            "progress_percent": (self.current_step / len(self.steps) * 100) if self.steps else 0,
+            "total_steps": total,
+            "progress_percent": (self.current_step / total * 100) if total > 0 else 0,
         }

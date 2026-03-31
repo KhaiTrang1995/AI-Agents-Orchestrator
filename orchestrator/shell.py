@@ -65,13 +65,22 @@ class ConversationHistory:
             "context": self.context,
             "saved_at": datetime.now().isoformat(),
         }
-        with open(filepath, "w") as f:
-            json.dump(data, f, indent=2)
+        try:
+            fd = os.open(filepath, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            with os.fdopen(fd, "w") as f:
+                json.dump(data, f, indent=2)
+        except (OSError, TypeError) as e:
+            raise OSError(f"Failed to save session: {e}") from e
 
     def load(self, filepath: str):
         """Load conversation history from file."""
-        with open(filepath) as f:
-            data = json.load(f)
+        try:
+            with open(filepath) as f:
+                data = json.load(f)
+        except (OSError, json.JSONDecodeError) as e:
+            raise OSError(f"Failed to load session: {e}") from e
+        if not isinstance(data, dict):
+            raise OSError("Invalid session file format")
         self.messages = data.get("messages", [])
         self.current_agent = data.get("current_agent")
         self.workflow = data.get("workflow", "default")
@@ -153,62 +162,80 @@ class InteractiveShell:
             fallback.mkdir(exist_ok=True)
             return fallback
 
+    # Maximum number of history entries to keep.
+    MAX_HISTORY_LINES = 1000
+
     def _setup_readline(self):
         """Setup readline for command history and completion with robust error handling."""
         try:
-            # History file
             history_file = self.session_dir / "history.txt"
 
-            # Ensure history file exists and is writable
             try:
                 if history_file.exists() and not history_file.is_file():
-                    # Exists but is not a file (maybe a directory)
                     backup = self.session_dir / "history.txt.invalid"
                     history_file.rename(backup)
-                    self.console.print(
-                        f"[yellow]Warning: Renamed invalid history to {backup}[/yellow]"
-                    )
 
-                # Create if doesn't exist
-                history_file.touch(exist_ok=True)
+                # Truncate oversized history file BEFORE loading to avoid
+                # multi-GB reads that freeze the shell on startup.
+                self._truncate_history_file(history_file, self.MAX_HISTORY_LINES)
 
-                # Try to read existing history
-                readline.read_history_file(str(history_file))
-            except (FileNotFoundError, PermissionError, OSError) as e:
-                # History file operations are non-critical, continue without history
-                self.console.print(f"[dim]Note: History disabled ({e})[/dim]", style="dim")
+                if history_file.exists():
+                    readline.read_history_file(str(history_file))
+            except (FileNotFoundError, PermissionError, OSError):
+                pass  # History is non-critical
 
-            # Save history on exit (only if we can write)
-            if os.access(history_file, os.W_OK):
+            readline.set_history_length(self.MAX_HISTORY_LINES)
+
+            if history_file.parent.exists() and os.access(str(history_file.parent), os.W_OK):
                 import atexit
 
                 atexit.register(self._save_history_safe, str(history_file))
 
-            # Tab completion
             try:
                 readline.parse_and_bind("tab: complete")
                 readline.set_completer(self._completer)
             except Exception:
-                pass  # Completion is optional
+                pass
 
-            # Vi or Emacs mode
             try:
                 readline.parse_and_bind("set editing-mode emacs")
             except Exception:
-                pass  # Editing mode is optional
+                pass
 
-        except Exception as e:
-            # Readline setup is non-critical, continue without it
-            self.console.print(
-                f"[dim]Note: Advanced input features disabled ({e})[/dim]", style="dim"
-            )
+        except Exception:
+            pass  # Readline setup is entirely non-critical
+
+    @staticmethod
+    def _truncate_history_file(path: Path, max_lines: int) -> None:
+        """Keep only the last *max_lines* of a history file on disk."""
+        try:
+            if not path.exists():
+                return
+            size = path.stat().st_size
+            if size == 0:
+                return
+            # Only bother if file is suspiciously large (>512 KB).
+            if size < 512 * 1024:
+                return
+            # Read the tail efficiently.
+            with open(path, "rb") as fh:
+                # Seek backwards from end to find enough newlines.
+                chunk = min(size, max_lines * 200)  # generous estimate
+                fh.seek(max(0, size - chunk))
+                tail = fh.read().decode("utf-8", errors="replace")
+            lines = tail.splitlines(keepends=True)[-max_lines:]
+            with open(path, "w", encoding="utf-8") as fh:
+                fh.writelines(lines)
+        except Exception:
+            pass  # Best-effort truncation
 
     def _save_history_safe(self, filename: str):
-        """Safely save history file, catching any errors."""
+        """Safely save history file, capped to MAX_HISTORY_LINES."""
         try:
+            readline.set_history_length(self.MAX_HISTORY_LINES)
             readline.write_history_file(filename)
         except Exception:
-            pass  # Ignore history save errors
+            pass
 
     def _completer(self, text: str, state: int):
         """Auto-completion for commands."""

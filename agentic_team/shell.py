@@ -50,13 +50,22 @@ class AgenticConversationHistory:
             "context": self.context,
             "saved_at": datetime.now().isoformat(),
         }
-        with open(filepath, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2)
+        try:
+            fd = os.open(filepath, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            with os.fdopen(fd, "w") as f:
+                json.dump(data, f, indent=2)
+        except (OSError, TypeError) as e:
+            raise OSError(f"Failed to save session: {e}") from e
 
     def load(self, filepath: str):
         """Load history/context from a JSON session file."""
-        with open(filepath, encoding="utf-8") as f:
-            data = json.load(f)
+        try:
+            with open(filepath, encoding="utf-8") as f:
+                data = json.load(f)
+        except (OSError, json.JSONDecodeError) as e:
+            raise OSError(f"Failed to load session: {e}") from e
+        if not isinstance(data, dict):
+            raise OSError("Invalid session file format")
         self.messages = data.get("messages", [])
         self.max_turns = int(data.get("max_turns", 12))
         self.context = data.get("context", {})
@@ -101,17 +110,37 @@ class AgenticInteractiveShell:
         session_dir.mkdir(parents=True, exist_ok=True)
         return session_dir
 
+    MAX_HISTORY_LINES = 1000
+
     def _setup_readline(self):
         history_file = self.session_dir / "history.txt"
         try:
-            history_file.touch(exist_ok=True)
-            readline.read_history_file(str(history_file))
+            if history_file.exists():
+                # Truncate oversized history before loading.
+                try:
+                    if history_file.stat().st_size > 512 * 1024:
+                        with open(history_file, "rb") as fh_r:
+                            chunk = fh_r.read()[-self.MAX_HISTORY_LINES * 200 :]
+                        lines = chunk.decode("utf-8", errors="replace").splitlines(keepends=True)
+                        with open(history_file, "w", encoding="utf-8") as fh_w:
+                            fh_w.writelines(lines[-self.MAX_HISTORY_LINES :])
+                except Exception:
+                    pass
+                readline.read_history_file(str(history_file))
+            readline.set_history_length(self.MAX_HISTORY_LINES)
             readline.parse_and_bind("tab: complete")
             readline.set_completer(self._completer)
 
             import atexit
 
-            atexit.register(lambda: readline.write_history_file(str(history_file)))
+            def _save():
+                try:
+                    readline.set_history_length(self.MAX_HISTORY_LINES)
+                    readline.write_history_file(str(history_file))
+                except Exception:
+                    pass
+
+            atexit.register(_save)
         except Exception:
             pass
 

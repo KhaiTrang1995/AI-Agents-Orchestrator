@@ -3,6 +3,7 @@ Task management and distribution.
 """
 
 import logging
+import threading
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -66,6 +67,7 @@ class TaskManager:
         self.logger = logging.getLogger("task_manager")
         self.tasks: Dict[str, Task] = {}
         self.task_counter = 0
+        self._counter_lock = threading.Lock()
 
     def create_task(self, description: str, metadata: Optional[Dict] = None) -> Task:
         """
@@ -78,8 +80,9 @@ class TaskManager:
         Returns:
             Created task
         """
-        self.task_counter += 1
-        task_id = f"task_{self.task_counter}"
+        with self._counter_lock:
+            self.task_counter += 1
+            task_id = f"task_{self.task_counter}"
 
         task = Task(id=task_id, description=description, metadata=metadata or {})
 
@@ -143,8 +146,29 @@ class TaskManager:
         }
         self.logger.info("Cleared completed tasks")
 
+    def cleanup_stale(self, max_age_seconds: int = 3600) -> int:
+        """Remove completed/failed tasks older than max_age_seconds.
+
+        Returns:
+            Number of tasks removed.
+        """
+        now = datetime.now()
+        to_remove = [
+            tid
+            for tid, task in self.tasks.items()
+            if task.status in (TaskStatus.COMPLETED, TaskStatus.FAILED)
+            and task.completed_at is not None
+            and (now - task.completed_at).total_seconds() > max_age_seconds
+        ]
+        for tid in to_remove:
+            del self.tasks[tid]
+        if to_remove:
+            self.logger.info("Cleaned up %d stale tasks", len(to_remove))
+        return len(to_remove)
+
     def clear_all(self):
         """Clear all tasks."""
         self.tasks.clear()
-        self.task_counter = 0
+        with self._counter_lock:
+            self.task_counter = 0
         self.logger.info("Cleared all tasks")

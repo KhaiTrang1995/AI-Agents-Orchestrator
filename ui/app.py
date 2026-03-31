@@ -73,9 +73,13 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from orchestrator import Orchestrator
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
-app.config["SECRET_KEY"] = "ai-orchestrator-secret-key-change-in-production"
-CORS(app)
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading")
+app.config["SECRET_KEY"] = os.environ.get("FLASK_SECRET_KEY", os.urandom(32).hex())
+CORS(app, origins=os.environ.get("CORS_ALLOWED_ORIGINS", "*").split(","))
+socketio = SocketIO(
+    app,
+    cors_allowed_origins=os.environ.get("CORS_ALLOWED_ORIGINS", "*").split(","),
+    async_mode="threading",
+)
 FRONTEND_PUBLIC_DIR = Path(__file__).parent / "frontend" / "public"
 
 # Setup logging
@@ -576,7 +580,7 @@ ai_orchestrator_up 1
 """
         return metrics_output, 200, {"Content-Type": "text/plain; version=0.0.4"}
     except Exception as e:
-        logger.error(f"Error generating metrics: {e}")
+        logger.error("Error generating metrics: %s", e)
         return (
             f"# Error generating metrics: {str(e)}\n",
             500,
@@ -943,15 +947,18 @@ def clear_conversation():
 @app.route("/api/files/<path:filename>", methods=["GET"])
 def get_file(filename):
     """Get file content."""
-    workspace_dir = Path(__file__).parent.parent / "workspace"
-    file_path = workspace_dir / filename
+    workspace_dir = (Path(__file__).parent.parent / "workspace").resolve()
+    file_path = (workspace_dir / filename).resolve()
+
+    # Prevent path traversal
+    if not str(file_path).startswith(str(workspace_dir)):
+        return jsonify({"error": "Access denied: path traversal detected"}), 403
 
     if not file_path.exists():
         return jsonify({"error": "File not found"}), 404
 
     try:
-        with open(file_path) as f:
-            content = f.read()
+        content = file_path.read_text(encoding="utf-8")
 
         return jsonify(
             {"filename": filename, "content": content, "language": detect_language(filename)}
@@ -1017,4 +1024,5 @@ def handle_disconnect():
 if __name__ == "__main__":
     init_orchestrator()
     port = int(os.environ.get("UI_BACKEND_PORT") or os.environ.get("PORT", "5001"))
-    socketio.run(app, host="0.0.0.0", port=port, debug=True)
+    debug = os.environ.get("FLASK_DEBUG", "false").lower() in ("true", "1", "yes")
+    socketio.run(app, host="0.0.0.0", port=port, debug=debug)

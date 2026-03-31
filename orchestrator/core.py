@@ -306,12 +306,20 @@ class Orchestrator:
         if max_iterations is None:
             max_iterations = self.config.get("settings", {}).get("max_iterations", 3)
 
+        # Resolve working directory: prefer configured output_dir, fall back to
+        # the project root (parent of config/) so CLI tools run inside a valid repo.
+        configured_dir = self.config.get("settings", {}).get("output_dir", "./output")
+        working_dir = str(configured_dir)
+        if not Path(working_dir).is_dir():
+            project_root = Path(__file__).resolve().parent.parent
+            working_dir = str(project_root)
+
         # Execute workflow
         context = {
             "task": task,
             "iteration": 0,
             "max_iterations": max_iterations,
-            "working_dir": self.config.get("settings", {}).get("output_dir", "./output"),
+            "working_dir": working_dir,
             "offline_mode": self.is_offline_mode,
         }
 
@@ -341,6 +349,12 @@ class Orchestrator:
 
             # Update context with results
             context = self._update_context(context, iteration_results)
+        else:
+            # All iterations exhausted — mark success if last iteration steps all passed
+            iterations_list: List[Dict[str, Any]] = results.get("iterations", [])  # type: ignore[assignment]
+            last_iter = iterations_list[-1] if iterations_list else {}
+            if all(s.get("success", False) for s in last_iter.get("steps", [])):
+                results["success"] = True
 
         # Set final output
         if results["iterations"]:  # type: ignore[index]
@@ -465,7 +479,10 @@ class Orchestrator:
                     "agent": step.agent_name,
                     "task": step.task_type,
                     "success": False,
+                    "output": "",
                     "error": str(e),
+                    "files_modified": [],
+                    "suggestions": [],
                 }
                 iteration_results["steps"].append(step_result)
 

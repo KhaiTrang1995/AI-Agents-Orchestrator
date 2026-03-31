@@ -36,7 +36,13 @@ class CodexAdapter(BaseAdapter):
             prompt=prompt, working_dir=working_dir, use_workspace=True
         )
 
-        # Files are tracked by workspace monitor
+        if response.success:
+            # Supplement workspace-tracked files with output-parsed file references
+            parsed_files = self._extract_generated_files(response.output, context)
+            for f in parsed_files:
+                if f not in response.files_modified:
+                    response.files_modified.append(f)
+
         return response
 
     def _build_codex_prompt(self, task: str, context: Dict[str, Any]) -> str:

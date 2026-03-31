@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 from typing import Any
 
 from .config_utils import normalize_role
+
+logger = logging.getLogger(__name__)
 
 _FENCED_BLOCK_RE = re.compile(r"```(?:json)?\s*(.*?)```", re.IGNORECASE | re.DOTALL)
 _LINE_TO_ROLE_RE = re.compile(
@@ -18,6 +21,10 @@ _LINE_FINAL_RE = re.compile(r"^\s*(?:final_response|user_response)\s*:\s*(.+?)\s
 
 class DecisionParser:
     """Parses model output into normalized action/to_role/message/final_response."""
+
+    def extract_json_object(self, text: str) -> dict[str, Any] | None:
+        """Public API for extracting the first JSON object from text."""
+        return self._extract_first_json_object(text)
 
     def _extract_first_json_object(self, text: str) -> dict[str, Any] | None:
         candidate = (text or "").strip()
@@ -105,6 +112,11 @@ class DecisionParser:
             final_response = ""
 
         if action == "finalize" and current_role != lead_role:
+            logger.info(
+                "Non-lead role '%s' attempted finalize, redirecting to lead '%s'",
+                current_role,
+                lead_role,
+            )
             action = "message"
             to_role_norm = lead_role
 

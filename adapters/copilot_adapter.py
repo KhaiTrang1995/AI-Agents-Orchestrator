@@ -59,20 +59,31 @@ class CopilotAdapter(BaseAdapter):
 
     def _extract_copilot_suggestions(self, output: str) -> List[str]:
         """Extract suggestions from Copilot's output."""
-        suggestions = []
+        if not output or not output.strip():
+            return []
 
-        # Copilot often provides multiple numbered suggestions
+        suggestions = []
         current_suggestion: List[str] = []
+
         for line in output.split("\n"):
-            if line.strip().startswith(("1.", "2.", "3.", "4.", "5.")):
+            stripped = line.strip()
+            if not stripped:
+                continue
+
+            # Detect numbered items (1., 2., ...) or bullet points
+            is_new_item = (
+                len(stripped) > 2 and stripped[0].isdigit() and stripped[1] in ".)"
+            ) or stripped.startswith(("- ", "* ", "• "))
+
+            if is_new_item:
                 if current_suggestion:
-                    suggestions.append("\n".join(current_suggestion))
+                    suggestions.append("\n".join(current_suggestion).strip())
                     current_suggestion = []
-                current_suggestion.append(line.strip())
+                current_suggestion.append(stripped)
             elif current_suggestion:
-                current_suggestion.append(line.strip())
+                current_suggestion.append(stripped)
 
         if current_suggestion:
-            suggestions.append("\n".join(current_suggestion))
+            suggestions.append("\n".join(current_suggestion).strip())
 
-        return suggestions if suggestions else [output]
+        return suggestions if suggestions else [output.strip()]

@@ -1,6 +1,24 @@
 """Custom exceptions for the orchestrator."""
 
+import json
 from typing import Any, Dict, Optional
+
+
+def _make_serializable(obj: Any) -> Any:
+    """Recursively convert an object to JSON-safe types."""
+    if obj is None or isinstance(obj, (bool, int, float, str)):
+        return obj
+    if isinstance(obj, dict):
+        return {str(k): _make_serializable(v) for k, v in obj.items()}
+    if isinstance(obj, (list, tuple)):
+        return [_make_serializable(item) for item in obj]
+    if isinstance(obj, Exception):
+        return f"{type(obj).__name__}: {obj}"
+    try:
+        json.dumps(obj)
+        return obj
+    except (TypeError, ValueError):
+        return str(obj)
 
 
 class OrchestratorError(Exception):
@@ -19,12 +37,12 @@ class OrchestratorError(Exception):
         self.details = details or {}
 
     def to_dict(self) -> Dict[str, Any]:
-        """Convert exception to dictionary."""
+        """Convert exception to a JSON-safe dictionary."""
         return {
             "error": self.__class__.__name__,
             "message": self.message,
             "error_code": self.error_code,
-            "details": self.details,
+            "details": _make_serializable(self.details),
         }
 
 

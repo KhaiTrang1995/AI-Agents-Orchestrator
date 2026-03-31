@@ -22,12 +22,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 # Copy requirements
 COPY requirements.txt .
+COPY ui/requirements.txt ./ui-requirements.txt
 COPY pyproject.toml .
 COPY setup.py .
 
 # Install dependencies with security updates
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir --user -r requirements.txt
+    pip install --no-cache-dir --user -r requirements.txt -r ui-requirements.txt
 
 # Stage 2: Runtime
 FROM python:3.11-slim
@@ -79,8 +80,7 @@ COPY --chown=orchestrator:orchestrator LICENSE .
 
 # Make scripts executable
 RUN chmod +x ai-orchestrator && \
-    chmod +x start-agentic-ui.sh && \
-    chmod +x ui/*.py 2>/dev/null || true
+    chmod +x start-agentic-ui.sh
 
 # Create necessary directories with proper permissions
 RUN mkdir -p \

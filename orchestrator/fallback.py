@@ -92,6 +92,17 @@ class FallbackManager:
         Returns:
             tuple(agent_used, response, fallback_from_agent)
         """
+        if primary_agent not in adapters:
+            return (
+                primary_agent,
+                AgentResponse(
+                    success=False,
+                    output="",
+                    error=f"Primary agent '{primary_agent}' not found in available adapters",
+                ),
+                None,
+            )
+
         primary_adapter = adapters[primary_agent]
         fallback_agent = self.resolve_fallback(primary_agent, explicit_fallback)
 

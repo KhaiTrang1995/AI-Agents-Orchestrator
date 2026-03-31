@@ -119,6 +119,7 @@ addopts = [
     "--strict-config",
     "--cov=orchestrator",
     "--cov=adapters",
+    "--cov=agentic_team",
     "--cov-branch",
     "--cov-report=term-missing:skip-covered",
     "--cov-report=html",
@@ -133,10 +134,11 @@ markers = [
     "integration: marks tests as integration tests",
     "unit: marks tests as unit tests",
     "security: marks tests as security tests",
+    "agentic_team: marks tests as agentic team tests",
 ]
 
 [tool.coverage.run]
-source = ["orchestrator", "adapters"]
+source = ["orchestrator", "adapters", "agentic_team"]
 branch = true
 omit = [
     "*/tests/*",
