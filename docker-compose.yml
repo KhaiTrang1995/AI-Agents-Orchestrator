@@ -4,12 +4,13 @@ version: '3.8'
 # AI Coding Tools — Docker Compose
 #
 # Core services (always started):
-#   orchestrator-ui   → http://localhost:5001  (orchestrator/ui/app.py)
-#   agentic-team-ui   → http://localhost:5002  (agentic_team/ui/app.py)
+#   orchestrator-ui    → http://localhost:5001  (orchestrator/ui/app.py)
+#   agentic-team-ui    → http://localhost:5002  (agentic_team/ui/app.py)
+#   context-dashboard  → http://localhost:5003  (context_dashboard)
 #
 # Optional monitoring profile (docker compose --profile monitoring up):
-#   prometheus        → http://localhost:9091
-#   grafana           → http://localhost:3000
+#   prometheus         → http://localhost:9091
+#   grafana            → http://localhost:3000
 # ──────────────────────────────────────────────────────────────────────────────
 
 services:
@@ -37,6 +38,7 @@ services:
       - ./reports:/app/reports
       - ./sessions:/app/sessions
       - ./logs:/app/logs
+      - orchestrator-context:/home/appuser/.ai-orchestrator
     ports:
       - "5001:5001"   # Orchestrator UI backend
       - "9090:9090"   # Prometheus metrics
@@ -74,6 +76,7 @@ services:
       - ./reports:/app/reports
       - ./sessions:/app/sessions
       - ./logs:/app/logs
+      - agentic-team-context:/home/appuser/.agentic-team
     ports:
       - "5002:5002"   # Agentic Team UI backend
     networks:
@@ -96,6 +99,9 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - LOG_LEVEL=INFO
+    volumes:
+      - orchestrator-context:/home/appuser/.ai-orchestrator
+      - agentic-team-context:/home/appuser/.agentic-team
     ports:
       - "8000:8000"
     networks:
@@ -104,11 +110,37 @@ services:
     tty: true
     command: ["python", "-m", "mcp_server.server", "--transport", "http", "--port", "8000"]
     healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/mcp', timeout=5)"]
+      test: ["CMD", "python", "-c", "import socket; s=socket.socket(); s.settimeout(5); s.connect(('127.0.0.1', 8000)); s.close()"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 20s
+
+  # ── Context Dashboard (port 5003) ────────────────────────────────────────────
+  context-dashboard:
+    build: .
+    container_name: ai-tools-context-dashboard
+    restart: unless-stopped
+    environment:
+      - PYTHONUNBUFFERED=1
+      - LOG_LEVEL=INFO
+    volumes:
+      - orchestrator-context:/home/appuser/.ai-orchestrator
+      - agentic-team-context:/home/appuser/.agentic-team
+    ports:
+      - "5003:5003"
+    networks:
+      - ai-tools-network
+    command: ["python", "-m", "context_dashboard"]
+    depends_on:
+      - orchestrator-ui
+      - agentic-team-ui
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5003/health', timeout=5)"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
 
   # ── Prometheus (monitoring profile) ─────────────────────────────────────────
   prometheus:
@@ -156,3 +188,5 @@ networks:
 volumes:
   prometheus_data:
   grafana_data:
+  orchestrator-context:
+  agentic-team-context:
