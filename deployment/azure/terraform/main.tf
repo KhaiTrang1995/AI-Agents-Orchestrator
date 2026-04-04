@@ -57,7 +57,7 @@ variable "location_secondary" {
 variable "project_name" {
   description = "Project name"
   type        = string
-  default     = "ai-orchestrator"
+  default     = "ai-coding-tools"
 }
 
 variable "aks_node_count" {

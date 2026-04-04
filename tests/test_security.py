@@ -2,8 +2,13 @@
 
 import pytest
 
-from orchestrator.exceptions import RateLimitError, ValidationError
-from orchestrator.security import AuditLogger, InputValidator, SecretManager, TokenBucketRateLimiter
+from orchestrator.core.exceptions import RateLimitError, ValidationError
+from orchestrator.security_module.security import (
+    AuditLogger,
+    InputValidator,
+    SecretManager,
+    TokenBucketRateLimiter,
+)
 
 
 class TestInputValidator:

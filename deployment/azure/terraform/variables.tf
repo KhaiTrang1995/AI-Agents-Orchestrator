@@ -26,7 +26,7 @@ variable "location_secondary" {
 variable "project_name" {
   description = "Project name used for resource naming"
   type        = string
-  default     = "ai-orchestrator"
+  default     = "ai-coding-tools"
 }
 
 # AKS Configuration

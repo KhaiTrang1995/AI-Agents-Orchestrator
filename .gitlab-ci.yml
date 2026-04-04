@@ -28,9 +28,9 @@ lint:
   image: python:3.11
   script:
     - pip install black flake8 isort
-    - black --check orchestrator adapters agentic_team tests ui/agentic_app.py
-    - flake8 orchestrator adapters agentic_team tests ui/agentic_app.py
-    - isort --check-only orchestrator adapters agentic_team tests ui/agentic_app.py
+    - black --check orchestrator/ agentic_team/ tests/
+    - flake8 orchestrator/ agentic_team/ tests/
+    - isort --check-only orchestrator/ agentic_team/ tests/
   only:
     - merge_requests
     - main
@@ -41,7 +41,7 @@ typecheck:
   image: python:3.11
   script:
     - pip install mypy types-PyYAML types-click
-    - mypy orchestrator adapters agentic_team
+    - mypy orchestrator/ agentic_team/
   only:
     - merge_requests
     - main
@@ -53,7 +53,7 @@ security-scan:
   image: python:3.11
   script:
     - pip install bandit safety
-    - bandit -r orchestrator adapters agentic_team ui/agentic_app.py -f json -o bandit-report.json
+    - bandit -r orchestrator/ agentic_team/ -f json -o bandit-report.json
     - safety check --json > safety-report.json || true
   artifacts:
     reports:
@@ -78,7 +78,7 @@ test:
   script:
     - pip install -r requirements.txt
     - pip install pytest pytest-cov pytest-asyncio pytest-mock
-    - pytest tests/ --cov=orchestrator --cov=adapters --cov=agentic_team --cov-report=xml --cov-report=html --junitxml=junit.xml -v
+    - pytest tests/ --cov=orchestrator --cov=agentic_team --cov=agentic_team --cov-report=xml --cov-report=html --junitxml=junit.xml -v
   coverage: '/(?i)total.*? (100(?:\.0+)?\%|[1-9]?\d(?:\.\d+)?\%)$/'
   artifacts:
     reports:

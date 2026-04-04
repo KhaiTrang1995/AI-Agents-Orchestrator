@@ -1,32 +1,64 @@
 # Deployment Infrastructure
 
-This directory contains all production deployment configurations and scripts for the AI Agents Orchestrator.
+Production deployment configurations for **two independent systems**:
+- **Orchestrator** (port 5001) — `orchestrator/ui/app.py`
+- **Agentic Team** (port 5002) — `agentic_team/ui/app.py`
 
-## 📁 Directory Structure
+## Directory Structure
 
 ```
 deployment/
-├── README.md                    # This file
-├── DEPLOYMENT.md               # Comprehensive deployment guide
 ├── kubernetes/                 # Kubernetes manifests
-│   ├── deployment.yaml        # Basic deployment
-│   ├── service.yaml           # Service configuration
-│   ├── configmap.yaml         # Configuration
+│   ├── deployment.yaml        # Both systems as separate Deployments
+│   ├── service.yaml           # Two Services (5001 + 5002)
+│   ├── configmap.yaml         # Per-system ConfigMaps
+│   ├── secrets.yaml.template  # Secret template
 │   ├── pvc.yaml              # Persistent volumes
-│   ├── blue-green-deployment.yaml   # Blue/Green setup (orchestrator + agentic-team)
-│   ├── canary-deployment.yaml       # Canary setup with Flagger (orchestrator + agentic-team)
-│   ├── ingress-nginx.yaml           # Ingress + TLS
-│   └── hpa.yaml                     # Auto-scaling
-├── load-balancer/             # Load balancer configs
-│   ├── haproxy.cfg           # HAProxy configuration
-│   └── nginx.conf            # NGINX configuration
-├── scripts/                   # Deployment automation
-│   ├── blue-green-switch.sh  # Blue/Green switcher
-│   └── canary-rollout.sh     # Canary rollout
-└── systemd/                   # Systemd service files
-    ├── ai-orchestrator.service
-    └── agentic-team.service
+│   ├── hpa.yaml              # Horizontal Pod Autoscaler
+│   ├── ingress-nginx.yaml    # Ingress + TLS
+│   ├── network-policy.yaml   # Network policies
+│   ├── monitoring.yaml       # Prometheus ServiceMonitor
+│   ├── production-config.yaml # Production overrides
+│   ├── blue-green-deployment.yaml  # Blue/Green strategy
+│   └── canary-deployment.yaml      # Canary with Flagger
+├── azure/                     # Azure deployment
+│   ├── terraform/            # Infrastructure as Code
+│   └── scripts/deploy.sh    # Azure deployment script
+├── load-balancer/            # Reverse proxy configs
+│   ├── nginx.conf            # NGINX
+│   └── haproxy.cfg           # HAProxy
+├── scripts/                  # Deployment automation
+│   ├── blue-green-switch.sh  # Blue/Green traffic switch
+│   └── canary-rollout.sh     # Canary progressive rollout
+├── systemd/                  # Linux service files
+│   ├── ai-orchestrator.service
+│   └── agentic-team.service
+├── DEPLOYMENT.md             # Comprehensive deployment guide
+└── README.md                 # This file
 ```
+
+## Quick Start
+
+```bash
+# Docker Compose (both systems)
+docker compose up --build -d
+
+# Kubernetes
+kubectl apply -f deployment/kubernetes/deployment.yaml
+kubectl apply -f deployment/kubernetes/service.yaml
+
+# Systemd
+sudo cp deployment/systemd/*.service /etc/systemd/system/
+sudo systemctl enable --now ai-orchestrator agentic-team
+```
+
+## CI/CD Pipelines
+
+| Platform | Config | Location |
+|----------|--------|----------|
+| GitHub Actions | `.github/workflows/ci.yml` | Root |
+| GitLab CI | `.gitlab-ci.yml` | Root |
+| Jenkins | `Jenkinsfile` | Root |
 
 ## 🚀 Quick Start
 

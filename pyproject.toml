@@ -105,6 +105,12 @@ follow_imports = "skip"
 allow_untyped_calls = true
 allow_untyped_defs = true
 allow_incomplete_defs = true
+exclude = [
+    "^ai-agentic-team$",
+    "^ai-orchestrator$",
+    "ai-agentic-team-wrapper",
+    "ai-orchestrator-wrapper"
+]
 
 [[tool.mypy.overrides]]
 module = "tests.*"

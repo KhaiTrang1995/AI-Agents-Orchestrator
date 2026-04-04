@@ -17,7 +17,7 @@ import pytest
 # ---------------------------------------------------------------------------
 # 1. Task manager - atomic counter & cleanup
 # ---------------------------------------------------------------------------
-from orchestrator.task_manager import Task, TaskManager, TaskStatus
+from orchestrator.core.task_manager import Task, TaskManager, TaskStatus
 
 
 class TestTaskManagerConcurrency:
@@ -70,7 +70,7 @@ class TestTaskManagerConcurrency:
 # ---------------------------------------------------------------------------
 # 2. Async executor - shutdown safety & kwargs fix
 # ---------------------------------------------------------------------------
-from orchestrator.async_executor import AsyncExecutor, run_async_task
+from orchestrator.infra.async_executor import AsyncExecutor, run_async_task
 
 
 class TestAsyncExecutorShutdown:
@@ -114,7 +114,7 @@ class TestRunAsyncTaskKwargs:
 # ---------------------------------------------------------------------------
 # 3. Circuit breaker - enum state
 # ---------------------------------------------------------------------------
-from orchestrator.retry import CircuitBreaker, CircuitState
+from orchestrator.resilience.retry import CircuitBreaker, CircuitState
 
 
 class TestCircuitBreakerEnum:
@@ -162,8 +162,8 @@ class TestCircuitBreakerEnum:
 # ---------------------------------------------------------------------------
 # 4. Fallback manager - missing adapter validation
 # ---------------------------------------------------------------------------
-from adapters.base import AgentResponse
-from orchestrator.fallback import FallbackManager
+from orchestrator.adapters.base import AgentResponse
+from orchestrator.resilience.fallback import FallbackManager
 
 
 class TestFallbackManagerValidation:
@@ -199,7 +199,7 @@ class TestFallbackManagerValidation:
 # ---------------------------------------------------------------------------
 # 5. Offline detector - configurable URL & stricter check
 # ---------------------------------------------------------------------------
-from orchestrator.offline import OfflineDetector
+from orchestrator.resilience.offline import OfflineDetector
 
 
 class TestOfflineDetectorImprovements:
@@ -238,7 +238,7 @@ class TestOfflineDetectorImprovements:
 # ---------------------------------------------------------------------------
 # 6. Exception serialization
 # ---------------------------------------------------------------------------
-from orchestrator.exceptions import OrchestratorError, _make_serializable
+from orchestrator.core.exceptions import OrchestratorError, _make_serializable
 
 
 class TestExceptionSerialization:
@@ -278,7 +278,7 @@ class TestExceptionSerialization:
 # ---------------------------------------------------------------------------
 # 7. Workflow progress - edge cases
 # ---------------------------------------------------------------------------
-from orchestrator.workflow import WorkflowEngine
+from orchestrator.core.workflow import WorkflowEngine
 
 
 class TestWorkflowProgressEdgeCases:
@@ -301,7 +301,7 @@ class TestWorkflowProgressEdgeCases:
 # ---------------------------------------------------------------------------
 # 8. Gemini adapter - compiled regex
 # ---------------------------------------------------------------------------
-from adapters.gemini_adapter import GeminiAdapter
+from orchestrator.adapters.gemini_adapter import GeminiAdapter
 
 
 class TestGeminiAdapterRegex:
@@ -334,7 +334,7 @@ class TestGeminiAdapterRegex:
 # ---------------------------------------------------------------------------
 # 9. Copilot adapter - robust parsing
 # ---------------------------------------------------------------------------
-from adapters.copilot_adapter import CopilotAdapter
+from orchestrator.adapters.copilot_adapter import CopilotAdapter
 
 
 class TestCopilotAdapterParsing:

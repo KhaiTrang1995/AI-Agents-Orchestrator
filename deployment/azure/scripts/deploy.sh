@@ -12,7 +12,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-PROJECT_NAME="ai-orchestrator"
+PROJECT_NAME="ai-coding-tools"
 ENVIRONMENT="${ENVIRONMENT:-production}"
 LOCATION="${LOCATION:-eastus}"
 RESOURCE_GROUP="${PROJECT_NAME}-${ENVIRONMENT}-rg"
@@ -224,10 +224,10 @@ install_prometheus_stack() {
 create_namespace() {
     log_info "Creating application namespace..."
 
-    kubectl create namespace ai-orchestrator --dry-run=client -o yaml | kubectl apply -f -
+    kubectl create namespace ai-coding-tools --dry-run=client -o yaml | kubectl apply -f -
 
     # Label namespace
-    kubectl label namespace ai-orchestrator \
+    kubectl label namespace ai-coding-tools \
         environment="$ENVIRONMENT" \
         managed-by=terraform \
         --overwrite
@@ -256,11 +256,11 @@ apply_kubernetes_manifests() {
     cd "$(dirname "$0")/../../kubernetes"
 
     # Apply in order
-    kubectl apply -f configmap.yaml -n ai-orchestrator
-    kubectl apply -f pvc.yaml -n ai-orchestrator
-    kubectl apply -f blue-green-deployment.yaml -n ai-orchestrator
-    kubectl apply -f hpa.yaml -n ai-orchestrator
-    kubectl apply -f ingress-nginx.yaml -n ai-orchestrator
+    kubectl apply -f configmap.yaml -n ai-coding-tools
+    kubectl apply -f pvc.yaml -n ai-coding-tools
+    kubectl apply -f blue-green-deployment.yaml -n ai-coding-tools
+    kubectl apply -f hpa.yaml -n ai-coding-tools
+    kubectl apply -f ingress-nginx.yaml -n ai-coding-tools
 
     log_success "Kubernetes manifests applied"
 }
@@ -274,19 +274,19 @@ verify_deployment() {
 
     # Check deployments
     log_info "Deployments:"
-    kubectl get deployments -n ai-orchestrator
+    kubectl get deployments -n ai-coding-tools
 
     # Check pods
     log_info "Pods:"
-    kubectl get pods -n ai-orchestrator
+    kubectl get pods -n ai-coding-tools
 
     # Check services
     log_info "Services:"
-    kubectl get services -n ai-orchestrator
+    kubectl get services -n ai-coding-tools
 
     # Check ingress
     log_info "Ingress:"
-    kubectl get ingress -n ai-orchestrator
+    kubectl get ingress -n ai-coding-tools
 
     log_success "Deployment verification complete"
 }
@@ -302,17 +302,17 @@ print_summary() {
     echo ""
     log_info "Next steps:"
     echo "  1. Build and push Docker image:"
-    echo "     az acr build -t ai-orchestrator:latest -r ${ACR_NAME//-/} ."
+    echo "     az acr build -t ai-coding-tools:latest -r ${ACR_NAME//-/} ."
     echo ""
     echo "  2. Access Grafana (port-forward):"
     echo "     kubectl port-forward -n monitoring svc/kube-prometheus-stack-grafana 3000:80"
     echo "     Username: admin, Password: admin123"
     echo ""
     echo "  3. Get application endpoint:"
-    echo "     kubectl get ingress -n ai-orchestrator"
+    echo "     kubectl get ingress -n ai-coding-tools"
     echo ""
     echo "  4. Monitor deployment:"
-    echo "     kubectl get pods -n ai-orchestrator -w"
+    echo "     kubectl get pods -n ai-coding-tools -w"
 }
 
 # Main execution

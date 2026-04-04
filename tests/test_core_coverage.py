@@ -11,7 +11,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from adapters.base import AgentCapability, AgentResponse, BaseAdapter
+from orchestrator.adapters.base import AgentCapability, AgentResponse, BaseAdapter
 
 # ---------------------------------------------------------------------------
 # Helper
@@ -168,7 +168,7 @@ class TestDecisionParserParsing:
 # 2. WorkflowStep - all task type descriptions
 # ===================================================================
 
-from orchestrator.workflow import WorkflowEngine, WorkflowStep
+from orchestrator.core.workflow import WorkflowEngine, WorkflowStep
 
 
 class TestWorkflowStepDescriptions:
@@ -291,13 +291,13 @@ class TestBaseAdapterIsAvailable:
 
     def test_available_when_command_found(self):
         adapter = SimpleAdapter({"name": "test", "command": "echo", "enabled": True})
-        with patch("adapters.base.shutil.which", return_value="/usr/bin/echo") as mock:
+        with patch("orchestrator.adapters.base.shutil.which", return_value="/usr/bin/echo") as mock:
             assert adapter.is_available() is True
             mock.assert_called_once_with("echo")
 
     def test_unavailable_when_command_not_found(self):
         adapter = SimpleAdapter({"name": "test", "command": "nonexistent_xyz", "enabled": True})
-        with patch("adapters.base.shutil.which", return_value=None) as mock:
+        with patch("orchestrator.adapters.base.shutil.which", return_value=None) as mock:
             assert adapter.is_available() is False
 
     def test_disabled_adapter_not_available(self):
@@ -309,7 +309,9 @@ class TestBaseAdapterIsAvailable:
         adapter = SimpleAdapter(
             {"name": "test", "command": "codex --profile custom", "enabled": True}
         )
-        with patch("adapters.base.shutil.which", return_value="/usr/bin/codex") as mock:
+        with patch(
+            "orchestrator.adapters.base.shutil.which", return_value="/usr/bin/codex"
+        ) as mock:
             assert adapter.is_available() is True
             mock.assert_called_once_with("codex")
 

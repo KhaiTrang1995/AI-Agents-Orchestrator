@@ -139,7 +139,7 @@ Standalone Agentic Team UI streams communication events in real time.
 ```mermaid
 sequenceDiagram
     participant UI as Browser
-    participant API as ui/agentic_app.py
+    participant API as agentic_team/ui/app.py
     participant ENG as AgenticTeamEngine
     UI->>API: POST /api/execute
     API->>ENG: execute_task(turn_callback)
@@ -188,6 +188,40 @@ flowchart TD
     N -->|yes| P
     N -->|no| X[Exit]
 ```
+
+## MCP Server (Model Context Protocol)
+
+Both systems are exposed as MCP tools via a FastMCP 3.x server, enabling integration with Claude Desktop, LLM agents, and any MCP-compatible client.
+
+```mermaid
+graph TD
+    subgraph "MCP Tools"
+        OE[orchestrator_execute]
+        AE[agentic_team_execute]
+        OL[orchestrator_list_agents]
+        AL[agentic_team_list_agents]
+        OH[orchestrator_health]
+        AH[agentic_team_health]
+        OW[orchestrator_list_workflows]
+        AC[agentic_team_config]
+        AV[agentic_team_validate]
+        LE[list_engines]
+    end
+
+    OE & OL & OH & OW --> O[Orchestrator Engine]
+    AE & AL & AH & AC & AV --> A[Agentic Team Engine]
+    LE --> O & A
+```
+
+### Key MCP Features
+
+- **10 tools** covering both engines: execute, list, health, config, validate
+- **2 resources** serving live YAML configurations
+- **Input validation** via `Annotated[T, Field()]` with automatic JSON schema
+- **Dual transport**: stdio (Claude Desktop) and streamable HTTP (remote)
+- **In-memory client** for fast testing without subprocess overhead
+- **Python client wrappers**: `OrchestratorMCPClient` and `AgenticTeamMCPClient`
+- **Lifespan management**: engines initialised once at server startup
 
 ## CLI Features
 

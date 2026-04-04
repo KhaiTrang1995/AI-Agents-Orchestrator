@@ -1,33 +1,162 @@
 # Adding New AI Agents
 
-## Table of Contents
+## Architecture
 
-- [Overview](#overview)
-- [Architecture Overview](#architecture-overview)
-- [Step-by-Step Guide](#step-by-step-guide)
-- [Configuration](#configuration)
-- [Testing](#testing)
-- [Advanced Topics](#advanced-topics)
-- [Best Practices](#best-practices)
-- [Examples](#examples)
-- [Troubleshooting](#troubleshooting)
+Both systems use the same adapter pattern. Each AI agent has an adapter class inheriting from `BaseAdapter`:
 
-## Overview
+```mermaid
+classDiagram
+    class BaseAdapter {
+        <<abstract>>
+        +get_capabilities() List~AgentCapability~
+        +execute_task(task, context) AgentResponse
+        +is_available() bool
+    }
+    class ClaudeAdapter
+    class CodexAdapter
+    class GeminiAdapter
+    class CopilotAdapter
+    class OllamaAdapter
+    class LlamaCppAdapter
+    class YourNewAdapter
 
-The AI Orchestrator is designed to be easily extensible. You can add support for new AI coding assistants by creating a new adapter that implements the standard interface.
+    BaseAdapter <|-- ClaudeAdapter
+    BaseAdapter <|-- CodexAdapter
+    BaseAdapter <|-- GeminiAdapter
+    BaseAdapter <|-- CopilotAdapter
+    BaseAdapter <|-- OllamaAdapter
+    BaseAdapter <|-- LlamaCppAdapter
+    BaseAdapter <|-- YourNewAdapter
+```
 
-### What You Need
+## Registration Flow
 
-- Python knowledge
-- The AI agent's CLI tool installed
-- Understanding of the agent's command structure
-- Basic knowledge of the adapter pattern
+End-to-end view of adding an agent from file creation through first test run:
 
-### Time Required
+```mermaid
+flowchart LR
+    A[1. Create adapter file\nin adapters/] --> B[2. Register import\nin __init__.py]
+    B --> C[3. Register class\nin engine resolver]
+    C --> D[4. Add YAML entry\nin config/agents.yaml]
+    D --> E[5. Add to workflow\nin workflows section]
+    E --> F[6. Run tests\npytest -v]
+```
 
-- Simple adapter: 30-60 minutes
-- Complex adapter with special features: 2-4 hours
-- Testing and documentation: 1-2 hours
+## HTTP vs CLI Adapter Decision Tree
+
+Use this flowchart to decide which adapter base pattern fits your new agent:
+
+```mermaid
+flowchart TD
+    START[New AI Agent] --> Q1{Does the agent\nexpose an HTTP API?}
+    Q1 -->|Yes| Q2{OpenAI-compatible\n/v1/completions?}
+    Q1 -->|No| Q3{Does it have\na CLI binary?}
+
+    Q2 -->|Yes| LC[Use LlamaCppAdapter\ntype: llamacpp]
+    Q2 -->|No| Q4{Ollama /api/generate\nendpoint?}
+
+    Q4 -->|Yes| OL[Use OllamaAdapter\ntype: ollama]
+    Q4 -->|No| CUSTOM_HTTP[Write custom HTTP adapter\nusing httpx.Client]
+
+    Q3 -->|Yes| CLI[Use CLICommunicator\ntype: cli]
+    Q3 -->|No| WRAP[Wrap agent in a thin\nCLI or HTTP shim first]
+
+    CLI --> DONE[Register and configure]
+    LC --> DONE
+    OL --> DONE
+    CUSTOM_HTTP --> DONE
+    WRAP --> CLI
+```
+
+## Quick Steps
+
+### 1. Create Adapter File
+
+For the **orchestrator**: `orchestrator/adapters/your_agent_adapter.py`
+For the **agentic team**: `agentic_team/adapters/your_agent_adapter.py`
+
+```python
+from .base import AgentCapability, AgentResponse, BaseAdapter
+
+class YourAgentAdapter(BaseAdapter):
+    def __init__(self, config):
+        super().__init__(config)
+        self.command = config.get("command", "your-cli")
+
+    def get_capabilities(self):
+        return [AgentCapability.IMPLEMENTATION, AgentCapability.CODE_REVIEW]
+
+    def execute_task(self, task, context):
+        prompt = f"Task: {task}"
+        return self._run_command_with_prompt(prompt, context.get("working_dir"))
+```
+
+### 2. Register in `__init__.py`
+
+Add to `orchestrator/adapters/__init__.py` (or `agentic_team/adapters/__init__.py`):
+
+```python
+from .your_agent_adapter import YourAgentAdapter
+```
+
+### 3. Register Adapter Class
+
+Add to `_resolve_adapter_class()` in `orchestrator/core/engine.py` (or `agentic_team/engine.py`):
+
+```python
+cli_adapter_classes = {
+    "codex": CodexAdapter,
+    "your-agent": YourAgentAdapter,  # Add here
+}
+```
+
+### 4. Configure in YAML
+
+Add to `orchestrator/config/agents.yaml` (or `agentic_team/config/agents.yaml`):
+
+```yaml
+agents:
+  your-agent:
+    type: cli
+    enabled: true
+    command: "your-cli-tool"
+    role: "implementation"
+    timeout: 3600
+```
+
+### 5. Add to Workflow
+
+```yaml
+workflows:
+  custom:
+    - agent: your-agent
+      task: implement
+    - agent: gemini
+      task: review
+```
+
+## Agent Types
+
+```mermaid
+flowchart LR
+    A[Agent Type] --> B{CLI or HTTP?}
+    B -->|CLI| C[CLICommunicator]
+    C --> D[subprocess execution]
+    B -->|HTTP| E[httpx.Client]
+    E --> F[POST to endpoint]
+    D --> G[AgentResponse]
+    F --> G
+```
+
+| Type | Transport | Examples |
+|------|-----------|----------|
+| `cli` | subprocess | claude, codex, gemini, copilot |
+| `ollama` | HTTP `/api/generate` | Ollama local models |
+| `llamacpp` | HTTP `/v1/completions` | llama.cpp, LocalAI |
+
+## Full Guide
+
+See [`docs/adding-agents.md`](docs/adding-agents.md) for complete instructions including HTTP adapters, testing, and troubleshooting.
 
 ## Architecture Overview
 
@@ -65,18 +194,18 @@ sequenceDiagram
 
 ### Step 1: Create Adapter File
 
-Create a new file in the `adapters/` directory:
+Create a new file in the `orchestrator/adapters/` directory:
 
 ```bash
-touch adapters/your_agent_adapter.py
+touch orchestrator/adapters/your_agent_adapter.py
 ```
 
 ### Step 2: Import Required Modules
 
 ```python
 from typing import Dict, Any, List, Optional
-from adapters.base import BaseAdapter, TaskResult
-from adapters.cli_communicator import CLICommunicator
+from orchestrator.adapters.base import BaseAdapter, TaskResult
+from orchestrator.adapters.cli_communicator import CLICommunicator
 from orchestrator.exceptions import AdapterError, ValidationError
 import logging
 import re
@@ -334,10 +463,10 @@ def _is_valid_filepath(self, filepath: str) -> bool:
 
 ### Step 6: Add to Base Adapter Registry
 
-Edit `adapters/__init__.py`:
+Edit `orchestrator/adapters/__init__.py`:
 
 ```python
-from adapters.your_agent_adapter import YourAgentAdapter
+from orchestrator.adapters.your_agent_adapter import YourAgentAdapter
 
 ADAPTER_REGISTRY = {
     "claude": ClaudeAdapter,
@@ -397,7 +526,7 @@ Create `tests/test_your_agent_adapter.py`:
 ```python
 import pytest
 from unittest.mock import Mock, patch
-from adapters.your_agent_adapter import YourAgentAdapter
+from orchestrator.adapters.your_agent_adapter import YourAgentAdapter
 
 class TestYourAgentAdapter:
     """Test suite for Your Agent Adapter."""
@@ -436,7 +565,7 @@ class TestYourAgentAdapter:
         assert "--task" in cmd
         assert "Create a function" in cmd
 
-    @patch('adapters.your_agent_adapter.CLICommunicator')
+    @patch('orchestrator.adapters.your_agent_adapter.CLICommunicator')
     def test_execute_success(self, mock_communicator, adapter):
         """Test successful task execution."""
         # Mock CLI response
@@ -488,7 +617,7 @@ class TestYourAgentAdapter:
 pytest tests/test_your_agent_adapter.py -v
 
 # Run with coverage
-pytest tests/test_your_agent_adapter.py --cov=adapters.your_agent_adapter
+pytest tests/test_your_agent_adapter.py --cov=orchestrator.adapters.your_agent_adapter
 
 # Run all adapter tests
 pytest tests/test_adapters.py -v
@@ -508,7 +637,7 @@ class TestYourAgentIntegration:
 
     def test_full_workflow_with_your_agent(self):
         """Test complete workflow including your agent."""
-        orchestrator = Orchestrator(config_path="config/agents.yaml")
+        orchestrator = Orchestrator(config_path="orchestrator/config/agents.yaml")
 
         result = orchestrator.execute_task(
             task="Create a simple function",
@@ -805,8 +934,8 @@ class APIBasedAdapter(BaseAdapter):
 
 **Solution**:
 ```python
-# Check adapters/__init__.py
-from adapters.your_agent_adapter import YourAgentAdapter
+# Check orchestrator/adapters/__init__.py
+from orchestrator.adapters.your_agent_adapter import YourAgentAdapter
 
 ADAPTER_REGISTRY = {
     # ...
@@ -902,8 +1031,8 @@ After creating your adapter:
 
 ## Additional Resources
 
-- [Base Adapter Code](adapters/base.py)
-- [Existing Adapters](adapters/)
+- [Base Adapter Code](orchestrator/adapters/base.py)
+- [Existing Adapters](orchestrator/adapters/)
 - [Test Examples](tests/test_adapters.py)
 - [Architecture Documentation](ARCHITECTURE.md)
 

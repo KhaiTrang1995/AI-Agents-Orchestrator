@@ -61,3 +61,5 @@ config/*.local.yaml
 
 # Node modules
 node_modules/
+/orchestrator/ui/frontend/.nuxt/
+/agentic_team/ui/frontend/.nuxt/

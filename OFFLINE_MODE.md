@@ -274,13 +274,59 @@ On startup, each enabled adapter runs availability checks:
 
 Unavailable agents are not added to active adapter set and workflow steps targeting them are skipped.
 
+### Connectivity Check Flow (OfflineDetector)
+
+The `OfflineDetector` in `orchestrator/resilience/offline.py` uses a cached HEAD request to determine network availability. Results are cached for `check_interval` seconds (default 60) to avoid repeated probes.
+
+```mermaid
+flowchart TD
+    A[is_offline called] --> B{force_refresh\nor first check\nor cache expired?}
+    B -->|No| C[Return cached _is_offline]
+    B -->|Yes| D[HEAD request to\nconnectivity_url]
+    D --> E{Response\n2xx?}
+    E -->|Yes| F[_is_offline = false]
+    E -->|No / Exception| G[_is_offline = true]
+    F --> H[Update _last_check_monotonic]
+    G --> H
+    H --> I[Return _is_offline]
+```
+
+The default connectivity URL is `https://httpbin.org/status/200`. Override it via the `CONNECTIVITY_CHECK_URL` environment variable or the `connectivity_url` constructor parameter.
+
+### Model Availability Probe Flow
+
+Each local-model adapter performs its own health check before being added to the active adapter set.
+
+```mermaid
+flowchart TD
+    A[Adapter.is_available] --> B{Adapter type?}
+
+    B -->|ollama| C[GET /api/tags]
+    C --> D{Status 200?}
+    D -->|Yes| E[Available]
+    D -->|No / Error| F[Unavailable]
+
+    B -->|llamacpp / openai-compatible| G[Probe cascade]
+    G --> G1[GET /health]
+    G1 -->|200| E
+    G1 -->|Fail| G2[GET /v1/models]
+    G2 -->|200| E
+    G2 -->|Fail| G3[GET base endpoint]
+    G3 -->|200/301/302/404| E
+    G3 -->|Fail| F
+
+    B -->|cli| H[which / command -v check]
+    H -->|Found| E
+    H -->|Not found| F
+```
+
 ## 11. Kubernetes / Container Topology
 
 ```mermaid
 flowchart LR
     subgraph Cluster
         O[ai-orchestrator pod]
-        C[config/agents.yaml via ConfigMap]
+        C[orchestrator/config/agents.yaml via ConfigMap]
         O --> C
     end
 
@@ -366,4 +412,4 @@ Quick checks:
 - `README.md`
 - `ARCHITECTURE.md`
 - `DEPLOYMENT.md`
-- `config/agents.yaml`
+- `orchestrator/config/agents.yaml`

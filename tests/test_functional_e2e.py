@@ -21,7 +21,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from adapters.base import AgentCapability, AgentResponse, BaseAdapter
+from orchestrator.adapters.base import AgentCapability, AgentResponse, BaseAdapter
 
 # ============================================================================
 # Helpers
@@ -70,7 +70,7 @@ class TestRealCLITools:
 
     def test_claude_is_available(self):
         """Claude CLI should be found by the adapter."""
-        from adapters.claude_adapter import ClaudeAdapter
+        from orchestrator.adapters.claude_adapter import ClaudeAdapter
 
         config = {"name": "claude", "enabled": True, "command": "claude"}
         adapter = ClaudeAdapter(config)
@@ -78,7 +78,7 @@ class TestRealCLITools:
 
     def test_codex_is_available(self):
         """Codex CLI should be found by the adapter."""
-        from adapters.codex_adapter import CodexAdapter
+        from orchestrator.adapters.codex_adapter import CodexAdapter
 
         config = {"name": "codex", "enabled": True, "command": "codex"}
         adapter = CodexAdapter(config)
@@ -86,7 +86,7 @@ class TestRealCLITools:
 
     def test_gemini_is_available(self):
         """Gemini CLI should be found by the adapter."""
-        from adapters.gemini_adapter import GeminiAdapter
+        from orchestrator.adapters.gemini_adapter import GeminiAdapter
 
         config = {"name": "gemini", "enabled": True, "command": "gemini"}
         adapter = GeminiAdapter(config)
@@ -94,7 +94,7 @@ class TestRealCLITools:
 
     def test_health_check_finds_claude(self):
         """Platform-independent health check should find claude."""
-        from orchestrator.health import HealthChecker
+        from orchestrator.observability.health import HealthChecker
 
         checker = HealthChecker()
         result = checker.check_agent_availability("claude", "claude")
@@ -104,7 +104,7 @@ class TestRealCLITools:
         """Health check should use shutil.which, not subprocess which."""
         import shutil as _shutil
 
-        from orchestrator.health import HealthChecker
+        from orchestrator.observability.health import HealthChecker
 
         checker = HealthChecker()
         with patch.object(_shutil, "which", return_value="/usr/bin/echo") as mock_which:
@@ -123,7 +123,7 @@ class TestOrchestratorE2E:
 
     def _make_orchestrator(self, adapters, workflow_config=None):
         """Create orchestrator with injected adapters."""
-        from orchestrator.core import Orchestrator
+        from orchestrator.core.engine import Orchestrator
 
         with patch.object(Orchestrator, "_initialize_adapters"):
             with patch.object(Orchestrator, "_resolve_offline_mode", return_value=False):
@@ -145,10 +145,10 @@ class TestOrchestratorE2E:
                 orch.force_offline = False
                 orch.is_offline_mode = False
                 orch.adapters = adapters
-                from orchestrator.fallback import FallbackManager
-                from orchestrator.offline import OfflineDetector
-                from orchestrator.task_manager import TaskManager
-                from orchestrator.workflow import WorkflowEngine
+                from orchestrator.core.task_manager import TaskManager
+                from orchestrator.core.workflow import WorkflowEngine
+                from orchestrator.resilience.fallback import FallbackManager
+                from orchestrator.resilience.offline import OfflineDetector
 
                 orch.workflow_engine = WorkflowEngine()
                 orch.task_manager = TaskManager()
@@ -279,8 +279,8 @@ class TestAgenticTeamE2E:
                 import logging
 
                 from agentic_team.decision_parser import DecisionParser
-                from orchestrator.fallback import FallbackManager
-                from orchestrator.offline import OfflineDetector
+                from orchestrator.resilience.fallback import FallbackManager
+                from orchestrator.resilience.offline import OfflineDetector
 
                 engine.logger = logging.getLogger("test_agentic")
                 engine.force_offline = False
@@ -362,7 +362,7 @@ class TestUIBackendAPI:
 
     @pytest.fixture
     def client(self):
-        import ui.app as ui_app
+        import orchestrator.ui.app as ui_app
 
         ui_app.orchestrator = MagicMock()
         ui_app.orchestrator.adapters = {}
@@ -377,7 +377,7 @@ class TestUIBackendAPI:
         assert resp.json["status"] == "healthy"
 
     def test_readiness_returns_503_when_no_orchestrator(self, client):
-        import ui.app as ui_app
+        import orchestrator.ui.app as ui_app
 
         ui_app.orchestrator = None
         resp = client.get("/ready")
@@ -403,7 +403,7 @@ class TestUIBackendAPI:
         assert "workflows" in resp.json
 
     def test_config_get_returns_404_when_missing(self, client):
-        import ui.app as ui_app
+        import orchestrator.ui.app as ui_app
 
         with patch.object(ui_app, "_config_path", return_value=Path("/nonexistent/agents.yaml")):
             resp = client.get("/api/config")
@@ -441,7 +441,7 @@ class TestUIBackendAPI:
         assert "status" in resp.json
 
     def test_metrics_returns_prometheus_format(self, client):
-        import ui.app as ui_app
+        import orchestrator.ui.app as ui_app
 
         ui_app.orchestrator = MagicMock()
         ui_app.orchestrator.adapters = {"a": MagicMock(is_available=lambda: True)}
@@ -455,7 +455,7 @@ class TestAgenticUIBackendAPI:
 
     @pytest.fixture
     def client(self):
-        import ui.agentic_app as ag_app
+        import agentic_team.ui.app as ag_app
 
         ag_app.engine = MagicMock()
         ag_app.engine.get_available_agents.return_value = ["claude"]
@@ -501,7 +501,7 @@ class TestSessionIsolation:
     """Verify sessions don't leak across clients."""
 
     def test_concurrent_session_writes(self):
-        import ui.app as ui_app
+        import orchestrator.ui.app as ui_app
 
         ui_app.orchestrator = MagicMock()
         ui_app.orchestrator.adapters = {}
@@ -537,7 +537,7 @@ class TestHistoryTruncation:
 
     def test_truncate_large_history(self):
         """Large history file should be truncated to MAX_HISTORY_LINES."""
-        from orchestrator.shell import InteractiveShell
+        from orchestrator.cli.shell import InteractiveShell
 
         with tempfile.TemporaryDirectory() as tmpdir:
             history_file = Path(tmpdir) / "history.txt"
@@ -555,7 +555,7 @@ class TestHistoryTruncation:
 
     def test_small_history_not_truncated(self):
         """Small history file should not be modified."""
-        from orchestrator.shell import InteractiveShell
+        from orchestrator.cli.shell import InteractiveShell
 
         with tempfile.TemporaryDirectory() as tmpdir:
             history_file = Path(tmpdir) / "history.txt"
@@ -569,7 +569,7 @@ class TestHistoryTruncation:
 
     def test_missing_history_no_error(self):
         """Truncating nonexistent file should not raise."""
-        from orchestrator.shell import InteractiveShell
+        from orchestrator.cli.shell import InteractiveShell
 
         InteractiveShell._truncate_history_file(Path("/nonexistent/history.txt"), 1000)
 
@@ -582,7 +582,7 @@ class TestHistoryTruncation:
 class TestConfigManagerE2E:
     def test_full_config_load_validate_cycle(self):
         """ConfigManager should load YAML and validate."""
-        from orchestrator.config_manager import ConfigManager
+        from orchestrator.infra.config_manager import ConfigManager
 
         with tempfile.NamedTemporaryFile(suffix=".yaml", mode="w", delete=False) as f:
             f.write(
@@ -617,7 +617,7 @@ settings:
 class TestFallbackManagerE2E:
     def test_fallback_chain_when_both_fail(self):
         """When primary and fallback both fail, error includes both."""
-        from orchestrator.fallback import FallbackManager
+        from orchestrator.resilience.fallback import FallbackManager
 
         class FailAdapter:
             def execute_task(self, task, context):
@@ -638,7 +638,7 @@ class TestFallbackManagerE2E:
 
     def test_no_fallback_when_error_not_transient(self):
         """Non-transient errors should not trigger fallback."""
-        from orchestrator.fallback import FallbackManager
+        from orchestrator.resilience.fallback import FallbackManager
 
         fm = FallbackManager({"settings": {"fallback": {"enabled": True, "map": {"a": "b"}}}})
         mock_primary = MagicMock()
@@ -668,17 +668,17 @@ class TestOrchestratorIterationExhaustion:
     """Verify fix: when all iterations exhaust but steps pass, success=True."""
 
     def _make_orchestrator(self, adapters, workflow_config):
-        from orchestrator.core import Orchestrator
+        from orchestrator.core.engine import Orchestrator
 
         with patch.object(Orchestrator, "_initialize_adapters"):
             with patch.object(Orchestrator, "_resolve_offline_mode", return_value=False):
                 orch = Orchestrator.__new__(Orchestrator)
                 import logging
 
-                from orchestrator.fallback import FallbackManager
-                from orchestrator.offline import OfflineDetector
-                from orchestrator.task_manager import TaskManager
-                from orchestrator.workflow import WorkflowEngine
+                from orchestrator.core.task_manager import TaskManager
+                from orchestrator.core.workflow import WorkflowEngine
+                from orchestrator.resilience.fallback import FallbackManager
+                from orchestrator.resilience.offline import OfflineDetector
 
                 orch.logger = logging.getLogger("test")
                 orch.config = {
@@ -759,17 +759,17 @@ class TestOrchestratorStepErrorKeys:
 
         adapters = {"bad": RaisingAdapter({"name": "bad"})}
 
-        from orchestrator.core import Orchestrator
+        from orchestrator.core.engine import Orchestrator
 
         with patch.object(Orchestrator, "_initialize_adapters"):
             with patch.object(Orchestrator, "_resolve_offline_mode", return_value=False):
                 orch = Orchestrator.__new__(Orchestrator)
                 import logging
 
-                from orchestrator.fallback import FallbackManager
-                from orchestrator.offline import OfflineDetector
-                from orchestrator.task_manager import TaskManager
-                from orchestrator.workflow import WorkflowEngine
+                from orchestrator.core.task_manager import TaskManager
+                from orchestrator.core.workflow import WorkflowEngine
+                from orchestrator.resilience.fallback import FallbackManager
+                from orchestrator.resilience.offline import OfflineDetector
 
                 orch.logger = logging.getLogger("test")
                 orch.config = {
@@ -811,8 +811,8 @@ class TestAgenticTeamCompleteFlow:
     def _make_engine(self, responses):
         from agentic_team.decision_parser import DecisionParser
         from agentic_team.engine import AgenticTeamEngine
-        from orchestrator.fallback import FallbackManager
-        from orchestrator.offline import OfflineDetector
+        from orchestrator.resilience.fallback import FallbackManager
+        from orchestrator.resilience.offline import OfflineDetector
 
         call_idx = [0]
 
@@ -927,8 +927,8 @@ class TestAgenticTeamCompleteFlow:
         """When an agent fails, message should route to lead with error."""
         from agentic_team.decision_parser import DecisionParser
         from agentic_team.engine import AgenticTeamEngine
-        from orchestrator.fallback import FallbackManager
-        from orchestrator.offline import OfflineDetector
+        from orchestrator.resilience.fallback import FallbackManager
+        from orchestrator.resilience.offline import OfflineDetector
 
         call_count = [0]
 
@@ -997,7 +997,7 @@ class TestUIExecuteFlow:
     """Test the /api/execute endpoint creates a background task and updates session."""
 
     def test_execute_starts_and_updates_session(self):
-        import ui.app as ui_app
+        import orchestrator.ui.app as ui_app
 
         mock_orch = MagicMock()
         mock_orch.adapters = {"claude": MagicMock(is_available=lambda: True)}

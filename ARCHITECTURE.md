@@ -133,7 +133,7 @@ flowchart TB
     end
 
     subgraph Agentic Team Runtime
-        AUI[ui/agentic_app.py]
+        AUI[agentic_team/ui/app.py]
         ASHELL[ai-orchestrator agentic-shell]
         AENGINE[agentic_team.engine]
     end
@@ -928,10 +928,43 @@ async def execute_workflow_async(tasks: List[Task]):
 7. **Multi-tenancy** - Isolated environments for multiple users
 8. **Plugin System** - Dynamic agent loading
 
+## Optional: MCP Integration Layer
+
+Both systems can optionally be exposed to external MCP-compatible clients via a FastMCP 3.x server (`mcp_server/`). This is a **separate, optional component** — neither system depends on it.
+
+```mermaid
+graph TD
+    subgraph "MCP Clients (optional)"
+        CD[Claude Desktop]
+        CC[Claude Code]
+        LA[LLM Agent]
+    end
+
+    subgraph "MCP Server (mcp_server/)"
+        S[FastMCP 3.x]
+        S --> OT[Orchestrator Tools ×4]
+        S --> ATT[Agentic Team Tools ×5]
+        S --> ST[Shared Tools ×1]
+    end
+
+    subgraph "Core Systems (independent)"
+        ORCH[Orchestrator]
+        ATE[Agentic Team]
+    end
+
+    CD & CC & LA -->|MCP Protocol| S
+    OT --> ORCH
+    ATT --> ATE
+```
+
+See [`MCP.md`](MCP.md) for the complete MCP documentation.
+
 ---
 
 For more information:
 - [Features Documentation](FEATURES.md)
 - [Agentic Team Documentation](AGENTIC_TEAM.md)
+- [Orchestrator Documentation](ORCHESTRATOR.md)
+- [MCP Server Documentation](MCP.md)
 - [Setup Guide](SETUP.md)
 - [Adding Agents Guide](ADD_AGENTS.md)

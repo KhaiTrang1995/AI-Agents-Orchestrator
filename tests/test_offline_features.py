@@ -9,7 +9,7 @@ import httpx
 import pytest
 import yaml
 
-from adapters import (
+from orchestrator.adapters import (
     AgentResponse,
     BaseAdapter,
     ClaudeAdapter,
@@ -19,9 +19,9 @@ from adapters import (
     LlamaCppAdapter,
     OllamaAdapter,
 )
-from orchestrator import Orchestrator
-from orchestrator.fallback import FallbackManager
-from orchestrator.offline import OfflineDetector
+from orchestrator.core.engine import Orchestrator
+from orchestrator.resilience.fallback import FallbackManager
+from orchestrator.resilience.offline import OfflineDetector
 
 
 def _write_config(tmp_path, config_data: dict[str, Any]):
@@ -98,9 +98,9 @@ def test_force_offline_skips_cloud_agents(tmp_path):
         },
     )
 
-    with patch("adapters.codex_adapter.CodexAdapter.is_available", return_value=True), patch.object(
-        OllamaAdapter, "is_available", return_value=True
-    ):
+    with patch(
+        "orchestrator.adapters.codex_adapter.CodexAdapter.is_available", return_value=True
+    ), patch.object(OllamaAdapter, "is_available", return_value=True):
         orchestrator = Orchestrator(config_path=str(config_file), force_offline=True)
 
     assert "local-code" in orchestrator.adapters
@@ -207,7 +207,9 @@ def test_type_cli_command_alias_maps_to_known_adapter(tmp_path):
         },
     )
 
-    with patch("adapters.gemini_adapter.GeminiAdapter.is_available", return_value=True):
+    with patch(
+        "orchestrator.adapters.gemini_adapter.GeminiAdapter.is_available", return_value=True
+    ):
         orchestrator = Orchestrator(config_path=str(config_file))
 
     assert "my-reviewer" in orchestrator.adapters
@@ -216,24 +218,29 @@ def test_type_cli_command_alias_maps_to_known_adapter(tmp_path):
 @pytest.mark.parametrize(
     "agent_name,command,expected_class,patch_target",
     [
-        ("custom-coder", "codex", CodexAdapter, "adapters.codex_adapter.CodexAdapter.is_available"),
+        (
+            "custom-coder",
+            "codex",
+            CodexAdapter,
+            "orchestrator.adapters.codex_adapter.CodexAdapter.is_available",
+        ),
         (
             "custom-reviewer",
             "gemini-cli",
             GeminiAdapter,
-            "adapters.gemini_adapter.GeminiAdapter.is_available",
+            "orchestrator.adapters.gemini_adapter.GeminiAdapter.is_available",
         ),
         (
             "custom-refiner",
             "claude",
             ClaudeAdapter,
-            "adapters.claude_adapter.ClaudeAdapter.is_available",
+            "orchestrator.adapters.claude_adapter.ClaudeAdapter.is_available",
         ),
         (
             "custom-suggester",
             "github-copilot-cli",
             CopilotAdapter,
-            "adapters.copilot_adapter.CopilotAdapter.is_available",
+            "orchestrator.adapters.copilot_adapter.CopilotAdapter.is_available",
         ),
     ],
 )
@@ -359,7 +366,9 @@ async def test_ollama_adapter_async_execute_with_mock_transport(monkeypatch):
         kwargs["transport"] = transport
         return real_async_client(*args, **kwargs)
 
-    monkeypatch.setattr("adapters.ollama_adapter.httpx.AsyncClient", patched_async_client)
+    monkeypatch.setattr(
+        "orchestrator.adapters.ollama_adapter.httpx.AsyncClient", patched_async_client
+    )
 
     adapter = OllamaAdapter(
         {
@@ -391,7 +400,9 @@ async def test_llamacpp_adapter_async_execute_with_mock_transport(monkeypatch):
         kwargs["transport"] = transport
         return real_async_client(*args, **kwargs)
 
-    monkeypatch.setattr("adapters.llama_cpp_adapter.httpx.AsyncClient", patched_async_client)
+    monkeypatch.setattr(
+        "orchestrator.adapters.llama_cpp_adapter.httpx.AsyncClient", patched_async_client
+    )
 
     adapter = LlamaCppAdapter(
         {

@@ -3,7 +3,7 @@
 from types import SimpleNamespace
 from unittest.mock import Mock
 
-import ui.agentic_app as agentic_app
+import agentic_team.ui.app as agentic_app
 
 
 def _reset_state():
@@ -102,7 +102,7 @@ def test_put_config_updates_file_and_reloads(tmp_path, monkeypatch):
     _reset_state()
     config_file = tmp_path / "agents.yaml"
     config_file.write_text("agents: {}\nworkflows: {}\nsettings: {}\n", encoding="utf-8")
-    monkeypatch.setenv("AI_ORCHESTRATOR_CONFIG_PATH", str(config_file))
+    monkeypatch.setenv("AGENTIC_TEAM_CONFIG_PATH", str(config_file))
 
     init_calls = {"count": 0}
     original_init = agentic_app._init_engine
@@ -147,7 +147,7 @@ def test_get_config_returns_parsed_payload(tmp_path, monkeypatch):
         "agents:\n  codex:\n    enabled: true\nworkflows: {}\nsettings: {}\n",
         encoding="utf-8",
     )
-    monkeypatch.setenv("AI_ORCHESTRATOR_CONFIG_PATH", str(config_file))
+    monkeypatch.setenv("AGENTIC_TEAM_CONFIG_PATH", str(config_file))
 
     with agentic_app.app.test_client() as client:
         response = client.get("/api/config")
@@ -162,7 +162,7 @@ def test_put_config_accepts_structured_object(tmp_path, monkeypatch):
     _reset_state()
     config_file = tmp_path / "agents.yaml"
     config_file.write_text("agents: {}\nworkflows: {}\nsettings: {}\n", encoding="utf-8")
-    monkeypatch.setenv("AI_ORCHESTRATOR_CONFIG_PATH", str(config_file))
+    monkeypatch.setenv("AGENTIC_TEAM_CONFIG_PATH", str(config_file))
 
     original_init = agentic_app._init_engine
     original_validation = agentic_app._team_validation_payload

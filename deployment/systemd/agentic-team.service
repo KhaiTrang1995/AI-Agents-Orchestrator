@@ -1,39 +1,55 @@
 [Unit]
-Description=AI Orchestrator Agentic Team UI Service
+Description=Agentic Team UI Service (agentic_team/ui/app.py)
+Documentation=https://github.com/hoangsonww/AI-Coding-Tools-Collaborative
 After=network.target
-Documentation=https://github.com/hoangsonww/AI-Agents-Orchestrator
+Wants=network-online.target
 
 [Service]
 Type=simple
 User=orchestrator
 Group=orchestrator
-WorkingDirectory=/opt/ai-orchestrator
-Environment="PATH=/opt/ai-orchestrator/venv/bin:/usr/local/bin:/usr/bin:/bin"
+
+# Working directory is the project root where agentic_team/ lives
+WorkingDirectory=/opt/ai-coding-tools
+
+Environment="PATH=/opt/ai-coding-tools/venv/bin:/usr/local/bin:/usr/bin:/bin"
 Environment="PYTHONUNBUFFERED=1"
+Environment="PORT=5002"
 Environment="AGENTIC_UI_BACKEND_PORT=5002"
-EnvironmentFile=/etc/ai-orchestrator/environment
+Environment="APP_ENV=production"
+Environment="LOG_LEVEL=INFO"
 
-ExecStartPre=/bin/mkdir -p /var/log/ai-orchestrator
-ExecStartPre=/bin/mkdir -p /var/lib/ai-orchestrator/{output,workspace,reports,sessions}
+# Optional: load secrets / site-specific overrides from an environment file
+EnvironmentFile=-/etc/ai-coding-tools/environment
 
-ExecStart=/opt/ai-orchestrator/venv/bin/python /opt/ai-orchestrator/ui/agentic_app.py
+ExecStartPre=/bin/mkdir -p /var/log/ai-coding-tools
+ExecStartPre=/bin/mkdir -p /var/lib/ai-coding-tools/output
+ExecStartPre=/bin/mkdir -p /var/lib/ai-coding-tools/workspace
+ExecStartPre=/bin/mkdir -p /var/lib/ai-coding-tools/reports
+ExecStartPre=/bin/mkdir -p /var/lib/ai-coding-tools/sessions
 
-Restart=always
+# Entry point: agentic team UI backend
+ExecStart=/opt/ai-coding-tools/venv/bin/python /opt/ai-coding-tools/agentic_team/ui/app.py
+
+Restart=on-failure
 RestartSec=10s
 StartLimitInterval=200
 StartLimitBurst=5
 
+# Security hardening
 NoNewPrivileges=true
 PrivateTmp=true
 ProtectSystem=strict
 ProtectHome=true
-ReadWritePaths=/var/lib/ai-orchestrator /var/log/ai-orchestrator
+ReadWritePaths=/var/lib/ai-coding-tools /var/log/ai-coding-tools
 
+# Resource limits
 LimitNOFILE=65536
 LimitNPROC=4096
 MemoryLimit=2G
 CPUQuota=200%
 
+# Logging
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=agentic-team
