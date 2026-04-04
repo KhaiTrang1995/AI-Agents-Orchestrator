@@ -1,18 +1,29 @@
 # Setup Guide
 
-## Table of Contents
+> [!NOTE]
+> **Project Structure Note:** This project has two independent systems:
+> - **Orchestrator** (`orchestrator/`) — workflow-based multi-agent coordination
+> - **Agentic Team** (`agentic_team/`) — role-based team collaboration
+>
+> Each is self-contained with its own adapters, config, and UI. They share nothing.
 
-- [Prerequisites](#prerequisites)
-- [Quick Start](#quick-start)
-- [Detailed Installation](#detailed-installation)
-- [AI CLI Tools Setup](#ai-cli-tools-setup)
-- [Configuration](#configuration)
-- [Web UI Setup](#web-ui-setup)
-- [Standalone Agentic Team Setup](#standalone-agentic-team-setup)
-- [Docker Setup](#docker-setup)
-- [Production Deployment](#production-deployment)
-- [Troubleshooting](#troubleshooting)
-- [Verification](#verification)
+## Setup Flow
+
+```mermaid
+flowchart TD
+    A[Install Python 3.8+] --> B[Clone Repository]
+    B --> C[Install Dependencies]
+    C --> D{Install CLI Tools}
+    D --> E[npm install -g @openai/codex]
+    D --> F[npm install -g @google/gemini-cli]
+    D --> G[Install Claude Code]
+    E & F & G --> H[Configure agents.yaml]
+    H --> I{Choose System}
+    I -->|Orchestrator| J[python orchestrator/ui/app.py<br>Port 5001]
+    I -->|Agentic Team| K[python agentic_team/ui/app.py<br>Port 5002]
+    I -->|CLI| L[./ai-orchestrator shell]
+    I -->|Docker| M[docker compose up]
+```
 
 ## Prerequisites
 
@@ -23,6 +34,13 @@
 - **Node.js**: 20+ (for Web UI)
 - **Memory**: Minimum 4GB RAM
 - **Disk Space**: 1GB for installation + workspace
+- **Network**: Required for AI CLI tools and updates
+- **Claude Code**: Installed, setup, and signed in on your machine (Required for any workflows using Claude Code - if you run `claude` in terminal and it works, you're good)
+- **OpenAI Codex**: Installed and authenticated (if using Codex agent, try running `codex` and see if it responds)
+- **Google Gemini CLI**: Installed and authenticated (if using Gemini agent, try `gemini --version` to verify)
+- **GitHub Copilot CLI**: Installed and authenticated (if using Copilot agent, try `copilot --version` to verify)
+- **Llama.cpp or Ollama**: If using local LLM agents, ensure they are installed and configured properly (try running `ollama list` or `llamacpp --help` to verify)
+- **Optional**: Docker and Docker Compose for containerized setup
 
 ### Required Tools
 
@@ -48,6 +66,39 @@ You need **at least one** of these AI CLI tools installed:
 - ✅ OpenAI Codex
 - ✅ Google Gemini CLI
 - ✅ GitHub Copilot CLI
+
+## Installation Flow
+
+The following diagram shows the complete installation path from prerequisites to a running system.
+
+```mermaid
+flowchart TD
+    A[Check Python 3.8+] --> B[Check pip]
+    B --> C{Node.js 20+ installed?}
+    C -->|Yes| D[Clone Repository]
+    C -->|No| C1[Install Node.js 20+] --> D
+
+    D --> E[Create Virtual Environment]
+    E --> F[pip install -r requirements.txt]
+    F --> G[chmod +x ai-orchestrator]
+    G --> H[./ai-orchestrator validate]
+
+    H --> I{Install AI CLI tools}
+    I --> I1[Claude Code CLI]
+    I --> I2[OpenAI Codex CLI]
+    I --> I3[Google Gemini CLI]
+    I --> I4[GitHub Copilot CLI]
+    I --> I5[Ollama / llama.cpp<br/>local only]
+
+    I1 & I2 & I3 & I4 & I5 --> J[./ai-orchestrator agents]
+    J --> K{All checks pass?}
+    K -->|Yes| L[Ready to use]
+    K -->|No| M[See Troubleshooting section]
+
+    style A fill:#2b6cb0,stroke:#2c5282,color:#fff
+    style L fill:#276749,stroke:#22543d,color:#fff
+    style M fill:#9b2c2c,stroke:#742a2a,color:#fff
+```
 
 ## Quick Start
 
@@ -167,7 +218,7 @@ OUTPUT_DIR=./output
 SESSIONS_DIR=./sessions
 
 # Agent Configuration
-AGENTS_CONFIG=config/agents.yaml
+AGENTS_CONFIG=orchestrator/config/agents.yaml
 
 # Rate Limiting
 RATE_LIMIT_ENABLED=true
@@ -219,7 +270,7 @@ claude --version
 claude --message "Hello, Claude!"
 ```
 
-**Configuration in `config/agents.yaml`:**
+**Configuration in `orchestrator/config/agents.yaml`:**
 ```yaml
 agents:
   claude:
@@ -414,9 +465,39 @@ chmod +x check-tools.sh
 
 ## Configuration
 
+Each system reads its own independent configuration file. They follow the same YAML schema but are separate files with separate values.
+
+```mermaid
+graph TD
+    subgraph "orchestrator/config/agents.yaml"
+        O_AGENTS["agents:<br/>codex, gemini, claude,<br/>copilot, ollama, llamacpp"]
+        O_WF["workflows:<br/>default, quick, thorough,<br/>review-only, document,<br/>offline-default, hybrid"]
+        O_SET["settings:<br/>max_iterations, output_dir,<br/>log_level, rate_limiting"]
+        O_AT["agentic_team:<br/>roles (shared schema)"]
+    end
+
+    subgraph "agentic_team/config/agents.yaml"
+        A_AGENTS["agents:<br/>codex, gemini, claude,<br/>copilot, ollama, llamacpp"]
+        A_WF["workflows:<br/>(same schema)"]
+        A_SET["settings:<br/>(same schema)"]
+        A_AT["agentic_team:<br/>lead_role, max_turns,<br/>roles with agent mapping"]
+    end
+
+    subgraph ".env (overrides)"
+        ENV["LOG_LEVEL, WORKSPACE_DIR,<br/>OUTPUT_DIR, ENABLE_METRICS,<br/>RATE_LIMIT_PER_MINUTE"]
+    end
+
+    ENV -.->|overrides| O_SET
+    ENV -.->|overrides| A_SET
+
+    style O_AGENTS fill:#2b6cb0,stroke:#2c5282,color:#fff
+    style A_AGENTS fill:#276749,stroke:#22543d,color:#fff
+    style ENV fill:#9b2c2c,stroke:#742a2a,color:#fff
+```
+
 ### Basic Configuration
 
-Edit `config/agents.yaml` to configure agents and workflows:
+Edit `orchestrator/config/agents.yaml` to configure agents and workflows:
 
 ```yaml
 # Agent Configuration
@@ -517,6 +598,41 @@ export METRICS_PORT="9090"
 export RATE_LIMIT_PER_MINUTE="20"
 ```
 
+## System Startup Options
+
+After installation, you have multiple ways to interact with the two systems. The following diagram shows all entry points.
+
+```mermaid
+flowchart TD
+    START[Project Installed] --> CHOOSE{Choose System}
+
+    CHOOSE -->|Orchestrator| O_CHOICE{Interface}
+    CHOOSE -->|Agentic Team| A_CHOICE{Interface}
+    CHOOSE -->|Both via Docker| DOCKER[docker compose up]
+    CHOOSE -->|MCP Server| MCP[python -m mcp_server.server]
+
+    O_CHOICE -->|CLI Shell| O_CLI["./ai-orchestrator shell<br/>Interactive REPL"]
+    O_CHOICE -->|One-Shot| O_RUN["./ai-orchestrator run 'task'<br/>Single execution"]
+    O_CHOICE -->|Web UI| O_UI["make run-ui<br/>http://localhost:5001"]
+
+    A_CHOICE -->|CLI REPL| A_CLI["./ai-orchestrator agentic-shell<br/>Team conversation"]
+    A_CHOICE -->|Web UI| A_UI["make run-agentic-ui<br/>http://localhost:5002"]
+
+    DOCKER --> D_ORCH["Orchestrator :5001"]
+    DOCKER --> D_AGENT["Agentic Team :5002"]
+    DOCKER --> D_MON["Prometheus :9091<br/>Grafana :3000<br/>(--profile monitoring)"]
+
+    MCP --> MCP_STDIO["--transport stdio<br/>Claude Desktop"]
+    MCP --> MCP_HTTP["--transport http --port 8000<br/>Remote clients"]
+
+    style O_CLI fill:#2b6cb0,stroke:#2c5282,color:#fff
+    style O_UI fill:#2b6cb0,stroke:#2c5282,color:#fff
+    style A_CLI fill:#276749,stroke:#22543d,color:#fff
+    style A_UI fill:#276749,stroke:#22543d,color:#fff
+    style DOCKER fill:#553c9a,stroke:#44337a,color:#fff
+    style MCP fill:#9b2c2c,stroke:#742a2a,color:#fff
+```
+
 ## Web UI Setup
 
 ### Orchestrator UI
@@ -534,8 +650,8 @@ npm --version
 ### Step 1: Install UI Dependencies
 
 ```bash
-# Navigate to UI directory
-cd ui
+# Navigate to Orchestrator UI directory
+cd orchestrator/ui
 
 # Install Python dependencies for backend
 pip install -r requirements.txt
@@ -550,13 +666,13 @@ npm install
 ### Step 2: Start Backend
 
 ```bash
-# From ui/ directory
-cd ui
+# From orchestrator/ui/ directory
+cd orchestrator/ui
 
 # Start Flask backend
 python app.py
 
-# Backend runs on http://localhost:5000
+# Backend runs on http://localhost:5001
 ```
 
 **Backend provides:**
@@ -568,13 +684,13 @@ python app.py
 ### Step 3: Start Frontend
 
 ```bash
-# From ui/frontend/ directory
-cd ui/frontend
+# From orchestrator/ui/frontend/ directory
+cd orchestrator/ui/frontend
 
 # Start development server
 npm run dev
 
-# Frontend runs on http://localhost:3000
+# Frontend runs on http://localhost:3000 (proxies to :5001)
 ```
 
 **Frontend features:**
@@ -585,19 +701,19 @@ npm run dev
 
 ### Step 4: Access UI
 
-Open browser to: **http://localhost:3000**
+Open browser to: **http://localhost:5001** (production) or **http://localhost:3000** (dev)
 
 ### Production Build
 
 ```bash
 # Build for production
-cd ui/frontend
+cd orchestrator/ui/frontend
 npm run build
 
-# Dist files in: ui/frontend/dist/
+# Dist files in: orchestrator/ui/frontend/dist/
 
 # Serve with backend
-cd ui
+cd orchestrator/ui
 python app.py --production
 ```
 
@@ -637,14 +753,14 @@ Agentic Team UI URL: `http://localhost:5002`
 
 ```bash
 # From project root
-cd ui
+cd agentic_team/ui
 python3 -m venv venv
 source venv/bin/activate
-pip install -r requirements.txt
+pip install -r ../../requirements.txt
 pip install httpx
 
 # Run dedicated backend/UI
-python agentic_app.py
+python app.py
 ```
 
 ### Agentic Team CLI REPL
@@ -660,11 +776,98 @@ python agentic_app.py
 
 ### Agentic Team Config Notes
 
-- Agentic team role mappings are loaded from `config/agents.yaml` under `agentic_team.roles`.
+- Agentic team role mappings are loaded from `orchestrator/config/agents.yaml` under `agentic_team.roles`.
 - Each role must map to an available agent name in `agents`.
 - The dedicated UI includes a guided config editor (no YAML editor required).
 
+## MCP Server Setup
+
+The project includes a FastMCP server that exposes both engines to MCP-compatible clients.
+
+### Install
+
+```bash
+pip install fastmcp>=3.0.0   # Already in requirements.txt
+```
+
+### Run (stdio — for Claude Desktop)
+
+```bash
+python -m mcp_server.server
+```
+
+### Run (HTTP — for remote clients)
+
+```bash
+python -m mcp_server.server --transport http --port 8000
+```
+
+### Claude Desktop Integration
+
+Add to your `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "ai-coding-tools": {
+      "command": "python",
+      "args": ["-m", "mcp_server.server"],
+      "cwd": "/path/to/AI-Coding-Tools-Collaborative"
+    }
+  }
+}
+```
+
+### Python Client Usage
+
+```python
+from orchestrator.mcp_client import OrchestratorMCPClient
+from agentic_team.mcp_client import AgenticTeamMCPClient
+
+# In-memory (same process)
+orch_client = OrchestratorMCPClient()
+result = await orch_client.execute_task("Build a REST API")
+
+# Remote HTTP
+at_client = AgenticTeamMCPClient("http://localhost:8000/mcp")
+result = await at_client.execute_task("Design architecture")
+```
+
 ## Docker Setup
+
+The Docker Compose stack runs both systems as separate services with optional monitoring.
+
+```mermaid
+graph TD
+    subgraph "docker-compose.yml"
+        direction TB
+        O["orchestrator-ui<br/>Port 5001<br/>orchestrator/ui/app.py"]
+        A["agentic-team-ui<br/>Port 5002<br/>agentic_team/ui/app.py"]
+    end
+
+    subgraph "Monitoring Profile (optional)"
+        P["prometheus<br/>Port 9091"]
+        G["grafana<br/>Port 3000"]
+    end
+
+    subgraph "Shared Volumes"
+        V1["output/"]
+        V2["workspace/"]
+        V3["logs/"]
+        V4["sessions/"]
+    end
+
+    O --> V1 & V2 & V3 & V4
+    A --> V1 & V2 & V3 & V4
+    P -->|scrape /metrics| O
+    P -->|scrape /metrics| A
+    G --> P
+
+    style O fill:#2b6cb0,stroke:#2c5282,color:#fff
+    style A fill:#276749,stroke:#22543d,color:#fff
+    style P fill:#c05621,stroke:#9c4221,color:#fff
+    style G fill:#6b46c1,stroke:#553c9a,color:#fff
+```
 
 ### Basic Docker
 
@@ -879,12 +1082,12 @@ nvm install 20
 nvm use 20
 
 # Clear node_modules and reinstall
-cd ui/frontend
+cd orchestrator/ui/frontend
 rm -rf node_modules package-lock.json
 npm install
 
 # Check backend is running
-curl http://localhost:5000/health
+curl http://localhost:5001/health
 ```
 
 #### Issue: Agentic Team UI won't start
@@ -900,7 +1103,7 @@ chmod +x start-agentic-ui.sh
 
 # Or run directly
 source ui/venv/bin/activate
-python ui/agentic_app.py
+python agentic_team/ui/app.py
 
 # Verify dedicated UI backend
 curl http://localhost:5002/health
@@ -948,7 +1151,7 @@ export AGENTIC_UI_BACKEND_PORT=5003
 
 # 2) Open config and map agentic_team.roles.*.agent to valid agent names
 #    (names must match keys under agents:)
-python -c "import yaml; d=yaml.safe_load(open('config/agents.yaml')); print(sorted((d.get('agents') or {}).keys()))"
+python -c "import yaml; d=yaml.safe_load(open('orchestrator/config/agents.yaml')); print(sorted((d.get('agents') or {}).keys()))"
 
 # 3) Validate config
 ./ai-orchestrator validate
@@ -959,13 +1162,13 @@ python -c "import yaml; d=yaml.safe_load(open('config/agents.yaml')); print(sort
 **Solution:**
 ```bash
 # Check YAML syntax
-python3 -c "import yaml; yaml.safe_load(open('config/agents.yaml'))"
+python3 -c "import yaml; yaml.safe_load(open('orchestrator/config/agents.yaml'))"
 
 # Validate against schema
 ./ai-orchestrator validate --verbose
 
 # Check for common issues
-yamllint config/agents.yaml
+yamllint orchestrator/config/agents.yaml
 ```
 
 ### Debug Mode
@@ -1019,6 +1222,24 @@ curl http://localhost:5002/ready
 ```
 
 ## Verification
+
+The following diagram shows the verification sequence after setup.
+
+```mermaid
+flowchart LR
+    A["python3 --version<br/>(3.8+)"] --> B["pip list<br/>(deps installed)"]
+    B --> C["./ai-orchestrator --help<br/>(CLI works)"]
+    C --> D["./ai-orchestrator validate<br/>(config valid)"]
+    D --> E["./ai-orchestrator agents<br/>(1+ available)"]
+    E --> F["./ai-orchestrator workflows<br/>(loaded)"]
+    F --> G["./ai-orchestrator run ... --dry-run<br/>(execution OK)"]
+    G --> H{"All pass?"}
+    H -->|Yes| I["Ready"]
+    H -->|No| J["See Troubleshooting"]
+
+    style I fill:#276749,stroke:#22543d,color:#fff
+    style J fill:#9b2c2c,stroke:#742a2a,color:#fff
+```
 
 ### Complete Verification Checklist
 
@@ -1118,14 +1339,6 @@ You should see:
 - **Discussions**: GitHub Discussions
 - **Documentation**: `docs/` directory
 
-### Community
-- Share your workflows
-- Report bugs
-- Suggest features
-- Contribute code
-
 ---
 
 **Congratulations! You're ready to use AI Coding Tools Orchestrator!** 🎉
-
-Start with: `./ai-orchestrator shell`

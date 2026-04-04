@@ -37,7 +37,7 @@ spec:
 
     environment {
         DOCKER_REGISTRY = credentials('docker-registry')
-        DOCKER_IMAGE = 'ai-orchestrator'
+        DOCKER_IMAGE = 'ai-coding-tools'
         KUBE_CONFIG = credentials('kubernetes-config')
         DEPLOYMENT_ENV = "${env.BRANCH_NAME == 'main' ? 'production' : 'staging'}"
         VERSION = "${env.GIT_COMMIT.take(8)}"
@@ -81,10 +81,10 @@ spec:
                         container('python') {
                             sh '''
                                 echo "Running Black..."
-                                black --check orchestrator adapters agentic_team tests ui/agentic_app.py || true
+                                black --check orchestrator/ agentic_team/ tests/ || true
 
                                 echo "Running Flake8..."
-                                flake8 orchestrator adapters agentic_team tests ui/agentic_app.py || true
+                                flake8 orchestrator/ agentic_team/ tests/ || true
                             '''
                         }
                     }
@@ -93,7 +93,7 @@ spec:
                 stage('Type Checking') {
                     steps {
                         container('python') {
-                            sh 'mypy orchestrator adapters agentic_team || true'
+                            sh 'mypy orchestrator/ agentic_team/ || true'
                         }
                     }
                 }
@@ -101,7 +101,7 @@ spec:
                 stage('Security Scan') {
                     steps {
                         container('python') {
-                            sh 'bandit -r orchestrator adapters agentic_team ui/agentic_app.py -f json -o bandit-report.json || true'
+                            sh 'bandit -r orchestrator/ agentic_team/ -f json -o bandit-report.json || true'
                         }
                     }
                 }
@@ -114,7 +114,7 @@ spec:
                     sh '''
                         pytest tests/ \
                             --cov=orchestrator \
-                            --cov=adapters \
+                            --cov=agentic_team \
                             --cov=agentic_team \
                             --cov-report=xml \
                             --cov-report=html \

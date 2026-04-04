@@ -157,20 +157,28 @@ graph LR
         <!-- Stats -->
         <div class="stats-grid">
           <div class="stat-item">
-            <div class="stat-number">6+</div>
-            <div class="stat-label">AI Agents</div>
+            <div class="stat-number">6</div>
+            <div class="stat-label">AI Agent Adapters</div>
           </div>
           <div class="stat-item">
-            <div class="stat-number">14+</div>
-            <div class="stat-label">Python Files</div>
+            <div class="stat-number">52</div>
+            <div class="stat-label">Python Modules</div>
           </div>
           <div class="stat-item">
-            <div class="stat-number">7+</div>
+            <div class="stat-number">314</div>
+            <div class="stat-label">Automated Tests</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number">10</div>
+            <div class="stat-label">MCP Tools</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-number">7</div>
             <div class="stat-label">Workflows</div>
           </div>
           <div class="stat-item">
-            <div class="stat-number">80%+</div>
-            <div class="stat-label">Test Coverage</div>
+            <div class="stat-number">2</div>
+            <div class="stat-label">Independent Systems</div>
           </div>
         </div>
       </div>
@@ -291,10 +299,22 @@ graph LR
             <h3>Code Quality</h3>
             <ul class="feature-list">
               <li>Type hints with Pydantic</li>
-              <li>80%+ test coverage (pytest)</li>
+              <li>314 tests (pytest)</li>
               <li>Black code formatting</li>
               <li>Flake8 linting</li>
               <li>MyPy type checking</li>
+            </ul>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">🔌</div>
+            <h3>MCP Server (Model Context Protocol)</h3>
+            <ul class="feature-list">
+              <li>FastMCP 3.x — 10 tools, 2 resources</li>
+              <li>Claude Desktop integration (stdio)</li>
+              <li>Remote access via HTTP transport</li>
+              <li>Both engines accessible from any MCP client</li>
+              <li>Python client wrappers included</li>
             </ul>
           </div>
         </div>
@@ -325,6 +345,7 @@ flowchart TB
     subgraph "User<br/>Interfaces"
         CLI[CLI Shell<br/>Click + Rich]
         WebUI[Web UI<br/>Vue 3 + Socket.IO]
+        MCP[MCP Server<br/>FastMCP 3.x]
     end
 
     subgraph "Core<br/>Orchestrator"
@@ -368,6 +389,7 @@ flowchart TB
 
     CLI --> Engine
     WebUI --> Engine
+    MCP --> Engine
     Engine --> Workflow
     Engine --> Config
     Engine --> Session
@@ -471,7 +493,7 @@ flowchart TB
             response.
           </p>
           <p>
-            This path has its own backend/UI (<code>ui/agentic_app.py</code>),
+            This path has its own backend/UI (<code>agentic_team/orchestrator/ui/app.py</code>),
             its own CLI REPL (<code>./ai-orchestrator agentic-shell</code>),
             dedicated validation, and live communication graph/timeline
             streaming.
@@ -488,7 +510,7 @@ flowchart LR
     end
 
     subgraph Agentic Team Path
-      AUI[ui/agentic_app.py]
+      AUI[agentic_team/orchestrator/ui/app.py]
       ASHELL[ai-orchestrator agentic-shell]
       AUI --> AENGINE[agentic_team.engine]
       ASHELL --> AENGINE
@@ -836,7 +858,7 @@ graph TD
           <h3>Custom Workflows</h3>
           <p>
             Define your own workflows in
-            <code style="color: rebeccapurple">config/agents.yaml</code>:
+            <code style="color: rebeccapurple">orchestrator/config/agents.yaml</code>:
           </p>
           <pre><code>agents:
   my-custom-llama:
@@ -904,6 +926,18 @@ workflows:
             <h3>Deployment</h3>
             <p>Production deployment strategies</p>
           </a>
+
+          <a href="ORCHESTRATOR.md" class="doc-card">
+            <div class="doc-icon">🎯</div>
+            <h3>Orchestrator</h3>
+            <p>Workflow-based multi-agent orchestration</p>
+          </a>
+
+          <a href="mcp_server/server.py" class="doc-card">
+            <div class="doc-icon">🔌</div>
+            <h3>MCP Server</h3>
+            <p>FastMCP server — 10 tools for both engines</p>
+          </a>
         </div>
 
         <div class="tech-stack">
@@ -952,6 +986,24 @@ workflows:
                 <li>Coverage</li>
                 <li>MyPy</li>
                 <li>Black</li>
+              </ul>
+            </div>
+            <div class="tech-category">
+              <h4>MCP</h4>
+              <ul>
+                <li>FastMCP 3.x</li>
+                <li>stdio + HTTP transports</li>
+                <li>Claude Desktop ready</li>
+                <li>10 tools, 2 resources</li>
+              </ul>
+            </div>
+            <div class="tech-category">
+              <h4>Resilience</h4>
+              <ul>
+                <li>Circuit Breaker</li>
+                <li>Fallback Routing</li>
+                <li>Offline Detection</li>
+                <li>Exponential Backoff</li>
               </ul>
             </div>
             <div class="tech-category">

@@ -8,8 +8,8 @@ from typing import Any
 import pytest
 import yaml
 
-from adapters import AgentResponse, BaseAdapter
 from agentic_team import AgenticTeamEngine
+from orchestrator.adapters import AgentResponse, BaseAdapter
 
 
 def _write_config(tmp_path, payload: dict[str, Any]):

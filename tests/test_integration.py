@@ -9,8 +9,8 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 import yaml
 
-from adapters import AgentResponse
-from orchestrator import Orchestrator
+from orchestrator.adapters import AgentResponse
+from orchestrator.core.engine import Orchestrator
 
 
 @pytest.mark.integration
@@ -64,8 +64,10 @@ class TestFullWorkflow:
     def test_workflow_execution_mock(self, integration_config):
         """Test workflow execution with mocked agents."""
         # Mock the adapter methods to simulate successful execution
-        with patch("adapters.base.BaseAdapter.is_available", return_value=True):
-            with patch("adapters.base.BaseAdapter._run_command_with_prompt") as mock_execute:
+        with patch("orchestrator.adapters.base.BaseAdapter.is_available", return_value=True):
+            with patch(
+                "orchestrator.adapters.base.BaseAdapter._run_command_with_prompt"
+            ) as mock_execute:
                 # Mock successful responses
                 mock_execute.return_value = AgentResponse(
                     success=True,
@@ -83,7 +85,7 @@ class TestFullWorkflow:
 
     def test_cli_communicator_workspace_tracking(self, temp_workspace):
         """Test that workspace file tracking works correctly."""
-        from adapters.cli_communicator import CLICommunicator
+        from orchestrator.adapters.cli_communicator import CLICommunicator
 
         communicator = CLICommunicator("echo")
 
@@ -109,7 +111,7 @@ class TestFullWorkflow:
 
     def test_error_handling(self, integration_config):
         """Test that errors are handled gracefully."""
-        with patch("adapters.base.BaseAdapter.is_available", return_value=False):
+        with patch("orchestrator.adapters.base.BaseAdapter.is_available", return_value=False):
             orchestrator = Orchestrator(config_path=integration_config)
 
             # Should handle unavailable agents gracefully
@@ -122,7 +124,7 @@ class TestCLICommunication:
 
     def test_stdin_communication(self):
         """Test stdin-based communication."""
-        from adapters.cli_communicator import CLICommunicator
+        from orchestrator.adapters.cli_communicator import CLICommunicator
 
         # Use a simple command that echoes stdin
         communicator = CLICommunicator("cat")
@@ -136,7 +138,7 @@ class TestCLICommunication:
 
     def test_argument_communication(self):
         """Test argument-based communication."""
-        from adapters.cli_communicator import CLICommunicator
+        from orchestrator.adapters.cli_communicator import CLICommunicator
 
         communicator = CLICommunicator("echo")
 
@@ -149,7 +151,7 @@ class TestCLICommunication:
 
     def test_timeout_handling(self):
         """Test timeout handling."""
-        from adapters.cli_communicator import CLICommunicator
+        from orchestrator.adapters.cli_communicator import CLICommunicator
 
         # Use sleep command to test timeout
         communicator = CLICommunicator("sleep")
@@ -165,7 +167,7 @@ class TestCLICommunication:
 
     def test_retry_mechanism(self):
         """Test automatic retry on failure."""
-        from adapters.cli_communicator import CLICommunicator
+        from orchestrator.adapters.cli_communicator import CLICommunicator
 
         communicator = CLICommunicator("false")  # Command that always fails
 
@@ -183,7 +185,7 @@ class TestEndToEnd:
 
     def test_config_validation(self):
         """Test configuration validation."""
-        from orchestrator import Orchestrator
+        from orchestrator.core.engine import Orchestrator
 
         # Valid config should load successfully (using default config)
         orchestrator = Orchestrator(config_path=None)
@@ -191,7 +193,7 @@ class TestEndToEnd:
 
     def test_agent_registry(self):
         """Test agent CLI registry."""
-        from adapters.cli_communicator import AgentCLIRegistry
+        from orchestrator.adapters.cli_communicator import AgentCLIRegistry
 
         # Test getting known patterns
         claude_pattern = AgentCLIRegistry.get_pattern("claude")

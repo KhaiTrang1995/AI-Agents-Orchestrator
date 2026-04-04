@@ -36,9 +36,9 @@ spec:
         # High error rate
         - alert: HighErrorRate
           expr: |
-            rate(http_requests_total{job="ai-orchestrator",status=~"5.."}[5m])
+            rate(http_requests_total{job="ai-coding-tools",status=~"5.."}[5m])
             /
-            rate(http_requests_total{job="ai-orchestrator"}[5m])
+            rate(http_requests_total{job="ai-coding-tools"}[5m])
             > 0.05
           for: 5m
           labels:
@@ -50,7 +50,7 @@ spec:
 
         # Service down
         - alert: ServiceDown
-          expr: up{job="ai-orchestrator"} == 0
+          expr: up{job="ai-coding-tools"} == 0
           for: 1m
           labels:
             severity: critical
@@ -63,7 +63,7 @@ spec:
         - alert: HighResponseTime
           expr: |
             histogram_quantile(0.95,
-              rate(http_request_duration_seconds_bucket{job="ai-orchestrator"}[5m])
+              rate(http_request_duration_seconds_bucket{job="ai-coding-tools"}[5m])
             ) > 5
           for: 5m
           labels:

@@ -117,18 +117,18 @@ jobs:
           name: Run Black
           command: |
             . venv/bin/activate
-            black --check orchestrator adapters agentic_team tests ui/agentic_app.py
+            black --check orchestrator/ agentic_team/ tests/
       - run:
           name: Run Flake8
           command: |
             . venv/bin/activate
-            flake8 orchestrator adapters agentic_team tests ui/agentic_app.py
+            flake8 orchestrator/ agentic_team/ tests/
       - run:
           name: Run isort
           command: |
             . venv/bin/activate
             pip install isort
-            isort --check-only orchestrator adapters agentic_team tests ui/agentic_app.py
+            isort --check-only orchestrator/ agentic_team/ tests/
 
   type-check:
     executor: python-executor
@@ -140,7 +140,7 @@ jobs:
           command: |
             . venv/bin/activate
             pip install types-PyYAML types-click
-            mypy orchestrator adapters agentic_team || true
+            mypy orchestrator/ agentic_team/ || true
 
   security-scan:
     executor: python-executor
@@ -151,7 +151,7 @@ jobs:
           name: Run Bandit
           command: |
             . venv/bin/activate
-            bandit -r orchestrator adapters agentic_team ui/agentic_app.py -f json -o bandit-report.json
+            bandit -r orchestrator/ agentic_team/ -f json -o bandit-report.json
       - run:
           name: Run Safety
           command: |

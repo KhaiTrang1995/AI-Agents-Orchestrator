@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from adapters import (
+from orchestrator.adapters import (
     AgentCapability,
     AgentResponse,
     BaseAdapter,
@@ -38,7 +38,7 @@ class TestBaseAdapter:
         assert adapter.enabled is True
         assert adapter.timeout == 60
 
-    @patch("adapters.base.shutil.which")
+    @patch("orchestrator.adapters.base.shutil.which")
     def test_is_available(self, mock_which):
         """Test checking if an agent is available."""
         config = {"name": "test", "command": "test_cmd", "enabled": True}

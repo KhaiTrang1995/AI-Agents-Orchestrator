@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, Mock, patch
 
 import pytest
 
-from orchestrator.shell import ConversationHistory, InteractiveShell
+from orchestrator.cli.shell import ConversationHistory, InteractiveShell
 
 
 class TestConversationHistory:
@@ -102,7 +102,7 @@ class TestInteractiveShell:
         }
         return orchestrator
 
-    @patch("orchestrator.shell.Orchestrator")
+    @patch("orchestrator.cli.shell.Orchestrator")
     def test_initialization(self, mock_orchestrator_class):
         """Test shell initialization."""
         mock_orchestrator_class.return_value = Mock()
@@ -113,7 +113,7 @@ class TestInteractiveShell:
         assert shell.running is True
         assert isinstance(shell.commands, dict)
 
-    @patch("orchestrator.shell.Orchestrator")
+    @patch("orchestrator.cli.shell.Orchestrator")
     def test_commands_registered(self, mock_orchestrator_class):
         """Test that all commands are registered."""
         mock_orchestrator_class.return_value = Mock()
@@ -141,7 +141,7 @@ class TestInteractiveShell:
         for cmd in expected_commands:
             assert cmd in shell.commands
 
-    @patch("orchestrator.shell.Orchestrator")
+    @patch("orchestrator.cli.shell.Orchestrator")
     def test_cmd_switch_agent(self, mock_orchestrator_class, capsys):
         """Test switching agents."""
         mock_orch = Mock()
@@ -158,7 +158,7 @@ class TestInteractiveShell:
         shell.cmd_switch_agent("invalid")
         assert shell.history.current_agent == "claude"  # Should remain unchanged
 
-    @patch("orchestrator.shell.Orchestrator")
+    @patch("orchestrator.cli.shell.Orchestrator")
     def test_cmd_set_workflow(self, mock_orchestrator_class):
         """Test setting workflow."""
         mock_orch = Mock()
@@ -175,7 +175,7 @@ class TestInteractiveShell:
         shell.cmd_set_workflow("invalid")
         assert shell.history.workflow == "thorough"  # Should remain unchanged
 
-    @patch("orchestrator.shell.Orchestrator")
+    @patch("orchestrator.cli.shell.Orchestrator")
     def test_cmd_save_load_session(self, mock_orchestrator_class, tmp_path):
         """Test saving and loading sessions."""
         mock_orchestrator_class.return_value = Mock()
@@ -203,8 +203,8 @@ class TestInteractiveShell:
         assert len(shell.history.messages) == 1
         assert shell.history.current_agent == "claude"
 
-    @patch("orchestrator.shell.Orchestrator")
-    @patch("orchestrator.shell.Confirm.ask", return_value=True)
+    @patch("orchestrator.cli.shell.Orchestrator")
+    @patch("orchestrator.cli.shell.Confirm.ask", return_value=True)
     def test_cmd_reset(self, mock_confirm, mock_orchestrator_class):
         """Test resetting conversation."""
         mock_orchestrator_class.return_value = Mock()
@@ -223,7 +223,7 @@ class TestInteractiveShell:
         assert shell.history.current_agent is None
         assert shell.history.workflow == "default"
 
-    @patch("orchestrator.shell.Orchestrator")
+    @patch("orchestrator.cli.shell.Orchestrator")
     def test_handle_command(self, mock_orchestrator_class):
         """Test command handling."""
         mock_orchestrator_class.return_value = Mock()
@@ -242,7 +242,7 @@ class TestInteractiveShell:
         shell._handle_command("/test arg1 arg2")
         assert mock_cmd.call_count == 2
 
-    @patch("orchestrator.shell.Orchestrator")
+    @patch("orchestrator.cli.shell.Orchestrator")
     def test_get_prompt(self, mock_orchestrator_class):
         """Test prompt generation."""
         mock_orchestrator_class.return_value = Mock()
@@ -262,8 +262,8 @@ class TestInteractiveShell:
 class TestShellIntegration:
     """Integration tests for the shell."""
 
-    @patch("orchestrator.shell.Orchestrator")
-    @patch("orchestrator.shell.Prompt.ask")
+    @patch("orchestrator.cli.shell.Orchestrator")
+    @patch("orchestrator.cli.shell.Prompt.ask")
     def test_shell_startup_and_exit(self, mock_prompt, mock_orchestrator_class):
         """Test shell can start and exit cleanly."""
         mock_orch = Mock()
@@ -281,8 +281,8 @@ class TestShellIntegration:
 
         assert shell.running is False
 
-    @patch("orchestrator.shell.Orchestrator")
-    @patch("orchestrator.shell.Prompt.ask")
+    @patch("orchestrator.cli.shell.Orchestrator")
+    @patch("orchestrator.cli.shell.Prompt.ask")
     def test_shell_handles_empty_input(self, mock_prompt, mock_orchestrator_class):
         """Test shell handles empty input gracefully."""
         mock_orch = Mock()
@@ -298,9 +298,9 @@ class TestShellIntegration:
         # Should handle empty input without errors
         assert shell.running is False
 
-    @patch("orchestrator.shell.Orchestrator")
-    @patch("orchestrator.shell.Prompt.ask")
-    @patch("orchestrator.shell.Confirm.ask", return_value=False)
+    @patch("orchestrator.cli.shell.Orchestrator")
+    @patch("orchestrator.cli.shell.Prompt.ask")
+    @patch("orchestrator.cli.shell.Confirm.ask", return_value=False)
     def test_shell_exit_without_save(self, mock_confirm, mock_prompt, mock_orchestrator_class):
         """Test exiting shell without saving."""
         mock_orch = Mock()

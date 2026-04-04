@@ -294,7 +294,7 @@ spec:
       containers:
         - name: agentic-team
           image: ai-orchestrator:stable
-          command: ["python", "ui/agentic_app.py"]
+          command: ["python", "agentic_team/ui/app.py"]
           ports:
             - containerPort: 5002
             - containerPort: 9090
@@ -357,7 +357,7 @@ spec:
       containers:
         - name: agentic-team
           image: ai-orchestrator:canary
-          command: ["python", "ui/agentic_app.py"]
+          command: ["python", "agentic_team/ui/app.py"]
           ports:
             - containerPort: 5002
             - containerPort: 9090

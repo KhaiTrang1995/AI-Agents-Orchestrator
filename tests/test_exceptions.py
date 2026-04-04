@@ -2,7 +2,7 @@
 
 import pytest
 
-from orchestrator.exceptions import (
+from orchestrator.core.exceptions import (
     AgentExecutionError,
     AgentNotFoundError,
     AgentTimeoutError,

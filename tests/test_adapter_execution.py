@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, Mock, patch
 import httpx
 import pytest
 
-from adapters.base import AgentCapability, AgentResponse, BaseAdapter
+from orchestrator.adapters.base import AgentCapability, AgentResponse, BaseAdapter
 
 
 class ConcreteAdapter(BaseAdapter):

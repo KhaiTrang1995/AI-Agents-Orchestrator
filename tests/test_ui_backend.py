@@ -3,7 +3,7 @@
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-import ui.app as ui_app
+import orchestrator.ui.app as ui_app
 
 
 def _reset_session_state():
@@ -208,7 +208,7 @@ def test_models_status_returns_detailed_local_backend_data():
             adapters={},
         )
 
-        with patch("ui.app.httpx.get", side_effect=fake_get):
+        with patch("orchestrator.ui.app.httpx.get", side_effect=fake_get):
             with ui_app.app.test_client() as client:
                 response = client.get("/api/models/status")
 

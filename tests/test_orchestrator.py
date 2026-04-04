@@ -9,8 +9,8 @@ from unittest.mock import MagicMock, Mock, patch
 import pytest
 import yaml
 
-from adapters import AgentCapability, AgentResponse, BaseAdapter
-from orchestrator import Orchestrator, TaskManager, WorkflowEngine, WorkflowStep
+from orchestrator.adapters import AgentCapability, AgentResponse, BaseAdapter
+from orchestrator.core import Orchestrator, TaskManager, WorkflowEngine, WorkflowStep
 
 
 class TestOrchestrator:

@@ -16,7 +16,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from adapters.base import AgentResponse
+from orchestrator.adapters.base import AgentResponse
 
 # ---------------------------------------------------------------------------
 # 1. AgentResponse dataclass improvements
@@ -57,7 +57,7 @@ class TestAgentResponseDataclass:
 # 2. BaseAdapter null-check for cli_communicator
 # ---------------------------------------------------------------------------
 
-from adapters.base import BaseAdapter
+from orchestrator.adapters.base import BaseAdapter
 
 
 class ConcreteAdapter(BaseAdapter):
@@ -85,7 +85,7 @@ class TestBaseAdapterNullCommunicator:
 # 3. CLI communicator improvements
 # ---------------------------------------------------------------------------
 
-from adapters.cli_communicator import CLICommunicator
+from orchestrator.adapters.cli_communicator import CLICommunicator
 
 
 class TestCLICommunicatorHardening:
@@ -121,7 +121,7 @@ class TestCLICommunicatorHardening:
 class TestPathTraversalProtection:
     def test_file_endpoint_blocks_traversal(self):
         """The /api/files/ endpoint should reject path traversal."""
-        import ui.app as ui_app
+        import orchestrator.ui.app as ui_app
 
         ui_app.orchestrator = MagicMock()
         client = ui_app.app.test_client()
@@ -130,7 +130,7 @@ class TestPathTraversalProtection:
 
     def test_security_validator_path_traversal(self):
         """InputValidator should reject paths outside allowed_root."""
-        from orchestrator.security import InputValidator
+        from orchestrator.security_module.security import InputValidator
 
         with pytest.raises(Exception):
             InputValidator.validate_file_path(
@@ -147,12 +147,12 @@ class TestPathTraversalProtection:
 class TestSecurityConfig:
     def test_app_secret_key_not_hardcoded(self):
         """Flask secret key should not be the default hardcoded value."""
-        import ui.app as ui_app
+        import orchestrator.ui.app as ui_app
 
         assert ui_app.app.config["SECRET_KEY"] != "ai-orchestrator-secret-key-change-in-production"
 
     def test_agentic_app_secret_key_not_hardcoded(self):
-        import ui.agentic_app as agentic_app
+        import agentic_team.ui.app as agentic_app
 
         assert agentic_app.app.config["SECRET_KEY"] != "agentic-team-ui-secret-change-in-production"
 
@@ -165,7 +165,7 @@ class TestSecurityConfig:
 class TestThreadSafeSingletons:
     def test_config_manager_thread_safe(self):
         """get_config_manager should return same instance from multiple threads."""
-        from orchestrator.config_manager import get_config_manager
+        from orchestrator.infra.config_manager import get_config_manager
 
         results = []
         errors = []
@@ -189,7 +189,7 @@ class TestThreadSafeSingletons:
 
     def test_cache_singleton_thread_safe(self):
         """get_cache should return same instance from multiple threads."""
-        from orchestrator.cache import get_cache
+        from orchestrator.infra.cache import get_cache
 
         results = []
 
@@ -206,7 +206,7 @@ class TestThreadSafeSingletons:
 
     def test_metrics_singleton_thread_safe(self):
         """get_metrics_collector should return same instance from multiple threads."""
-        from orchestrator.metrics import get_metrics_collector
+        from orchestrator.observability.metrics import get_metrics_collector
 
         results = []
 
@@ -230,7 +230,7 @@ class TestThreadSafeSingletons:
 class TestCacheImprovements:
     def test_cleanup_expired_thread_safe(self):
         """cleanup_expired should not crash even with concurrent access."""
-        from orchestrator.cache import InMemoryCache
+        from orchestrator.infra.cache import InMemoryCache
 
         cache = InMemoryCache(default_ttl=0)
         for i in range(100):
@@ -242,7 +242,7 @@ class TestCacheImprovements:
 
     def test_file_cache_handles_non_serializable(self):
         """FileCache should handle non-JSON-serializable values gracefully."""
-        from orchestrator.cache import FileCache
+        from orchestrator.infra.cache import FileCache
 
         tmpdir = tempfile.mkdtemp()
         try:
@@ -263,7 +263,7 @@ class TestCacheImprovements:
 class TestMetricsImprovements:
     def test_track_execution_time_records_duration(self):
         """track_execution_time decorator should actually record metrics."""
-        from orchestrator.metrics import MetricsCollector, track_execution_time
+        from orchestrator.observability.metrics import MetricsCollector, track_execution_time
 
         @track_execution_time("test_func", labels={"agent": "test"})
         def slow_func():
@@ -312,7 +312,7 @@ class TestAgenticTeamEngineImprovements:
 class TestShellImprovements:
     def test_orchestrator_shell_save_creates_restricted_file(self):
         """Saved session files should have restricted permissions."""
-        from orchestrator.shell import ConversationHistory
+        from orchestrator.cli.shell import ConversationHistory
 
         history = ConversationHistory()
         history.add_message("user", "test")
@@ -330,7 +330,7 @@ class TestShellImprovements:
 
     def test_orchestrator_shell_load_validates_format(self):
         """Loading an invalid JSON file should raise IOError."""
-        from orchestrator.shell import ConversationHistory
+        from orchestrator.cli.shell import ConversationHistory
 
         history = ConversationHistory()
         tmpfile = tempfile.mktemp(suffix=".json")
@@ -383,7 +383,7 @@ class TestShellImprovements:
 class TestLlamaCppConfigValidation:
     def test_invalid_max_tokens_uses_default(self):
         """Invalid max_tokens should fall back to default."""
-        from adapters.llama_cpp_adapter import LlamaCppAdapter
+        from orchestrator.adapters.llama_cpp_adapter import LlamaCppAdapter
 
         config = {
             "name": "test",
@@ -398,7 +398,7 @@ class TestLlamaCppConfigValidation:
 
     def test_temperature_clamped_to_range(self):
         """Temperature should be clamped between 0 and 2."""
-        from adapters.llama_cpp_adapter import LlamaCppAdapter
+        from orchestrator.adapters.llama_cpp_adapter import LlamaCppAdapter
 
         config = {"name": "test", "enabled": True, "offline": True, "temperature": 5.0}
         adapter = LlamaCppAdapter(config)
@@ -406,7 +406,7 @@ class TestLlamaCppConfigValidation:
 
     def test_parse_text_response_handles_bad_data(self):
         """_parse_text_response should handle non-dict data gracefully."""
-        from adapters.llama_cpp_adapter import LlamaCppAdapter
+        from orchestrator.adapters.llama_cpp_adapter import LlamaCppAdapter
 
         config = {"name": "test", "enabled": True, "offline": True}
         adapter = LlamaCppAdapter(config)
@@ -423,7 +423,7 @@ class TestLlamaCppConfigValidation:
 class TestAgenticUIBackendValidation:
     def test_execute_handles_non_numeric_max_turns(self):
         """POST /api/execute should handle non-numeric max_turns gracefully."""
-        import ui.agentic_app as agentic_app
+        import agentic_team.ui.app as agentic_app
 
         mock_engine = MagicMock()
         mock_engine.get_available_agents.return_value = ["claude"]
@@ -454,7 +454,7 @@ class TestAgenticUIBackendValidation:
 class TestBaseAdapterHTTPOutputType:
     def test_http_response_output_is_always_string(self):
         """_run_http_with_prompt should return string output, not dict."""
-        from adapters.base import AgentResponse
+        from orchestrator.adapters.base import AgentResponse
 
         # The fix converts dict to str for output field
         r = AgentResponse(success=True, output=str({"key": "value"}))
@@ -469,7 +469,7 @@ class TestBaseAdapterHTTPOutputType:
 class TestAuditLoggerImprovements:
     def test_audit_log_creates_file_with_restricted_permissions(self):
         """Audit log should be created with 0600 permissions."""
-        from orchestrator.security import AuditLogger
+        from orchestrator.security_module.security import AuditLogger
 
         tmpdir = tempfile.mkdtemp()
         try:
@@ -498,7 +498,7 @@ class TestAuditLoggerImprovements:
 class TestClaudeAdapterFileExtraction:
     def test_extract_modified_files_wired_up(self):
         """ClaudeAdapter.execute_task should call _extract_modified_files."""
-        from adapters.claude_adapter import ClaudeAdapter
+        from orchestrator.adapters.claude_adapter import ClaudeAdapter
 
         config = {"name": "claude", "enabled": True, "command": "echo"}
         adapter = ClaudeAdapter(config)
@@ -524,7 +524,7 @@ class TestClaudeAdapterFileExtraction:
 class TestCodexAdapterFileExtraction:
     def test_extract_generated_files_wired_up(self):
         """CodexAdapter.execute_task should call _extract_generated_files."""
-        from adapters.codex_adapter import CodexAdapter
+        from orchestrator.adapters.codex_adapter import CodexAdapter
 
         config = {"name": "codex", "enabled": True, "command": "echo"}
         adapter = CodexAdapter(config)

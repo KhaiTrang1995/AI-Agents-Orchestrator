@@ -2,8 +2,8 @@
 
 from unittest.mock import Mock, patch
 
-from adapters.base import AgentResponse, BaseAdapter
-from adapters.cli_communicator import CLICommunicator
+from orchestrator.adapters.base import AgentResponse, BaseAdapter
+from orchestrator.adapters.cli_communicator import CLICommunicator
 
 
 class _DummyAdapter(BaseAdapter):
@@ -32,7 +32,7 @@ def test_base_adapter_is_available_uses_binary_when_command_has_args():
     config = {"name": "test", "command": "codex -m gpt-5", "enabled": True}
     adapter = _DummyAdapter(config)
 
-    with patch("adapters.base.shutil.which") as mock_which:
+    with patch("orchestrator.adapters.base.shutil.which") as mock_which:
         mock_which.return_value = "/usr/bin/codex"
         assert adapter.is_available() is True
         mock_which.assert_called_once_with("codex")

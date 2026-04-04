@@ -201,7 +201,7 @@ spec:
         - name: agentic-team
           image: ai-orchestrator:blue
           imagePullPolicy: Always
-          command: ["python", "ui/agentic_app.py"]
+          command: ["python", "agentic_team/ui/app.py"]
           ports:
             - containerPort: 5002
               name: http
@@ -311,7 +311,7 @@ spec:
         - name: agentic-team
           image: ai-orchestrator:green
           imagePullPolicy: Always
-          command: ["python", "ui/agentic_app.py"]
+          command: ["python", "agentic_team/ui/app.py"]
           ports:
             - containerPort: 5002
               name: http

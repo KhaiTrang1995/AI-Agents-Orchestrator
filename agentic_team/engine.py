@@ -10,7 +10,7 @@ from uuid import uuid4
 
 import yaml
 
-from adapters import (
+from agentic_team.adapters import (
     BaseAdapter,
     ClaudeAdapter,
     CodexAdapter,
@@ -19,11 +19,16 @@ from adapters import (
     LlamaCppAdapter,
     OllamaAdapter,
 )
-from orchestrator.fallback import FallbackManager
-from orchestrator.offline import OfflineDetector
+from agentic_team.fallback import FallbackManager
+from agentic_team.offline import OfflineDetector
 
 from .config_utils import resolve_team_config, validate_team_bindings
-from .constants import DEFAULT_MAX_MESSAGE_CHARS, DEFAULT_REPEAT_ROUTE_LIMIT, DEFAULT_TEAM_MAX_TURNS
+from .constants import (
+    DEFAULT_MAX_MESSAGE_CHARS,
+    DEFAULT_REPEAT_ROUTE_LIMIT,
+    DEFAULT_TEAM_MAX_TURNS,
+    MAX_TASK_LENGTH,
+)
 from .decision_parser import DecisionParser
 
 
@@ -43,7 +48,7 @@ class AgenticTeamEngine:
         self.config_path = (
             Path(config_path)
             if config_path is not None
-            else Path(__file__).parent.parent / "config" / "agents.yaml"
+            else Path(__file__).parent / "config" / "agents.yaml"
         )
 
         self.config: dict[str, Any] = {}
@@ -255,44 +260,19 @@ class AgenticTeamEngine:
         turn: int,
         max_turns: int,
     ) -> str:
-        roster = [
-            f"- {name} ({spec.get('title', '')}) -> agent: {spec.get('agent')}"
-            for name, spec in team_roles.items()
-        ]
-        transcript_lines = [
-            (
-                f"turn {item.get('turn')} | {item.get('from_role')} -> {item.get('to_role')} "
-                f"[{item.get('action', 'message')}]: {item.get('message', '')}"
-            )
-            for item in transcript[-8:]
-        ]
-        finalize_rule = (
-            "Only the lead role may use action='finalize'."
-            if role_name != lead_role
-            else "As team lead, finalize only when ready for user delivery."
-        )
+        from agentic_team.prompts.team_prompts import build_team_prompt
 
-        return (
-            "You are participating in a true agentic software team.\n"
-            f"Turn: {turn}/{max_turns}\n"
-            f"Lead role: {lead_role}\n"
-            f"Your role: {role_name}\n"
-            f"Role title: {role_spec.get('title', role_name)}\n"
-            f"Responsibilities: {role_spec.get('responsibilities', '')}\n\n"
-            f"Original user task:\n{original_task}\n\n"
-            "Team roster:\n"
-            f"{chr(10).join(roster)}\n\n"
-            "Recent team transcript:\n"
-            f"{chr(10).join(transcript_lines) if transcript_lines else '(none)'}\n\n"
-            f"Incoming message from {sender_role}:\n{incoming_message}\n\n"
-            "Return JSON only:\n"
-            "{\n"
-            '  "action": "message" | "finalize",\n'
-            '  "to_role": "<required for message>",\n'
-            '  "message": "<message to the next role>",\n'
-            '  "final_response": "<required for finalize>"\n'
-            "}\n\n"
-            f"{finalize_rule}"
+        return build_team_prompt(
+            role_name=role_name,
+            role_spec=role_spec,
+            lead_role=lead_role,
+            original_task=original_task,
+            sender_role=sender_role,
+            incoming_message=incoming_message,
+            transcript=transcript,
+            team_roles=team_roles,
+            turn=turn,
+            max_turns=max_turns,
         )
 
     def _extract_json_payload(self, output: str) -> dict[str, Any] | None:
@@ -317,6 +297,9 @@ class AgenticTeamEngine:
         """Run a role-routed team execution and return full transcript + final output."""
         if not task or not task.strip():
             raise ValueError("Task is required")
+        task = task.strip()
+        if len(task) > MAX_TASK_LENGTH:
+            raise ValueError(f"Task exceeds maximum length of {MAX_TASK_LENGTH} characters")
 
         execution_id = str(uuid4())
         started_at = datetime.now(timezone.utc)

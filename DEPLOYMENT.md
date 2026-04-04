@@ -1,24 +1,160 @@
-# Production Deployment Guide - Azure
+# Production Deployment Guide
 
-Complete guide for deploying the AI Agents Orchestrator on Microsoft Azure with enterprise-grade infrastructure.
+Complete guide for deploying the AI Coding Tools — **two independent systems** that can be deployed together or separately.
 
-## Table of Contents
+> [!NOTE]
+> **Key:** The Orchestrator (port 5001) and Agentic Team (port 5002) are independent services. Each has its own config, adapters, and UI. Deploy both or either one.
 
-- [Overview](#overview)
-- [Architecture](#architecture)
-- [Azure Services](#azure-services)
-- [Prerequisites](#prerequisites)
-- [Quick Start](#quick-start)
-- [Detailed Setup](#detailed-setup)
-- [Deployment Strategies](#deployment-strategies)
-- [Monitoring & Observability](#monitoring--observability)
-- [Security](#security)
-- [Disaster Recovery](#disaster-recovery)
-- [Cost Optimization](#cost-optimization)
-- [Troubleshooting](#troubleshooting)
-- [CI/CD Integration](#cicd-integration)
+## Deployment Architecture
 
-## Overview
+```mermaid
+graph TD
+    subgraph "Load Balancer / Ingress"
+        LB[NGINX / Application Gateway]
+    end
+
+    subgraph "Orchestrator Service :5001"
+        O_UI[orchestrator/ui/app.py]
+        O_ENGINE[orchestrator/core/engine.py]
+        O_ADAPT[orchestrator/adapters/]
+    end
+
+    subgraph "Agentic Team Service :5002"
+        A_UI[agentic_team/ui/app.py]
+        A_ENGINE[agentic_team/engine.py]
+        A_ADAPT[agentic_team/adapters/]
+    end
+
+    subgraph "Monitoring"
+        PROM[Prometheus :9090]
+        GRAF[Grafana :3000]
+    end
+
+    LB -->|/orchestrator| O_UI
+    LB -->|/agentic-team| A_UI
+    O_UI --> PROM
+    A_UI --> PROM
+    PROM --> GRAF
+```
+
+## CI/CD Pipeline
+
+```mermaid
+flowchart LR
+    A[Push to main] --> B[Lint + Type Check]
+    B --> C[Run 314 Tests]
+    C --> D[Build Docker Image]
+    D --> E[Push to Registry]
+    E --> F{Deploy Strategy}
+    F -->|Blue/Green| G[Switch Traffic]
+    F -->|Canary| H[Progressive Rollout]
+    F -->|Direct| I[Rolling Update]
+```
+
+## Quick Start
+
+```bash
+# Docker Compose (both services)
+docker compose up --build -d
+# Orchestrator: http://localhost:5001
+# Agentic Team: http://localhost:5002
+
+# Kubernetes
+kubectl apply -f deployment/kubernetes/deployment.yaml
+kubectl apply -f deployment/kubernetes/service.yaml
+```
+
+## Docker Compose Service Topology
+
+The `docker-compose.yml` defines the complete local/staging deployment. All services share volumes but run independently.
+
+```mermaid
+graph TD
+    subgraph "Docker Compose Stack"
+        direction TB
+
+        subgraph "Application Services"
+            ORCH["orchestrator-ui<br/>Image: ai-orchestrator:latest<br/>Port 5001<br/>orchestrator/ui/app.py"]
+            AGENT["agentic-team-ui<br/>Image: ai-orchestrator:latest<br/>Port 5002<br/>agentic_team/ui/app.py"]
+        end
+
+        subgraph "Monitoring Profile"
+            PROM["prometheus<br/>Port 9091<br/>Scrape interval: 15s"]
+            GRAF["grafana<br/>Port 3000<br/>Dashboard UI"]
+        end
+    end
+
+    subgraph "MCP Server (optional)"
+        MCP["mcp_server/server.py<br/>Port 8000<br/>FastMCP 3.x"]
+    end
+
+    subgraph "Shared Volumes"
+        V_OUT["output/"]
+        V_WORK["workspace/"]
+        V_LOG["logs/"]
+        V_SESS["sessions/"]
+        V_CONF_O["orchestrator/config/"]
+        V_CONF_A["agentic_team/config/"]
+    end
+
+    ORCH --> V_OUT & V_WORK & V_LOG & V_SESS & V_CONF_O
+    AGENT --> V_OUT & V_WORK & V_LOG & V_SESS & V_CONF_A
+    PROM -->|"GET /metrics"| ORCH
+    PROM -->|"GET /metrics"| AGENT
+    GRAF --> PROM
+    MCP -->|in-process| ORCH
+    MCP -->|in-process| AGENT
+
+    style ORCH fill:#2b6cb0,stroke:#2c5282,color:#fff
+    style AGENT fill:#276749,stroke:#22543d,color:#fff
+    style PROM fill:#c05621,stroke:#9c4221,color:#fff
+    style GRAF fill:#6b46c1,stroke:#553c9a,color:#fff
+    style MCP fill:#9b2c2c,stroke:#742a2a,color:#fff
+```
+
+## Kubernetes Pod and Service Architecture
+
+When deployed to Kubernetes, each system runs as a separate Deployment with its own Service, behind a shared Ingress.
+
+```mermaid
+graph TD
+    subgraph "Kubernetes Cluster"
+        ING["Ingress Controller<br/>NGINX / App Gateway"]
+
+        subgraph "Namespace: ai-coding-tools"
+            subgraph "Orchestrator Deployment"
+                O_POD1["Pod: orchestrator-blue-1<br/>orchestrator/ui/app.py :5001"]
+                O_POD2["Pod: orchestrator-blue-2<br/>orchestrator/ui/app.py :5001"]
+                O_POD3["Pod: orchestrator-blue-3<br/>orchestrator/ui/app.py :5001"]
+            end
+            O_SVC["Service: orchestrator-svc<br/>ClusterIP :5001"]
+
+            subgraph "Agentic Team Deployment"
+                A_POD1["Pod: agentic-team-1<br/>agentic_team/ui/app.py :5002"]
+                A_POD2["Pod: agentic-team-2<br/>agentic_team/ui/app.py :5002"]
+            end
+            A_SVC["Service: agentic-team-svc<br/>ClusterIP :5002"]
+
+            CM["ConfigMap<br/>agents.yaml"]
+            SEC["Secret<br/>API keys"]
+            PVC["PVC<br/>workspace + sessions"]
+        end
+    end
+
+    ING -->|"/orchestrator"| O_SVC
+    ING -->|"/agentic-team"| A_SVC
+    O_SVC --> O_POD1 & O_POD2 & O_POD3
+    A_SVC --> A_POD1 & A_POD2
+    CM -.->|mount| O_POD1 & O_POD2 & O_POD3 & A_POD1 & A_POD2
+    SEC -.->|mount| O_POD1 & O_POD2 & O_POD3 & A_POD1 & A_POD2
+    PVC -.->|mount| O_POD1 & O_POD2 & O_POD3 & A_POD1 & A_POD2
+
+    style ING fill:#553c9a,stroke:#44337a,color:#fff
+    style O_SVC fill:#2b6cb0,stroke:#2c5282,color:#fff
+    style A_SVC fill:#276749,stroke:#22543d,color:#fff
+```
+
+## Azure Deployment
 
 This deployment guide covers a complete production-ready Azure infrastructure stack featuring:
 
@@ -144,7 +280,7 @@ If using local model backends in cluster deployments, expose them as internal se
 - `ollama.<namespace>.svc.cluster.local:11434`
 - `<llamacpp-service>.<namespace>.svc.cluster.local:8080`
 
-Then set agent endpoints accordingly in `config/agents.yaml`.
+Then set agent endpoints accordingly in `orchestrator/config/agents.yaml`.
 
 ## Azure Services
 
@@ -482,7 +618,7 @@ kubectl rollout status deployment/ai-orchestrator-blue -n ai-orchestrator
 
 ### Step 6.1: Configure Agent Runtime Mode
 
-After deploying manifests, ensure `config/agents.yaml` (or ConfigMap-mounted equivalent) matches your runtime profile.
+After deploying manifests, ensure `orchestrator/config/agents.yaml` (or ConfigMap-mounted equivalent) matches your runtime profile.
 
 **Hybrid example (cloud primary + local fallback):**
 
@@ -575,6 +711,37 @@ EOF
 ## Deployment Strategies
 
 ### Blue-Green Deployment
+
+The blue-green strategy maintains two identical environments. Only one receives live traffic at a time. Switching is instantaneous via a Kubernetes Service selector update.
+
+```mermaid
+sequenceDiagram
+    participant Ops as Operator
+    participant K8s as Kubernetes
+    participant Blue as Blue Pods (v1 - live)
+    participant Green as Green Pods (v2 - idle)
+    participant Svc as Service Selector
+
+    Ops->>K8s: Deploy new image to Green
+    K8s->>Green: Rolling update to v2
+    Green-->>K8s: All pods Ready
+
+    Ops->>Green: Run smoke tests
+    Green-->>Ops: Tests pass
+
+    Ops->>Svc: Patch selector: version=green
+    Note over Svc: Traffic switches instantly
+
+    Svc->>Green: All traffic now to Green
+    Blue-->>K8s: (idle, still running)
+
+    alt Issues detected
+        Ops->>Svc: Patch selector: version=blue
+        Note over Svc: Instant rollback (< 10s)
+    else Stable after 30 min
+        Ops->>K8s: Scale Blue to 0
+    end
+```
 
 **Process:**
 
@@ -681,6 +848,49 @@ kubectl rollout undo deployment/ai-orchestrator -n ai-orchestrator
 ```
 
 ## Monitoring & Observability
+
+### Health Check Flow
+
+Both services expose `/health` and `/ready` endpoints. Kubernetes liveness and readiness probes, load balancers, and monitoring stacks all rely on these endpoints.
+
+```mermaid
+flowchart TD
+    subgraph "Health Check Sources"
+        K8S_LP["Kubernetes<br/>Liveness Probe"]
+        K8S_RP["Kubernetes<br/>Readiness Probe"]
+        LB["Load Balancer<br/>Health Probe"]
+        PROM["Prometheus<br/>Scrape Target"]
+    end
+
+    subgraph "Orchestrator :5001"
+        O_HEALTH["/health"]
+        O_READY["/ready"]
+        O_METRICS["/metrics"]
+    end
+
+    subgraph "Agentic Team :5002"
+        A_HEALTH["/health"]
+        A_READY["/ready"]
+    end
+
+    K8S_LP -->|"GET every 10s"| O_HEALTH
+    K8S_LP -->|"GET every 10s"| A_HEALTH
+    K8S_RP -->|"GET every 5s"| O_READY
+    K8S_RP -->|"GET every 5s"| A_READY
+    LB -->|"GET every 30s"| O_HEALTH
+    LB -->|"GET every 30s"| A_HEALTH
+    PROM -->|"GET every 15s"| O_METRICS
+
+    O_HEALTH --> |"200 OK"| PASS_O{Healthy}
+    O_HEALTH --> |"503"| FAIL_O[Restart Pod]
+    A_HEALTH --> |"200 OK"| PASS_A{Healthy}
+    A_HEALTH --> |"503"| FAIL_A[Restart Pod]
+
+    style PASS_O fill:#276749,stroke:#22543d,color:#fff
+    style PASS_A fill:#276749,stroke:#22543d,color:#fff
+    style FAIL_O fill:#9b2c2c,stroke:#742a2a,color:#fff
+    style FAIL_A fill:#9b2c2c,stroke:#742a2a,color:#fff
+```
 
 ### Azure Monitor
 
@@ -1208,7 +1418,7 @@ kubectl apply -f ingress.yaml
 ```bash
 # Confirm fallback settings are present in running config
 kubectl exec -n ai-orchestrator deploy/ai-orchestrator-blue -- \
-  sh -lc "grep -n \"fallback\" -n /app/config/agents.yaml || true"
+  sh -lc "grep -n \"fallback\" -n /app/orchestrator/config/agents.yaml || true"
 
 # Verify local endpoint connectivity from pod
 kubectl exec -n ai-orchestrator deploy/ai-orchestrator-blue -- \
@@ -1304,6 +1514,58 @@ az support tickets create \
 ```
 
 ## CI/CD Integration
+
+### Pipeline Stages
+
+The following diagram shows the complete CI/CD pipeline from code push through production deployment.
+
+```mermaid
+flowchart TD
+    PUSH["git push to main/develop"] --> LINT["Stage 1: Lint + Format<br/>flake8, pylint, black, isort"]
+    LINT --> TYPE["Stage 2: Type Check<br/>mypy"]
+    TYPE --> TEST["Stage 3: Test<br/>314 tests (pytest)"]
+    TEST --> SEC["Stage 4: Security Scan<br/>bandit + safety"]
+    SEC --> BUILD["Stage 5: Docker Build<br/>Multi-stage image"]
+    BUILD --> PUSH_IMG["Stage 6: Push to ACR<br/>Tag: git SHA + latest"]
+
+    PUSH_IMG --> BRANCH{Branch?}
+    BRANCH -->|develop| STAGING["Deploy to Staging<br/>Rolling update"]
+    BRANCH -->|main| PROD_CHOICE{Strategy}
+
+    PROD_CHOICE -->|Blue-Green| BG["Deploy to Green<br/>Smoke test<br/>Switch traffic"]
+    PROD_CHOICE -->|Canary| CAN["10% -> 25% -> 50% -> 100%<br/>Auto-rollback on degradation"]
+    PROD_CHOICE -->|Rolling| ROLL["Rolling update<br/>maxSurge: 1<br/>maxUnavailable: 0"]
+
+    STAGING --> VERIFY_S["Verify health + metrics"]
+    BG --> VERIFY_P["Monitor 30 min"]
+    CAN --> VERIFY_P
+    ROLL --> VERIFY_P
+
+    style PUSH fill:#2b6cb0,stroke:#2c5282,color:#fff
+    style TEST fill:#276749,stroke:#22543d,color:#fff
+    style SEC fill:#9b2c2c,stroke:#742a2a,color:#fff
+    style BUILD fill:#553c9a,stroke:#44337a,color:#fff
+```
+
+### Canary Rollout Stages
+
+```mermaid
+flowchart LR
+    S1["10% canary<br/>5 min observe"] --> CHECK1{Metrics OK?}
+    CHECK1 -->|Yes| S2["25% canary<br/>10 min observe"]
+    CHECK1 -->|No| ROLLBACK["Instant rollback<br/>to stable"]
+
+    S2 --> CHECK2{Metrics OK?}
+    CHECK2 -->|Yes| S3["50% canary<br/>15 min observe"]
+    CHECK2 -->|No| ROLLBACK
+
+    S3 --> CHECK3{Metrics OK?}
+    CHECK3 -->|Yes| S4["100% canary<br/>Promote to stable"]
+    CHECK3 -->|No| ROLLBACK
+
+    style S4 fill:#276749,stroke:#22543d,color:#fff
+    style ROLLBACK fill:#9b2c2c,stroke:#742a2a,color:#fff
+```
 
 ### Azure DevOps Pipeline
 

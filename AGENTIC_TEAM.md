@@ -18,6 +18,8 @@
 - [Security and Safety](#security-and-safety)
 - [Extension Guide](#extension-guide)
 - [Operational Commands](#operational-commands)
+- [Package Structure](#package-structure)
+- [MCP Integration (Optional)](#mcp-integration-optional)
 
 ## Overview
 
@@ -30,7 +32,7 @@ The default team includes:
 - `qa_engineer`
 - `devops_engineer`
 
-Each role is mapped to any enabled model adapter from `config/agents.yaml` and is intentionally model-agnostic.
+Each role is mapped to any enabled model adapter from `orchestrator/config/agents.yaml` and is intentionally model-agnostic.
 
 ```mermaid
 flowchart LR
@@ -74,7 +76,7 @@ flowchart TB
     end
 
     subgraph Agentic Team System
-        AUI[ui/agentic_app.py]
+        AUI[agentic_team/ui/app.py]
         ACore[agentic_team.engine.AgenticTeamEngine]
         AShell[ai-orchestrator agentic-shell]
     end
@@ -87,7 +89,7 @@ flowchart TB
 Separation guarantees:
 - No agentic-team logic embedded into orchestrator workflow execution.
 - No orchestrator workflow dependency for agentic team turns.
-- Independent UI backend (`ui/agentic_app.py`) and independent CLI REPL (`agentic-shell`).
+- Independent UI backend (`agentic_team/ui/app.py`) and independent CLI REPL (`agentic-shell`).
 
 ## Core Concepts
 
@@ -335,7 +337,7 @@ When the same route+message pattern repeats over the configured threshold, the e
 
 ## Configuration Model
 
-`AGENTIC_TEAM` lives under `agentic_team` in `config/agents.yaml`.
+`AGENTIC_TEAM` lives under `agentic_team` in `orchestrator/config/agents.yaml`.
 
 ```yaml
 agentic_team:
@@ -380,7 +382,7 @@ flowchart LR
 
 ## UI: Agentic Team Studio
 
-The standalone UI is served by `ui/agentic_app.py` and `ui/templates/agentic_team.html`.
+The standalone UI is served by `agentic_team/ui/app.py`.
 
 Key capabilities:
 - Live communication timeline
@@ -558,7 +560,7 @@ flowchart LR
 ## Extension Guide
 
 To add a new role:
-1. Add role mapping in `config/agents.yaml` under `agentic_team.roles`.
+1. Add role mapping in `orchestrator/config/agents.yaml` under `agentic_team.roles`.
 2. Bind the role to any available agent.
 3. Set role title and responsibilities.
 4. Optionally set role-specific fallback via existing fallback mapping.
@@ -582,7 +584,7 @@ flowchart TB
 Start standalone Agentic Team UI backend:
 
 ```bash
-python ui/agentic_app.py
+python agentic_team/ui/app.py
 ```
 
 Start standalone Agentic Team UI helper script:
@@ -604,4 +606,96 @@ Validate base config and agents:
 ```bash
 ./ai-orchestrator validate
 ./ai-orchestrator agents
+```
+
+## Package Structure
+
+The full `agentic_team/` package layout and its relationship to the shared MCP server:
+
+```mermaid
+graph TD
+    subgraph "agentic_team/"
+        INIT[__init__.py]
+        ENGINE[engine.py\nAgenticTeamEngine]
+        DPARSER[decision_parser.py]
+        CFGUTIL[config_utils.py]
+        CONSTANTS[constants.py]
+        FALLBACK[fallback.py]
+        OFFLINE[offline.py]
+        SHELL[shell.py\nAgentic REPL]
+        MCPCLI[mcp_client.py]
+
+        subgraph "adapters/"
+            ABASE[base.py]
+            ACLAUDE[claude_adapter.py]
+            ACODEX[codex_adapter.py]
+            AGEMINI[gemini_adapter.py]
+            ACOPILOT[copilot_adapter.py]
+            AOLLAMA[ollama_adapter.py]
+            ALLAMA[llama_cpp_adapter.py]
+            ACLI[cli_communicator.py]
+        end
+
+        subgraph "config/"
+            AYAML[agents.yaml]
+        end
+
+        subgraph "ui/"
+            UIAPP[app.py\nFlask + SocketIO :5002]
+        end
+    end
+
+    ENGINE --> ABASE
+    ENGINE --> DPARSER
+    ENGINE --> CFGUTIL
+    ENGINE --> FALLBACK
+    ENGINE --> OFFLINE
+    SHELL --> ENGINE
+    UIAPP --> ENGINE
+    MCPCLI --> ENGINE
+```
+
+---
+
+## MCP Integration (Optional)
+
+> **Note:** The MCP server at `mcp_server/` is an optional integration layer. It is not required to use the agentic team. The team runs independently via its own CLI (`agentic-shell`) and UI (`agentic_team/ui/app.py`).
+
+The agentic team is accessible via MCP through the shared FastMCP server:
+
+```mermaid
+sequenceDiagram
+    participant Client as MCP Client
+    participant Server as MCP Server
+    participant Engine as AgenticTeamEngine
+    participant PM as Project Manager
+    participant Dev as Developer
+
+    Client->>Server: call_tool("agentic_team_execute", {task, max_turns})
+    Server->>Engine: execute_task(task, max_turns)
+    Engine->>PM: Build prompt -> execute
+    PM->>Dev: {action: "message", to_role: "developer"}
+    Dev->>PM: {action: "message", to_role: "project_manager"}
+    PM->>Engine: {action: "finalize", final_response: "..."}
+    Engine-->>Server: Result dict
+    Server-->>Client: JSON response
+```
+
+### Agentic Team MCP Tools
+
+| Tool | Read-Only | Description |
+|------|-----------|-------------|
+| `agentic_team_execute` | No | Run task with role-based team collaboration |
+| `agentic_team_list_agents` | Yes | List available agents |
+| `agentic_team_config` | Yes | Get team role configuration |
+| `agentic_team_validate` | Yes | Validate role-to-agent bindings |
+| `agentic_team_health` | Yes | Health check: team validity, agents, offline status |
+
+### Python Client
+
+```python
+from agentic_team.mcp_client import AgenticTeamMCPClient
+
+client = AgenticTeamMCPClient()  # in-memory
+result = await client.execute_task("Design a microservice architecture")
 ```

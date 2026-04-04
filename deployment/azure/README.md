@@ -183,7 +183,7 @@ Create `terraform.tfvars`:
 ```hcl
 environment = "production"
 location = "eastus"
-project_name = "ai-orchestrator"
+project_name = "ai-coding-tools"
 aks_max_count = 30
 alert_email = "your-email@example.com"
 ```
