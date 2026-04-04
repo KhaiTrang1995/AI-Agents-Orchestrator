@@ -2,6 +2,7 @@
 
 Optional integration layer that exposes both the Orchestrator and Agentic Team as MCP tools. Any MCP-compatible client — Claude Desktop, Claude Code, other LLM agents — can drive task execution without writing Python or using the web UI.
 
+> [!NOTE]
 > **The MCP server is fully optional.** Both systems run independently without it. Neither the Orchestrator nor Agentic Team imports `fastmcp` at any point.
 
 ## How It Works
