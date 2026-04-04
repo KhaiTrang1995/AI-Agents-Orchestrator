@@ -120,3 +120,23 @@ spec:
     port: 8000
     targetPort: 8000
     protocol: TCP
+
+---
+# ── Context Dashboard Service ─────────────────────────────────────────────────
+apiVersion: v1
+kind: Service
+metadata:
+  name: context-dashboard
+  labels:
+    app: ai-coding-tools
+    component: context-dashboard
+spec:
+  type: ClusterIP
+  selector:
+    app: ai-coding-tools
+    component: context-dashboard
+  ports:
+    - name: http
+      port: 5003
+      targetPort: 5003
+      protocol: TCP

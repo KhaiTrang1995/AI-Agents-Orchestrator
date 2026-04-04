@@ -113,6 +113,8 @@ spec:
               mountPath: /app/workspace
             - name: logs
               mountPath: /app/logs
+            - name: orchestrator-context
+              mountPath: /home/appuser/.ai-orchestrator
 
       volumes:
         - name: orchestrator-config
@@ -127,6 +129,9 @@ spec:
         - name: logs
           persistentVolumeClaim:
             claimName: ai-orchestrator-logs
+        - name: orchestrator-context
+          persistentVolumeClaim:
+            claimName: orchestrator-context-data
 
       restartPolicy: Always
 
@@ -237,6 +242,8 @@ spec:
               mountPath: /app/workspace
             - name: logs
               mountPath: /app/logs
+            - name: agentic-team-context
+              mountPath: /home/appuser/.agentic-team
 
       volumes:
         - name: agentic-team-config
@@ -251,6 +258,9 @@ spec:
         - name: logs
           persistentVolumeClaim:
             claimName: agentic-team-logs
+        - name: agentic-team-context
+          persistentVolumeClaim:
+            claimName: agentic-team-context-data
 
       restartPolicy: Always
 
@@ -296,15 +306,90 @@ spec:
             cpu: "500m"
             memory: "512Mi"
         livenessProbe:
-          httpGet:
-            path: /mcp
+          tcpSocket:
             port: 8000
           initialDelaySeconds: 15
           periodSeconds: 30
         readinessProbe:
-          httpGet:
-            path: /mcp
+          tcpSocket:
             port: 8000
           initialDelaySeconds: 10
           periodSeconds: 10
+      restartPolicy: Always
+
+---
+# ── Context Dashboard Deployment ──────────────────────────────────────────────
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: context-dashboard
+  labels:
+    app: ai-coding-tools
+    component: context-dashboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ai-coding-tools
+      component: context-dashboard
+  template:
+    metadata:
+      labels:
+        app: ai-coding-tools
+        component: context-dashboard
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+        - name: context-dashboard
+          image: ghcr.io/your-org/ai-coding-tools:latest
+          imagePullPolicy: Always
+          command: ["python", "-m", "context_dashboard"]
+          ports:
+            - name: http
+              containerPort: 5003
+              protocol: TCP
+          env:
+            - name: PYTHONUNBUFFERED
+              value: "1"
+            - name: LOG_LEVEL
+              value: "INFO"
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5003
+            initialDelaySeconds: 15
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5003
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          volumeMounts:
+            - name: orchestrator-context
+              mountPath: /home/appuser/.ai-orchestrator
+            - name: agentic-team-context
+              mountPath: /home/appuser/.agentic-team
+      volumes:
+        - name: orchestrator-context
+          persistentVolumeClaim:
+            claimName: orchestrator-context-data
+        - name: agentic-team-context
+          persistentVolumeClaim:
+            claimName: agentic-team-context-data
       restartPolicy: Always
