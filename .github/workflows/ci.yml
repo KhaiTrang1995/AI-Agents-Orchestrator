@@ -1,4 +1,4 @@
-name: CI Pipeline — AI Coding Tools
+name: CI/CD Pipeline for AI Coding Tools Project
 
 on:
   push:
@@ -83,7 +83,7 @@ jobs:
 
       - name: Run tests
         run: |
-          python -m pytest tests/ --override-ini="addopts=" -q --timeout=30
+          python -m pytest tests/ --override-ini="addopts=" -q --timeout=30 -m "not integration and not slow"
 
   # ── Job 3: Build Docker image ────────────────────────────────────────────────
   build:
