@@ -623,6 +623,10 @@ graph TB
     MM --> CONV & TASK & MISTAKE
 ```
 
+<p align="center">
+  <img src="docs/images/graph.png" alt="Orchestrator Web UI" width="100%"/>
+</p>
+
 ### Node Types
 
 | Type | Purpose | Key Fields |
