@@ -906,113 +906,261 @@ def execute_agent_task(agent, task):
 
 ## Graph Context System
 
-The Graph Context System provides persistent memory capabilities for AI agents, enabling learning from past conversations, tasks, and mistakes.
+The Graph Context System provides persistent memory capabilities for AI agents, enabling learning from past conversations, tasks, and mistakes. The system follows the project's core architectural boundary: **two fully independent context implementations** — one for the Orchestrator and one for the Agentic Team — with zero shared imports between them.
 
-### Architecture
+### Dual Context Architecture
+
+Both engines maintain isolated context databases with identical schemas but independent codebases:
 
 ```mermaid
 graph TB
-    subgraph "Graph Context System"
-        subgraph "Storage Layer"
-            SQLITE[(SQLite DB<br/>WAL Mode)]
-            FTS5[FTS5 Full-Text<br/>Index]
-            VECTORS[(Embedding<br/>Vectors)]
-        end
-
-        subgraph "Node Types (7)"
-            CONV[ConversationNode]
-            TASK[TaskNode]
-            MISTAKE[MistakeNode]
-            PATTERN[PatternNode]
-            DECISION[DecisionNode]
-            CODE[CodeSnippetNode]
-            PREF[PreferenceNode]
-        end
-
-        subgraph "Search Engine"
-            BM25[BM25 Index]
-            EMBED[Sentence Transformers<br/>all-MiniLM-L6-v2]
-            RRF[Reciprocal Rank<br/>Fusion]
-        end
-
-        subgraph "API"
-            MM[MemoryManager]
+    subgraph "Orchestrator Context"
+        direction TB
+        ODB[(~/.ai-orchestrator/context.db)]
+        subgraph "orchestrator/context/"
+            OMM[memory_manager.py]
+            subgraph "models/"
+                OSCH[schemas.py<br/>Node, Edge, NodeType, EdgeType]
+            end
+            subgraph "store/"
+                OGS[graph_store.py<br/>SQLite + WAL + FTS5]
+            end
+            subgraph "search/"
+                OBM[bm25_index.py]
+                OEM[embeddings.py<br/>sentence-transformers]
+                OHY[hybrid_search.py<br/>RRF fusion]
+                OAD[advanced_search.py<br/>temporal, tags, importance]
+            end
+            subgraph "ops/"
+                OAN[analytics.py]
+                OPR[pruning.py]
+                OEX[export.py]
+                OVR[versioning.py]
+            end
         end
     end
 
-    subgraph "Engines"
-        ORCH[Orchestrator]
-        TEAM[Agentic Team]
+    subgraph "Agentic Team Context"
+        direction TB
+        ADB[(~/.agentic-team/context.db)]
+        subgraph "agentic_team/context/"
+            AMM[memory_manager.py]
+            subgraph "models/ "
+                ASCH[schemas.py<br/>Node, Edge, NodeType, EdgeType]
+            end
+            subgraph "store/ "
+                AGS[graph_store.py<br/>SQLite + WAL + FTS5]
+            end
+            subgraph "search/ "
+                ABM[bm25_index.py]
+                AFT[fts_search.py<br/>SQLite FTS5 native]
+            end
+            subgraph "ops/ "
+                AAN[analytics.py]
+                APR[pruning.py]
+                AEX[export.py]
+            end
+        end
     end
 
-    CONV & TASK & MISTAKE --> SQLITE
-    SQLITE --> FTS5
-    EMBED --> VECTORS
-    BM25 --> RRF
-    EMBED --> RRF
-    RRF --> MM
-    ORCH & TEAM --> MM
+    subgraph "Context Dashboard"
+        DASH[Flask + vis.js + Chart.js<br/>port 5003]
+    end
+
+    ODB --> DASH
+    ADB --> DASH
 ```
 
-### Hybrid Search
+> **Key difference:** The Orchestrator context includes sentence-transformer embeddings for semantic search, a full hybrid search engine with RRF fusion, advanced search (temporal, tag, importance queries), and a versioning system. The Agentic Team context uses SQLite FTS5 natively for lighter-weight full-text search without embedding dependencies.
 
-The system combines keyword-based BM25 search with semantic embedding search using Reciprocal Rank Fusion:
+### Node Types
 
-```mermaid
-sequenceDiagram
-    participant Q as Query
-    participant H as HybridSearch
-    participant B as BM25
-    participant E as Embeddings
-    participant R as RRF Fusion
+Both systems define 10 node types via `NodeType` enum in their respective `models/schemas.py`:
 
-    Q->>H: search("authentication patterns")
+| Node Type | Description | Key Fields |
+|-----------|-------------|------------|
+| `conversation` | Past chat sessions with AI agents | messages, agent, timestamp |
+| `task` | Completed tasks with outcomes | description, outcome, duration, agent |
+| `mistake` | Errors with corrections and prevention | description, correction, prevention, category |
+| `pattern` | Reusable code patterns and techniques | code, language, use_case, tags |
+| `decision` | Architectural decisions with rationale | decision, rationale, alternatives, status |
+| `code_snippet` | Useful code fragments for reuse | code, language, description, tags |
+| `preference` | Learned user preferences | key, value, confidence |
+| `file` | File references tracked in context | path, language, summary |
+| `concept` | Domain concepts and definitions | name, definition, related_topics |
+| `agent_output` | Raw AI agent outputs | agent, task, output, quality_score |
 
-    par Parallel Search
-        H->>B: Keyword search
-        B-->>H: keyword_results
-    and
-        H->>E: Generate embedding
-        E-->>H: Semantic results
-    end
-
-    H->>R: Combine results
-    R-->>H: Fused ranking
-    H-->>Q: Top-k results
-```
+Each node carries: `id`, `node_type`, `content`, `title`, `metadata` (dict), `tags` (list), `created_at`, `updated_at`, `embedding` (optional float vector), and `importance_score` (float, default 1.0).
 
 ### Edge Types
 
-12 semantic edge types for building a knowledge graph:
+12 semantic edge types via `EdgeType` enum for building the knowledge graph:
 
 | Edge Type | Purpose | Example |
 |-----------|---------|---------|
-| RELATED_TO | General relationship | Task ↔ Conversation |
-| CAUSED_BY | Error causation | Mistake → Root Cause |
-| FIXED_BY | Solution mapping | Mistake → Fix |
-| SIMILAR_TO | Semantic similarity | Task ↔ Similar Task |
-| DEPENDS_ON | Dependencies | Task → Prerequisite |
-| LEARNED_FROM | Learning source | Pattern → Source |
+| `RELATED_TO` | General relationship | Task ↔ Conversation |
+| `CAUSED_BY` | Error causation chain | Mistake → Root Cause Task |
+| `FIXED_BY` | Solution mapping | Mistake → Fix Pattern |
+| `SIMILAR_TO` | Semantic similarity | Task ↔ Similar Task |
+| `DEPENDS_ON` | Task/concept dependencies | Task → Prerequisite Task |
+| `PRECEDED_BY` | Temporal ordering (before) | Task → Earlier Task |
+| `FOLLOWED_BY` | Temporal ordering (after) | Task → Later Task |
+| `LEARNED_FROM` | Learning provenance | Pattern → Source Conversation |
+| `REFERENCES` | Cross-referencing | Decision → Code Snippet |
+| `CONTAINS` | Hierarchical containment | Conversation → Task |
+| `PRODUCED_BY` | Output attribution | Code Snippet → Agent Output |
+| `USED_IN` | Usage tracking | Pattern → Task |
+
+Each edge carries: `id`, `source_id`, `target_id`, `edge_type`, `weight` (float), `metadata` (dict), and `created_at`.
+
+### Search Architecture
+
+The Orchestrator context implements a three-tier search system — keyword, semantic, and advanced — combined via Reciprocal Rank Fusion:
+
+```mermaid
+sequenceDiagram
+    participant C as Caller
+    participant MM as MemoryManager
+    participant HS as HybridSearch
+    participant BM as BM25 Index
+    participant EM as Embeddings<br/>(all-MiniLM-L6-v2)
+    participant RRF as RRF Fusion
+    participant AS as AdvancedSearch
+
+    C->>MM: search("auth patterns", mode="hybrid")
+    MM->>HS: hybrid_search(query, top_k)
+
+    par Parallel Execution
+        HS->>BM: keyword_search(query)
+        BM-->>HS: keyword_results (ranked by term frequency)
+    and
+        HS->>EM: generate_embedding(query)
+        EM-->>HS: semantic_results (ranked by cosine similarity)
+    end
+
+    HS->>RRF: fuse(keyword_results, semantic_results, k=60)
+    RRF-->>HS: merged_ranking
+    HS-->>MM: top_k results
+
+    Note over C,AS: Advanced queries bypass hybrid search
+    C->>MM: search(mode="temporal")
+    MM->>AS: search_temporal(start, end)
+    AS-->>MM: time-filtered results
+```
+
+**Search modes:**
+
+| Mode | Engine | Description |
+|------|--------|-------------|
+| BM25 keyword | `bm25_index.py` | Term frequency–inverse document frequency ranking |
+| Semantic | `embeddings.py` | Sentence-transformer (`all-MiniLM-L6-v2`) cosine similarity |
+| Hybrid | `hybrid_search.py` | Parallel BM25 + semantic merged via RRF (k=60) |
+| FTS5 native | `fts_search.py` (Agentic Team) | SQLite FTS5 full-text search with `MATCH` syntax |
+| Temporal | `advanced_search.py` | Filter nodes by `created_at` date ranges |
+| Tag-based | `advanced_search.py` | Filter nodes by tag sets |
+| Importance | `advanced_search.py` | Filter nodes above an importance threshold |
+
+### Operations
+
+Each context system provides operational tooling via its `ops/` sub-package:
+
+**Analytics** (`ops/analytics.py`) — Comprehensive graph metrics:
+- `get_node_distribution()` — Count of nodes grouped by type
+- `get_edge_distribution()` — Count of edges grouped by relationship type
+- `get_temporal_growth(days)` — Node creation timeline
+- `get_success_rate_by_agent()` — Per-agent task success/failure rates
+- `get_top_patterns(limit)` / `get_top_mistakes(limit)` — Most referenced patterns and most common mistakes
+- `get_database_stats()` — DB size, table counts, index health
+- `get_agent_activity_heatmap(days)` — Activity by agent over time
+- `get_comprehensive_report()` — Full analytics summary
+
+**Pruning** (`ops/pruning.py`) — Graph maintenance strategies:
+- `prune_by_age(max_age_days)` — Remove nodes older than threshold
+- `prune_duplicates()` — Detect and merge near-duplicate nodes
+- `prune_low_importance(threshold)` — Remove nodes below importance score
+- `prune_all()` — Run all strategies in sequence
+
+**Export / Import** (`ops/export.py`) — Data portability:
+- `export_json(output_path, node_types)` — Export graph to JSON (optional type filter)
+- `import_json(input_path)` — Import graph from JSON
+- `export_graphml(output_path)` — Export to GraphML for external graph tools
+- `get_export_summary()` — Preview of export contents
+
+**Versioning** (`ops/versioning.py`, Orchestrator only) — Node history tracking:
+- `record_version(node_id, change_type)` — Snapshot node state on update
+- `get_versions(node_id)` / `get_version(node_id, version)` — Retrieve version history
+- `rollback(node_id, version)` — Restore a previous version
+- `get_change_log(limit)` — Recent changes across all nodes
+- `diff_versions(node_id, v1, v2)` — Compare two versions of a node
+
+### Context Dashboard
+
+The Context Dashboard (`context_dashboard/`) provides a web-based visualization and management UI at **port 5003**:
+
+```mermaid
+graph LR
+    subgraph "Context Dashboard (Flask)"
+        APP[app.py<br/>Flask + CORS]
+        TPL[templates/dashboard.html]
+    end
+
+    subgraph "Frontend Libraries"
+        VIS[vis-network 9.1.6<br/>Graph visualization]
+        CHT[Chart.js 4.4.0<br/>Analytics charts]
+    end
+
+    subgraph "Data Sources"
+        ODB[(Orchestrator<br/>context.db)]
+        ADB[(Agentic Team<br/>context.db)]
+    end
+
+    ODB --> APP
+    ADB --> APP
+    APP --> TPL
+    TPL --> VIS
+    TPL --> CHT
+```
+
+The dashboard aggregates both context databases and provides:
+- **Interactive graph explorer** — vis-network powered node/edge visualization with click-to-inspect
+- **Analytics charts** — Node distribution, temporal growth, agent activity heatmaps via Chart.js
+- **Search interface** — Query across both context systems
+- **Export controls** — Download graph data as JSON or GraphML
 
 ### Integration
 
-Both engines automatically store task results:
+Both engines automatically store task results and mistakes into their respective context graphs:
 
 ```python
 # Automatic storage in execute_task()
 result = engine.execute_task("Build login system")
-# → Task automatically stored with outcome, duration, metadata
+# → Task node automatically stored with outcome, duration, agent metadata
 
-# Retrieve relevant context
+# Log a mistake to prevent repetition
+manager.log_mistake(
+    description="Used string formatting in SQL query",
+    correction="Changed to parameterized query",
+    prevention="Always use ? placeholders",
+    category="security"
+)
+# → Mistake node stored, edges link to related tasks/patterns
+
+# Retrieve relevant context for a new task
 context = engine.get_relevant_context("authentication patterns")
-# → Returns formatted context from past tasks/mistakes
+# → Hybrid search returns ranked results from past tasks, mistakes, patterns
 ```
+
+### Auto-Seeding
+
+The script `scripts/seed_context_graphs.py` pre-populates both context databases with sample data (conversations, tasks, mistakes, patterns, decisions) for development and testing. The Context Dashboard also calls `_auto_seed_if_empty()` on startup to ensure a non-empty graph for first-run exploration.
 
 ## Agentic Infrastructure
 
-The platform provides comprehensive infrastructure to empower AI agents:
+The platform provides comprehensive infrastructure to empower AI agents through specialized agents, a skills library, domain rules, and MCP tools. Configuration lives in `.claude/`, `.codex/`, and the project root (`AGENTS.md`).
 
 ### Specialized Agents
+
+Agents are role-specific AI personas with deep domain expertise. Each agent file defines a system prompt, preferred tools, and references to relevant skills and rules.
 
 ```mermaid
 mindmap
@@ -1024,6 +1172,7 @@ mindmap
       database-architect
     Security
       security-specialist
+      code-reviewer
     Infrastructure
       devops-infrastructure
       performance-engineer
@@ -1031,38 +1180,164 @@ mindmap
       ai-ml-engineer
     Mobile
       mobile-developer
+    Quality
+      test-runner
     Documentation
       documentation-writer
 ```
 
-9 specialized agents with domain expertise:
+#### Claude Agents (11)
 
-| Agent | Expertise |
-|-------|-----------|
-| web-frontend | React, Vue, Angular, CSS, Accessibility |
-| backend-api | REST, GraphQL, Microservices |
-| security-specialist | OWASP, Secure Coding, Audits |
-| devops-infrastructure | Docker, K8s, CI/CD, Cloud |
-| ai-ml-engineer | ML Pipelines, LLMs, RAG |
-| database-architect | Schema, Optimization, Migrations |
-| mobile-developer | React Native, Flutter, Native |
-| performance-engineer | Profiling, Caching, Load Testing |
-| documentation-writer | API Docs, Architecture, READMEs |
+Defined as Markdown files in `.claude/agents/`. Invoked via `@agent-name` in Claude Code:
 
-### Skills Library
+| Agent | File | Expertise |
+|-------|------|-----------|
+| web-frontend | `.claude/agents/web-frontend.md` | React, Vue, Angular, CSS, Accessibility |
+| backend-api | `.claude/agents/backend-api.md` | REST, GraphQL, Microservices, Flask/FastAPI |
+| security-specialist | `.claude/agents/security-specialist.md` | OWASP, Secure Coding, Audits |
+| devops-infrastructure | `.claude/agents/devops-infrastructure.md` | Docker, K8s, CI/CD, Cloud |
+| ai-ml-engineer | `.claude/agents/ai-ml-engineer.md` | ML Pipelines, LLMs, RAG, Embeddings |
+| database-architect | `.claude/agents/database-architect.md` | Schema Design, Query Optimization, Migrations |
+| mobile-developer | `.claude/agents/mobile-developer.md` | React Native, Flutter, Native iOS/Android |
+| performance-engineer | `.claude/agents/performance-engineer.md` | Profiling, Caching, Load Testing |
+| documentation-writer | `.claude/agents/documentation-writer.md` | API Docs, Architecture, READMEs, Tutorials |
+| code-reviewer | `.claude/agents/code-reviewer.md` | Code Quality, Best Practices, PR Reviews |
+| test-runner | `.claude/agents/test-runner.md` | Test Execution, Failure Diagnosis, Coverage |
 
-22 reusable skills across 6 categories:
+#### Codex Agents (13)
+
+Defined as TOML files in `.codex/agents/`. Invoked via Codex CLI agent selection:
+
+| Agent | File | Expertise |
+|-------|------|-----------|
+| web-frontend | `.codex/agents/web-frontend.toml` | React, Vue, Angular, CSS |
+| backend-api | `.codex/agents/backend-api.toml` | REST, GraphQL, Server Architecture |
+| security-specialist | `.codex/agents/security-specialist.toml` | OWASP, Vulnerability Analysis |
+| devops-infrastructure | `.codex/agents/devops-infrastructure.toml` | Docker, K8s, CI/CD |
+| ai-ml-engineer | `.codex/agents/ai-ml-engineer.toml` | ML Pipelines, LLM Integration |
+| database-architect | `.codex/agents/database-architect.toml` | Schema Design, Query Optimization |
+| mobile-developer | `.codex/agents/mobile-developer.toml` | React Native, Flutter, Native |
+| performance-engineer | `.codex/agents/performance-engineer.toml` | Profiling, Caching, Optimization |
+| documentation-writer | `.codex/agents/documentation-writer.toml` | API Docs, Architecture Docs |
+| code-reviewer | `.codex/agents/code-reviewer.toml` | Code Quality, PR Reviews |
+| test-runner | `.codex/agents/test-runner.toml` | Test Execution, Failure Diagnosis |
+| explorer | `.codex/agents/explorer.toml` | Codebase Navigation, Research |
+| implementer | `.codex/agents/implementer.toml` | Feature Implementation, Refactoring |
+
+### Skills Library (22 Skills)
+
+Skills are reusable knowledge documents in `.claude/skills/` that provide patterns, best practices, and guidelines. They auto-activate based on task context — when an agent works on a task matching a skill's domain, the relevant skill content is injected into the prompt.
 
 ```mermaid
-graph LR
-    subgraph Skills["Skills Library (22)"]
-        DEV[Development<br/>6 skills]
-        TEST[Testing<br/>4 skills]
-        SEC[Security<br/>4 skills]
-        OPS[DevOps<br/>3 skills]
-        ML[AI/ML<br/>3 skills]
-        DOC[Documentation<br/>3 skills]
+graph TB
+    subgraph "Skills Library — .claude/skills/"
+        subgraph "Development (6)"
+            D1["react-components.md"]
+            D2["rest-api-design.md"]
+            D3["python-async.md"]
+            D4["graphql-development.md"]
+            D5["database-queries.md"]
+            D6["error-handling.md"]
+        end
+        subgraph "Testing (4)"
+            T1["unit-testing.md"]
+            T2["integration-testing.md"]
+            T3["test-driven-development.md"]
+            T4["performance-testing.md"]
+        end
+        subgraph "Security (4)"
+            S1["input-validation.md"]
+            S2["authentication.md"]
+            S3["secure-coding.md"]
+            S4["vulnerability-assessment.md"]
+        end
+        subgraph "DevOps (3)"
+            O1["docker-containerization.md"]
+            O2["ci-cd-pipelines.md"]
+            O3["kubernetes-deployment.md"]
+        end
+        subgraph "AI/ML (3)"
+            M1["embeddings-retrieval.md"]
+            M2["llm-integration.md"]
+            M3["rag-pipeline.md"]
+        end
+        subgraph "Documentation (3)"
+            C1["api-documentation.md"]
+            C2["architecture-docs.md"]
+            C3["code-documentation.md"]
+        end
     end
+```
+
+| Category | Skill | File Path | Description |
+|----------|-------|-----------|-------------|
+| Development | react-components | `.claude/skills/development/react-components.md` | Component patterns, hooks, state management |
+| Development | rest-api-design | `.claude/skills/development/rest-api-design.md` | RESTful endpoint design, status codes, pagination |
+| Development | python-async | `.claude/skills/development/python-async.md` | asyncio, async/await, concurrency patterns |
+| Development | graphql-development | `.claude/skills/development/graphql-development.md` | Schema design, resolvers, N+1 prevention |
+| Development | database-queries | `.claude/skills/development/database-queries.md` | Query optimization, parameterized queries, ORMs |
+| Development | error-handling | `.claude/skills/development/error-handling.md` | Exception hierarchies, retry logic, graceful degradation |
+| Testing | unit-testing | `.claude/skills/testing/unit-testing.md` | pytest patterns, mocking, fixtures, assertions |
+| Testing | integration-testing | `.claude/skills/testing/integration-testing.md` | Service integration, test databases, API testing |
+| Testing | test-driven-development | `.claude/skills/testing/test-driven-development.md` | Red-green-refactor, test-first workflows |
+| Testing | performance-testing | `.claude/skills/testing/performance-testing.md` | Load testing, benchmarking, profiling |
+| Security | input-validation | `.claude/skills/security/input-validation.md` | Pydantic validation, sanitization, injection prevention |
+| Security | authentication | `.claude/skills/security/authentication.md` | JWT, OAuth, session management, bcrypt |
+| Security | secure-coding | `.claude/skills/security/secure-coding.md` | OWASP top 10, secure defaults, least privilege |
+| Security | vulnerability-assessment | `.claude/skills/security/vulnerability-assessment.md` | CVE analysis, dependency auditing, threat modeling |
+| DevOps | docker-containerization | `.claude/skills/devops/docker-containerization.md` | Multi-stage builds, layer optimization, security |
+| DevOps | ci-cd-pipelines | `.claude/skills/devops/ci-cd-pipelines.md` | GitHub Actions, Jenkins, pipeline patterns |
+| DevOps | kubernetes-deployment | `.claude/skills/devops/kubernetes-deployment.md` | Manifests, Helm charts, scaling strategies |
+| AI/ML | embeddings-retrieval | `.claude/skills/ai-ml/embeddings-retrieval.md` | Vector stores, similarity search, indexing |
+| AI/ML | llm-integration | `.claude/skills/ai-ml/llm-integration.md` | API integration, prompt engineering, token management |
+| AI/ML | rag-pipeline | `.claude/skills/ai-ml/rag-pipeline.md` | Retrieval-augmented generation, chunking, re-ranking |
+| Documentation | api-documentation | `.claude/skills/documentation/api-documentation.md` | OpenAPI specs, endpoint docs, examples |
+| Documentation | architecture-docs | `.claude/skills/documentation/architecture-docs.md` | System diagrams, ADRs, component docs |
+| Documentation | code-documentation | `.claude/skills/documentation/code-documentation.md` | Docstrings, type hints, inline comments |
+
+Additionally, three operational skills live at the top level of `.claude/skills/`:
+- `generate-reports/SKILL.md` — Generate orchestrator execution and analytics reports
+- `run-tests/SKILL.md` — Run pytest suite with marker/file filtering
+- `health-check/SKILL.md` — System health checks and status reports
+
+### Domain Rules (11)
+
+Rules in `.claude/rules/` define **mandatory coding standards** that Claude enforces across all tasks. Unlike skills (which provide guidance), rules are always active constraints:
+
+| Rule | File | Enforces |
+|------|------|----------|
+| adapters | `.claude/rules/adapters.md` | BaseAdapter interface, adapter patterns |
+| api-design | `.claude/rules/api-design.md` | RESTful conventions, status codes, versioning |
+| testing | `.claude/rules/testing.md` | pytest standards, coverage thresholds, markers |
+| performance | `.claude/rules/performance.md` | Caching, async patterns, profiling requirements |
+| config | `.claude/rules/config.md` | YAML config, environment variables, no hardcoded secrets |
+| ai-ml | `.claude/rules/ai-ml.md` | Model integration, embedding standards, fallback handling |
+| observability | `.claude/rules/observability.md` | Logging, metrics, error reporting |
+| frontend | `.claude/rules/frontend.md` | Component patterns, accessibility, styling |
+| ci-cd | `.claude/rules/ci-cd.md` | Pipeline standards, deployment gates |
+| security | `.claude/rules/security.md` | Input validation, parameterized queries, no shell=True |
+| database | `.claude/rules/database.md` | Schema conventions, migration patterns, indexing |
+
+### How It All Connects
+
+```mermaid
+flowchart LR
+    USER[User Task] --> SELECT{Agent Selection}
+    SELECT --> CLAUDE["Claude Agent<br/>(.claude/agents/*.md)"]
+    SELECT --> CODEX["Codex Agent<br/>(.codex/agents/*.toml)"]
+
+    CLAUDE --> RULES["Domain Rules<br/>(.claude/rules/*.md)<br/>Always active"]
+    CLAUDE --> SKILLS["Skills Library<br/>(.claude/skills/**/*.md)<br/>Auto-activated by context"]
+    CODEX --> SKILLS
+
+    RULES --> EXEC[Task Execution]
+    SKILLS --> EXEC
+
+    EXEC --> MCP["MCP Tools (34+)<br/>Code Analysis · Security<br/>Testing · DevOps · Context"]
+    MCP --> CTX["Context Memory<br/>Store task + mistakes"]
+    CTX --> RESULT[Result + Learning]
+
+    RESULT -.->|Future tasks| SELECT
 ```
 
 ### MCP Tools
@@ -1076,6 +1351,15 @@ graph LR
 | Testing | 4 | Test cases, stubs, coverage |
 | DevOps | 5 | Docker, compose, CI, deploy |
 | Context | 7 | Store, search, retrieve, learn |
+
+### Configuration Files
+
+| File | Purpose |
+|------|---------|
+| `AGENTS.md` | Shared instructions read by Codex, Gemini CLI, and other agentic tools |
+| `.claude/CLAUDE.md` | Claude Code-specific instructions (imports AGENTS.md) |
+| `.claude/settings.json` | Claude Code tool permissions and settings |
+| `.codex/agents/*.toml` | Codex agent role definitions |
 
 📚 **See [AGENTIC_INFRA.md](AGENTIC_INFRA.md) for complete documentation.**
 
