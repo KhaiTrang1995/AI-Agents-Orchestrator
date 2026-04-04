@@ -612,9 +612,102 @@ def health():
     )
 
 
+@app.route("/api/combined/stats")
+def api_combined_stats():
+    """Return aggregated statistics from BOTH context systems."""
+    systems: dict[str, Any] = {}
+    totals: dict[str, Any] = {"nodes": 0, "edges": 0, "nodes_by_type": {}, "edges_by_type": {}}
+    for system in VALID_SYSTEMS:
+        mgr = _get_context(system)
+        if mgr:
+            try:
+                stats = mgr.get_stats() if hasattr(mgr, "get_stats") else {}
+                graph_stats = mgr.graph_store.get_stats() if hasattr(mgr, "graph_store") else {}
+                systems[system] = {
+                    "available": True,
+                    "stats": stats,
+                    "graph_stats": graph_stats,
+                }
+                totals["nodes"] += graph_stats.get("total_nodes", 0)
+                totals["edges"] += graph_stats.get("total_edges", 0)
+                for ntype, cnt in graph_stats.get("nodes_by_type", {}).items():
+                    totals["nodes_by_type"][ntype] = totals["nodes_by_type"].get(ntype, 0) + cnt
+                for etype, cnt in graph_stats.get("edges_by_type", {}).items():
+                    totals["edges_by_type"][etype] = totals["edges_by_type"].get(etype, 0) + cnt
+            except Exception as exc:
+                systems[system] = {"available": False, "error": str(exc)}
+        else:
+            systems[system] = {"available": False}
+    return jsonify(
+        {
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "systems": systems,
+            "totals": totals,
+        }
+    )
+
+
+@app.route("/api/combined/graph")
+def api_combined_graph():
+    """Return graph data from BOTH systems, prefixed to avoid ID collisions."""
+    limit = request.args.get("limit", 150, type=int)
+    combined_nodes = []
+    combined_edges = []
+    for system in VALID_SYSTEMS:
+        data = get_graph_data(system, limit=limit)
+        prefix = "orch_" if system == "orchestrator" else "at_"
+        for node in data.get("nodes", []):
+            node["id"] = prefix + str(node["id"])
+            node["_system"] = system
+            combined_nodes.append(node)
+        for edge in data.get("edges", []):
+            edge["source_id"] = prefix + str(edge["source_id"])
+            edge["target_id"] = prefix + str(edge["target_id"])
+            edge["_system"] = system
+            combined_edges.append(edge)
+    return jsonify({"nodes": combined_nodes, "edges": combined_edges})
+
+
+# ---------------------------------------------------------------------------
+# Auto-seed on first run
+# ---------------------------------------------------------------------------
+
+
+def _auto_seed_if_empty():
+    """Seed context graphs with sample data if both are empty."""
+    try:
+        orc = get_orchestrator_context()
+        at = get_agentic_team_context()
+        orc_empty = True
+        at_empty = True
+        if orc and hasattr(orc, "graph_store"):
+            stats = orc.graph_store.get_stats()
+            orc_empty = stats.get("total_nodes", 0) == 0
+        if at and hasattr(at, "graph_store"):
+            stats = at.graph_store.get_stats()
+            at_empty = stats.get("total_nodes", 0) == 0
+
+        if orc_empty or at_empty:
+            seed_script = (
+                Path(__file__).resolve().parent.parent / "scripts" / "seed_context_graphs.py"
+            )
+            if seed_script.exists():
+                import subprocess
+
+                args = [sys.executable, str(seed_script)]
+                if orc_empty and not at_empty:
+                    args += ["--system", "orchestrator"]
+                elif at_empty and not orc_empty:
+                    args += ["--system", "agentic_team"]
+                subprocess.run(args, capture_output=True, timeout=30)
+    except Exception:
+        pass
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
+    _auto_seed_if_empty()
     app.run(host="0.0.0.0", port=5003, debug=True)
