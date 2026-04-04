@@ -90,6 +90,8 @@ extend-exclude = '''
   | \.venv
   | build
   | dist
+  | workspace
+  | sessions
 )/
 '''
 
@@ -124,7 +126,9 @@ exclude = [
     "^ai-agentic-team$",
     "^ai-orchestrator$",
     "ai-agentic-team-wrapper",
-    "ai-orchestrator-wrapper"
+    "ai-orchestrator-wrapper",
+    "workspace/",
+    "sessions/"
 ]
 
 [[tool.mypy.overrides]]

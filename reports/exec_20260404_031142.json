@@ -7,11 +7,7 @@
   "success": true,
   "iterations": 1,
   "duration_seconds": 20.0,
-  "available_agents": [
-    "codex",
-    "gemini",
-    "claude"
-  ],
+  "available_agents": ["codex", "gemini", "claude"],
   "total_suggestions": 4,
   "fallback_count": 0,
   "steps": [
@@ -21,11 +17,7 @@
       "success": true,
       "has_output": true,
       "error": null,
-      "files_modified": [
-        "auth.py",
-        "middleware.py",
-        "models/user.py"
-      ],
+      "files_modified": ["auth.py", "middleware.py", "models/user.py"],
       "suggestion_count": 2,
       "fallback_from": null
     },
@@ -45,10 +37,7 @@
       "success": true,
       "has_output": true,
       "error": null,
-      "files_modified": [
-        "auth.py",
-        "validators.py"
-      ],
+      "files_modified": ["auth.py", "validators.py"],
       "suggestion_count": 0,
       "fallback_from": null
     }

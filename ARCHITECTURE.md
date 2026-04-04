@@ -998,3 +998,5 @@ For more information:
 - [MCP Server Documentation](MCP.md)
 - [Setup Guide](SETUP.md)
 - [Adding Agents Guide](ADD_AGENTS.md)
+
+> **Easter egg:** Go to our [wiki page](https://hoangsonww.github.io/AI-Agents-Orchestrator/) and enter Konami code (↑ ↑ ↓ ↓ ← → ← → B A) for a surprise!

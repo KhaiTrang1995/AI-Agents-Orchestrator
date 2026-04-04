@@ -7,11 +7,7 @@
   "success": true,
   "iterations": 1,
   "duration_seconds": 25.5,
-  "available_agents": [
-    "codex",
-    "gemini",
-    "claude"
-  ],
+  "available_agents": ["codex", "gemini", "claude"],
   "total_suggestions": 3,
   "fallback_count": 0,
   "steps": [
@@ -45,9 +41,7 @@
       "success": true,
       "has_output": true,
       "error": null,
-      "files_modified": [
-        "routes/tasks.py"
-      ],
+      "files_modified": ["routes/tasks.py"],
       "suggestion_count": 0,
       "fallback_from": null
     }

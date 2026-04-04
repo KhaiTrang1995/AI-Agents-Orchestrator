@@ -5,20 +5,53 @@ document.addEventListener("DOMContentLoaded", () => {
   // Initialize Mermaid diagrams
   mermaid.initialize({
     startOnLoad: true,
-    theme: "default",
+    theme: "dark",
     themeVariables: {
-      primaryColor: "#667eea",
-      primaryTextColor: "#fff",
-      primaryBorderColor: "#667eea",
-      lineColor: "#1f2937",
-      arrowheadColor: "#1f2937",
-      secondaryColor: "#f093fb",
-      tertiaryColor: "#43e97b",
-      background: "#ffffff",
-      mainBkg: "#667eea",
-      secondBkg: "#764ba2",
-      border1: "#667eea",
-      border2: "#764ba2",
+      primaryColor: "#3b82f6",
+      primaryTextColor: "#fafafa",
+      primaryBorderColor: "#60a5fa",
+      lineColor: "#a1a1aa",
+      arrowheadColor: "#a1a1aa",
+      secondaryColor: "#1c1c1f",
+      tertiaryColor: "#10b981",
+      background: "#111113",
+      mainBkg: "#3b82f6",
+      secondBkg: "#1c1c1f",
+      border1: "#3b82f6",
+      border2: "#27272a",
+      nodeBorder: "#60a5fa",
+      clusterBkg: "#1c1c1f",
+      clusterBorder: "rgba(255,255,255,0.06)",
+      titleColor: "#fafafa",
+      edgeLabelBackground: "#1c1c1f",
+      actorTextColor: "#fafafa",
+      actorBkg: "#27272a",
+      actorBorder: "#60a5fa",
+      actorLineColor: "#a1a1aa",
+      signalColor: "#fafafa",
+      signalTextColor: "#fafafa",
+      labelBoxBkgColor: "#1c1c1f",
+      labelBoxBorderColor: "#60a5fa",
+      labelTextColor: "#fafafa",
+      loopTextColor: "#fafafa",
+      noteBkgColor: "#27272a",
+      noteTextColor: "#fafafa",
+      noteBorderColor: "#60a5fa",
+      sectionBkgColor: "#1c1c1f",
+      altSectionBkgColor: "#111113",
+      sectionBkgColor2: "#27272a",
+      taskBkgColor: "#3b82f6",
+      taskTextColor: "#fafafa",
+      taskTextLightColor: "#fafafa",
+      activeTaskBkgColor: "#2563eb",
+      activeTaskBorderColor: "#60a5fa",
+      gridColor: "#27272a",
+      doneTaskBkgColor: "#10b981",
+      doneTaskBorderColor: "#059669",
+      critBkgColor: "#ef4444",
+      critBorderColor: "#dc2626",
+      todayLineColor: "#f59e0b",
+      textColor: "#fafafa",
     },
     flowchart: {
       curve: "basis",
@@ -165,33 +198,33 @@ function initScrollReveal() {
   const revealElements = new Set();
 
   const revealGroups = [
-    [".section-title", 60],
+    [".section-title", 0],
     [
       ".overview-card, .feature-card, .layer-card, .pattern-item, .doc-card, .community-card, .tech-category, .footer-section",
-      70,
+      30,
     ],
     [
       ".diagram-container, .architecture-description, .prerequisites, .example-usage, .workflow-table, .workflow-diagram, .custom-workflow, .contribution-steps, .acknowledgments, .demo-container, .footer-bottom",
-      90,
+      0,
     ],
     [
       ".stat-item, .step, .ui-feature, .demo-tab, .tools-list span, .workflow-table tbody tr",
-      65,
+      25,
     ],
     [
       ".feature-list li, .prerequisites li, .demo-panel li, .tech-category li, .contribution-steps li",
-      35,
+      15,
     ],
     [
       "section .container > *:not(.section-title), .cta-section .container > *",
-      45,
+      20,
     ],
   ];
 
   revealGroups.forEach(([selector, delayStep]) => {
     document.querySelectorAll(selector).forEach((element, index) => {
       if (element.classList.contains("reveal-on-scroll")) return;
-      const delay = Math.min(index * delayStep, 320);
+      const delay = Math.min(index * delayStep, 150);
       element.classList.add("reveal-on-scroll");
       element.style.setProperty("--reveal-delay", `${delay}ms`);
       revealElements.add(element);
@@ -353,9 +386,9 @@ window.addEventListener("scroll", () => {
 
   // Add shadow on scroll
   if (currentScroll > 50) {
-    navbar.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.15)";
+    navbar.style.boxShadow = "0 4px 20px rgba(0, 0, 0, 0.5)";
   } else {
-    navbar.style.boxShadow = "0 2px 10px rgba(0, 0, 0, 0.1)";
+    navbar.style.boxShadow = "none";
   }
 
   // Hide/show navbar on scroll (optional)
@@ -446,7 +479,7 @@ document.addEventListener("keydown", (e) => {
 
 function activateEasterEgg() {
   // Create confetti effect
-  const colors = ["#667eea", "#764ba2", "#f093fb", "#43e97b", "#feca57"];
+  const colors = ["#3b82f6", "#60a5fa", "#2563eb", "#10b981", "#f59e0b"];
   const confettiCount = 100;
 
   for (let i = 0; i < confettiCount; i++) {
@@ -501,7 +534,7 @@ function createBackToTopButton() {
         right: 30px;
         width: 50px;
         height: 50px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: #3b82f6;
         color: white;
         border: none;
         border-radius: 50%;
@@ -563,19 +596,19 @@ if (!("loading" in HTMLImageElement.prototype)) {
 // ===========================
 console.log(
   "%cAI Orchestrator",
-  "font-size: 24px; font-weight: bold; color: #667eea;",
+  "font-size: 24px; font-weight: bold; color: #3b82f6;",
 );
 console.log(
   "%cWelcome to the AI Coding Tools Orchestrator!",
-  "font-size: 14px; color: #764ba2;",
+  "font-size: 14px; color: #60a5fa;",
 );
 console.log(
   "%cInterested in contributing? Check out our GitHub repo!",
-  "font-size: 12px; color: #43e97b;",
+  "font-size: 12px; color: #10b981;",
 );
 console.log(
   "%cHint: Try the Konami Code",
-  "font-size: 10px; color: #f093fb; font-style: italic;",
+  "font-size: 10px; color: #a1a1aa; font-style: italic;",
 );
 
 // ===========================

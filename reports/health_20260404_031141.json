@@ -51,9 +51,7 @@
       "status": "unhealthy",
       "message": "Missing dependencies: pyyaml",
       "details": {
-        "missing": [
-          "pyyaml"
-        ]
+        "missing": ["pyyaml"]
       },
       "duration_ms": 21.95906639099121
     }

@@ -7,11 +7,7 @@
   "success": true,
   "iterations": 1,
   "duration_seconds": 53.0,
-  "available_agents": [
-    "codex",
-    "gemini",
-    "claude"
-  ],
+  "available_agents": ["codex", "gemini", "claude"],
   "total_suggestions": 1,
   "fallback_count": 0,
   "steps": [
@@ -41,10 +37,7 @@
       "success": true,
       "has_output": true,
       "error": null,
-      "files_modified": [
-        "middleware/rate_limit.py",
-        "config.py"
-      ],
+      "files_modified": ["middleware/rate_limit.py", "config.py"],
       "suggestion_count": 0,
       "fallback_from": null
     }

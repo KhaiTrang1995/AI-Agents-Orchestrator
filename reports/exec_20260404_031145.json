@@ -7,11 +7,7 @@
   "success": true,
   "iterations": 1,
   "duration_seconds": 31.0,
-  "available_agents": [
-    "codex",
-    "gemini",
-    "claude"
-  ],
+  "available_agents": ["codex", "gemini", "claude"],
   "total_suggestions": 0,
   "fallback_count": 0,
   "steps": [
@@ -21,10 +17,7 @@
       "success": true,
       "has_output": true,
       "error": null,
-      "files_modified": [
-        ".github/workflows/ci.yml",
-        "Dockerfile"
-      ],
+      "files_modified": [".github/workflows/ci.yml", "Dockerfile"],
       "suggestion_count": 0,
       "fallback_from": null
     }

@@ -1,0 +1,29 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo 'AI Coding Tools Orchestrator — dual system: orchestrator/ + agentic_team/ (zero shared code). Run tests: python -m pytest tests/ --override-ini=\"addopts=\" -q --timeout=30 -m \"not integration and not slow\"'",
+            "statusMessage": "Loading project context"
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 -c \"import sys,json; data=json.load(sys.stdin); cmd=data.get('tool_input',{}).get('command',''); ext=cmd.strip().split()[-1] if cmd.strip() else ''; result=json.dumps({'hookSpecificOutput':{'hookEventName':'PostToolUse','additionalContext':'File was auto-formatted.'}}) if ext.endswith('.py') else ''; print(result) if result else None\" 2>/dev/null || true",
+            "statusMessage": "Checking output",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}

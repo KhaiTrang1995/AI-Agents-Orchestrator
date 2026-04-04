@@ -7,11 +7,7 @@
   "success": false,
   "iterations": 1,
   "duration_seconds": 42.0,
-  "available_agents": [
-    "codex",
-    "gemini",
-    "claude"
-  ],
+  "available_agents": ["codex", "gemini", "claude"],
   "total_suggestions": 2,
   "fallback_count": 0,
   "steps": [
@@ -21,10 +17,7 @@
       "success": true,
       "has_output": true,
       "error": null,
-      "files_modified": [
-        "websocket.py",
-        "connection_manager.py"
-      ],
+      "files_modified": ["websocket.py", "connection_manager.py"],
       "suggestion_count": 1,
       "fallback_from": null
     },
@@ -44,9 +37,7 @@
       "success": true,
       "has_output": true,
       "error": null,
-      "files_modified": [
-        "websocket.py"
-      ],
+      "files_modified": ["websocket.py"],
       "suggestion_count": 1,
       "fallback_from": null
     }

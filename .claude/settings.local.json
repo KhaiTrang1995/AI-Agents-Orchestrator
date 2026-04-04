@@ -22,7 +22,22 @@
       "Bash(DEBUG=1 python3:*)",
       "Bash(./ai-orchestrator interactive:*)",
       "Bash(./ai-orchestrator:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(node:*)",
+      "Bash(mkdir -p /Users/davidnguyen/PycharmProjects/AI-Coding-Tools-Collaborative/.claude/rules)",
+      "Bash(mkdir -p /Users/davidnguyen/PycharmProjects/AI-Coding-Tools-Collaborative/.claude/skills/run-tests)",
+      "Bash(mkdir -p /Users/davidnguyen/PycharmProjects/AI-Coding-Tools-Collaborative/.claude/skills/health-check)",
+      "Bash(mkdir -p /Users/davidnguyen/PycharmProjects/AI-Coding-Tools-Collaborative/.claude/skills/generate-reports)",
+      "Bash(mkdir -p /Users/davidnguyen/PycharmProjects/AI-Coding-Tools-Collaborative/.claude/agents)",
+      "WebSearch",
+      "WebFetch(domain:developers.openai.com)",
+      "WebFetch(domain:github.com)",
+      "Bash(mkdir -p /Users/davidnguyen/PycharmProjects/AI-Coding-Tools-Collaborative/sessions)",
+      "Bash(mkdir -p /Users/davidnguyen/PycharmProjects/AI-Coding-Tools-Collaborative/workspace/session-a1b2c3d4/api)",
+      "Bash(mkdir -p /Users/davidnguyen/PycharmProjects/AI-Coding-Tools-Collaborative/workspace/session-a1b2c3d4/tests)",
+      "Bash(mkdir -p /Users/davidnguyen/PycharmProjects/AI-Coding-Tools-Collaborative/workspace/session-e5f6g7h8/auth)",
+      "Bash(mkdir -p /Users/davidnguyen/PycharmProjects/AI-Coding-Tools-Collaborative/workspace/session-e5f6g7h8/tests)",
+      "Bash(ls -la /Users/davidnguyen/PycharmProjects/AI-Coding-Tools-Collaborative/sessions/*.json)"
     ],
     "deny": [],
     "ask": []

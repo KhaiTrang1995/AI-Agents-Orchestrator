@@ -549,12 +549,16 @@ class ReportGenerator:
                 "max_iterations": settings.get("max_iterations"),
                 "output_dir": str(settings.get("output_dir", "")),
                 "reports_dir": str(settings.get("reports_dir", "")),
-                "offline_enabled": settings.get("offline", {}).get("enabled", False)
-                if isinstance(settings.get("offline"), dict)
-                else False,
-                "fallback_enabled": settings.get("fallback", {}).get("enabled", False)
-                if isinstance(settings.get("fallback"), dict)
-                else False,
+                "offline_enabled": (
+                    settings.get("offline", {}).get("enabled", False)
+                    if isinstance(settings.get("offline"), dict)
+                    else False
+                ),
+                "fallback_enabled": (
+                    settings.get("fallback", {}).get("enabled", False)
+                    if isinstance(settings.get("fallback"), dict)
+                    else False
+                ),
             },
             "enabled_agent_count": sum(1 for c in agents.values() if c.get("enabled", True)),
             "workflow_count": len(workflows),

@@ -794,8 +794,10 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 
 <div align="center">
 
-**Made with care by [Son Nguyen](https://github.com/hoangsonww) for the AI development community**
+**Made with care and love by [Son Nguyen](https://github.com/hoangsonww) for the AI development community 🤖**
 
-[Back to Top](#ai-coding-tools)
+[Back to Top](#ai-coding-tools-orchestrator-and-agentic-team-runtime)
+
+> **Easter egg:** Go to our [wiki page](https://hoangsonww.github.io/AI-Agents-Orchestrator/) and enter Konami code (↑ ↑ ↓ ↓ ← → ← → B A) for a surprise!
 
 </div>

@@ -77,86 +77,38 @@
   "workflows": {
     "default": {
       "step_count": 3,
-      "agents_used": [
-        "codex",
-        "gemini",
-        "claude"
-      ],
-      "task_types": [
-        "implement",
-        "review",
-        "refine"
-      ]
+      "agents_used": ["codex", "gemini", "claude"],
+      "task_types": ["implement", "review", "refine"]
     },
     "quick": {
       "step_count": 1,
-      "agents_used": [
-        "codex"
-      ],
-      "task_types": [
-        "implement"
-      ]
+      "agents_used": ["codex"],
+      "task_types": ["implement"]
     },
     "thorough": {
       "step_count": 5,
-      "agents_used": [
-        "codex",
-        "copilot",
-        "gemini",
-        "claude",
-        "gemini"
-      ],
-      "task_types": [
-        "implement",
-        "suggestions",
-        "review",
-        "refine",
-        "review"
-      ]
+      "agents_used": ["codex", "copilot", "gemini", "claude", "gemini"],
+      "task_types": ["implement", "suggestions", "review", "refine", "review"]
     },
     "review-only": {
       "step_count": 2,
-      "agents_used": [
-        "gemini",
-        "claude"
-      ],
-      "task_types": [
-        "review",
-        "refine"
-      ]
+      "agents_used": ["gemini", "claude"],
+      "task_types": ["review", "refine"]
     },
     "document": {
       "step_count": 2,
-      "agents_used": [
-        "claude",
-        "gemini"
-      ],
-      "task_types": [
-        "document",
-        "review"
-      ]
+      "agents_used": ["claude", "gemini"],
+      "task_types": ["document", "review"]
     },
     "offline-default": {
       "step_count": 2,
-      "agents_used": [
-        "local-code",
-        "local-instruct"
-      ],
-      "task_types": [
-        "implementer",
-        "reviewer"
-      ]
+      "agents_used": ["local-code", "local-instruct"],
+      "task_types": ["implementer", "reviewer"]
     },
     "hybrid": {
       "step_count": 2,
-      "agents_used": [
-        "local-code",
-        "claude"
-      ],
-      "task_types": [
-        "implementer",
-        "reviewer"
-      ]
+      "agents_used": ["local-code", "claude"],
+      "task_types": ["implementer", "reviewer"]
     }
   },
   "settings": {
