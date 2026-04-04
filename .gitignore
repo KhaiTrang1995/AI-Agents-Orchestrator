@@ -41,7 +41,9 @@ htmlcov/
 
 # Logs
 *.log
-logs/
+logs/*
+!logs/.gitkeep
+!logs/README.md
 ai-orchestrator.log
 
 # Output
