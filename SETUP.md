@@ -780,6 +780,127 @@ python app.py
 - Each role must map to an available agent name in `agents`.
 - The dedicated UI includes a guided config editor (no YAML editor required).
 
+## Context System Setup
+
+The project includes a graph-based context memory system for both engines. Each maintains an independent SQLite database that stores past conversations, tasks, mistakes, patterns, and decisions as a knowledge graph.
+
+### Automatic Setup
+
+The context databases are created automatically on first use — no manual setup required.
+
+| System | Database Path | Environment Variable |
+|--------|--------------|---------------------|
+| Orchestrator | `~/.ai-orchestrator/context.db` | `ORCHESTRATOR_CONTEXT_DB` |
+| Agentic Team | `~/.agentic-team/context.db` | `AGENTIC_TEAM_CONTEXT_DB` |
+
+> [!NOTE]
+> You can override the default database paths by setting the environment variables above to a custom path.
+
+### Seed Sample Data
+
+Pre-populate both graphs with realistic development data:
+
+```bash
+# Seed both systems
+python scripts/seed_context_graphs.py
+
+# Seed only one system
+python scripts/seed_context_graphs.py --system orchestrator
+python scripts/seed_context_graphs.py --system agentic_team
+
+# Re-seed (overwrite existing data)
+python scripts/seed_context_graphs.py --force
+```
+
+### Optional: Semantic Search
+
+For semantic embedding search (in addition to BM25 keyword search):
+
+```bash
+pip install sentence-transformers
+# Downloads all-MiniLM-L6-v2 model (~80MB) on first use
+```
+
+### Context Dashboard
+
+The Context Dashboard provides a web UI for visualizing and managing both context graphs.
+
+```bash
+# Start the dashboard
+python -m context_dashboard
+
+# Dashboard runs on http://localhost:5003
+```
+
+Features:
+- Interactive network graph visualization (vis.js)
+- Analytics with Chart.js charts
+- Full-text search across all context nodes
+- Pruning, export/import management
+- Combined view aggregating both systems
+
+See [`context_dashboard/README.md`](context_dashboard/README.md) for full documentation.
+
+---
+
+## Skills, Agents & Rules Setup
+
+The project includes pre-configured specialized agents, reusable skills, and domain rules that empower AI coding assistants.
+
+### For Claude Code Users
+
+Claude Code automatically reads from the `.claude/` directory:
+
+| Directory | Contents | Count |
+|-----------|----------|-------|
+| `.claude/agents/` | Specialized agent definitions (`.md`) | 11 |
+| `.claude/skills/` | Reusable task templates (`.md`) | 26 |
+| `.claude/rules/` | Domain-specific coding rules (`.md`) | 11 |
+| `.claude/CLAUDE.md` | Main project instructions | 1 |
+| `.claude/settings.json` | Project settings | 1 |
+
+Agents are invoked with `@agent-name` syntax in Claude Code:
+```bash
+@web-frontend Review this React component for accessibility
+@security-specialist Audit this authentication code
+@database-architect Optimize this SQL query
+```
+
+Skills activate automatically based on task context — no manual invocation needed.
+
+### For OpenAI Codex Users
+
+Codex reads from `.codex/agents/`:
+
+| File | Agent Role |
+|------|-----------|
+| `implementer.toml` | General implementation |
+| `code-reviewer.toml` | Code review |
+| `explorer.toml` | Codebase exploration |
+| `test-runner.toml` | Test execution |
+| `web-frontend.toml` | Frontend development |
+| `backend-api.toml` | Backend API development |
+| `security-specialist.toml` | Security auditing |
+| `devops-infrastructure.toml` | DevOps tasks |
+| `database-architect.toml` | Database work |
+| `performance-engineer.toml` | Performance optimization |
+| `ai-ml-engineer.toml` | AI/ML engineering |
+| `documentation-writer.toml` | Documentation |
+| `mobile-developer.toml` | Mobile development |
+
+### For All AI Agents
+
+`AGENTS.md` at the repository root contains shared instructions read by all supported AI coding tools (Claude Code, Codex, Gemini CLI). It defines:
+- Project overview and architecture boundaries
+- Build & test commands
+- Code style requirements
+- File patterns and conventions
+- Available specialized agents and skills
+- MCP tool catalog
+- Graph context system usage
+
+---
+
 ## MCP Server Setup
 
 The project includes a FastMCP server that exposes both engines to MCP-compatible clients.
@@ -1325,6 +1446,19 @@ You should see:
    - [Architecture](ARCHITECTURE.md)
    - [Add Agents Guide](ADD_AGENTS.md)
 
+7. **Seed Context Graphs** — pre-populate the knowledge graph with sample data:
+   ```bash
+   python scripts/seed_context_graphs.py
+   ```
+
+8. **Start Context Dashboard** — visualize both context graphs:
+   ```bash
+   python -m context_dashboard
+   # Open http://localhost:5003
+   ```
+
+9. **Explore Agentic Infrastructure** — read [AGENTIC_INFRA.md](AGENTIC_INFRA.md) for the full architecture overview of both orchestration engines.
+
 ## Additional Resources
 
 ### Documentation
@@ -1332,6 +1466,8 @@ You should see:
 - [ARCHITECTURE.md](ARCHITECTURE.md) - System architecture
 - [FEATURES.md](FEATURES.md) - Feature documentation
 - [ADD_AGENTS.md](ADD_AGENTS.md) - Adding custom agents
+- [AGENTIC_INFRA.md](AGENTIC_INFRA.md) - Agentic infrastructure documentation
+- [context_dashboard/README.md](context_dashboard/README.md) - Context Dashboard documentation
 - [CONTRIBUTING.md](.github/CONTRIBUTING.md) - Contribution guidelines
 
 ### Support
