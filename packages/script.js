@@ -278,7 +278,8 @@ function initCodeCopyButtons() {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "copy-code-btn";
-    button.textContent = "📋 Copy";
+    button.innerHTML =
+      '<i class="fa-regular fa-copy" aria-hidden="true"></i> <span>Copy</span>';
     button.setAttribute("aria-label", "Copy code block");
 
     button.addEventListener("click", async () => {
@@ -287,20 +288,24 @@ function initCodeCopyButtons() {
         await navigator.clipboard.writeText(code);
         button.classList.remove("failed");
         button.classList.add("copied");
-        button.textContent = "✓ Copied!";
+        button.innerHTML =
+          '<i class="fa-solid fa-check" aria-hidden="true"></i> <span>Copied</span>';
 
         setTimeout(() => {
           button.classList.remove("copied");
-          button.textContent = "📋 Copy";
+          button.innerHTML =
+            '<i class="fa-regular fa-copy" aria-hidden="true"></i> <span>Copy</span>';
         }, 2000);
       } catch (err) {
         console.error("Failed to copy:", err);
         button.classList.remove("copied");
         button.classList.add("failed");
-        button.textContent = "✗ Failed";
+        button.innerHTML =
+          '<i class="fa-solid fa-xmark" aria-hidden="true"></i> <span>Failed</span>';
         setTimeout(() => {
           button.classList.remove("failed");
-          button.textContent = "📋 Copy";
+          button.innerHTML =
+            '<i class="fa-regular fa-copy" aria-hidden="true"></i> <span>Copy</span>';
         }, 2000);
       }
     });
@@ -480,7 +485,7 @@ function activateEasterEgg() {
     document.head.appendChild(style);
   }
 
-  console.log("🎉 Easter egg activated! You found the secret! 🎉");
+  console.log("Easter egg activated! You found the secret.");
 }
 
 // ===========================
@@ -544,13 +549,8 @@ createBackToTopButton();
 // Performance Optimization
 // ===========================
 
-// Lazy load images (if any are added)
-if ("loading" in HTMLImageElement.prototype) {
-  const images = document.querySelectorAll('img[loading="lazy"]');
-  images.forEach((img) => {
-    img.src = img.dataset.src;
-  });
-} else {
+// Lazy load fallback for browsers without native support
+if (!("loading" in HTMLImageElement.prototype)) {
   // Fallback for browsers that don't support lazy loading
   const script = document.createElement("script");
   script.src =
@@ -562,7 +562,7 @@ if ("loading" in HTMLImageElement.prototype) {
 // Console Easter Egg
 // ===========================
 console.log(
-  "%c🤖 AI Orchestrator",
+  "%cAI Orchestrator",
   "font-size: 24px; font-weight: bold; color: #667eea;",
 );
 console.log(
@@ -574,7 +574,7 @@ console.log(
   "font-size: 12px; color: #43e97b;",
 );
 console.log(
-  "%cHint: Try the Konami Code 😉",
+  "%cHint: Try the Konami Code",
   "font-size: 10px; color: #f093fb; font-style: italic;",
 );
 
@@ -610,7 +610,7 @@ function createDarkModeToggle() {
   // Uncomment to enable dark mode toggle
   /*
     const toggle = document.createElement('button');
-    toggle.innerHTML = '🌙';
+    toggle.innerHTML = 'Moon';
     toggle.style.cssText = `
         position: fixed;
         top: 80px;
@@ -629,7 +629,7 @@ function createDarkModeToggle() {
 
     toggle.addEventListener('click', () => {
         document.body.classList.toggle('dark-mode');
-        toggle.innerHTML = document.body.classList.contains('dark-mode') ? '☀️' : '🌙';
+        toggle.innerHTML = document.body.classList.contains('dark-mode') ? 'Sun' : 'Moon';
     });
 
     document.body.appendChild(toggle);
@@ -641,4 +641,4 @@ function createDarkModeToggle() {
 // ===========================
 // Initialize All Features
 // ===========================
-console.log("✅ All features initialized successfully!");
+console.log("All features initialized successfully.");
