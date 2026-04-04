@@ -4,6 +4,7 @@ Task execution results from AI coding agents managed by the Orchestrator and
 Agentic Team systems. Every completed task writes its deliverables here so
 they can be reviewed, tested, or fed into downstream workflows.
 
+> [!IMPORTANT]
 > **⚠️ Contents are git-ignored.** Only this README and `.gitkeep` are tracked.
 
 ## What Appears Here

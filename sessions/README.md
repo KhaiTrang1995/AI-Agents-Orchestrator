@@ -4,8 +4,6 @@ Serialized session state persisted as JSON files. Each file captures the full
 conversation history, task assignments, and execution timeline for a single
 user session — enabling replay, audit, and continuity across restarts.
 
-> **⚠️ Contents are git-ignored.** Only this README and `.gitkeep` are tracked.
-
 ## Purpose
 
 Sessions provide **persistent memory** for AI agent interactions. When a user

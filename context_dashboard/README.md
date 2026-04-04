@@ -53,6 +53,10 @@ The **Context Graph Dashboard** sits atop both databases and provides:
 
 Data is read **directly from SQLite on every request** — no caching, no polling. As AI agents run tasks and store context, the dashboard reflects the latest state on every page load.
 
+<p align="center">
+  <img src="../docs/images/graph.png" alt="Dashboard Overview" width="100%">
+</p>
+
 ---
 
 ## Screenshots

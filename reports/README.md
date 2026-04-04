@@ -5,8 +5,6 @@ interactive dashboards produced by the Orchestrator's reporting subsystem.
 Reports provide visibility into what agents did, how they performed, and
 whether the system is healthy.
 
-> **⚠️ Contents are git-ignored.** Only this README and `.gitkeep` are tracked.
-
 ## Report Types
 
 | Type | File Pattern | Format | Description |

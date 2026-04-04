@@ -4,8 +4,6 @@ Scratch area where AI coding agents actively work on tasks. Each task session
 gets its own isolated subdirectory so agents can clone repositories, write
 intermediate files, and iterate without interfering with each other.
 
-> **⚠️ Contents are git-ignored.** Only this README and `.gitkeep` are tracked.
-
 ## Purpose
 
 The workspace provides a **sandboxed environment** for agents. Unlike `output/`
