@@ -35,10 +35,10 @@
         </div>
         <ul class="nav-menu" id="navMenu">
           <li><a href="#overview" class="nav-link">Overview</a></li>
-          <li><a href="#screenshots" class="nav-link">Screenshots</a></li>
           <li><a href="#features" class="nav-link">Features</a></li>
           <li><a href="#architecture" class="nav-link">Architecture</a></li>
           <li><a href="#agentic-team" class="nav-link">Agentic Team</a></li>
+          <li><a href="#screenshots" class="nav-link">Screenshots</a></li>
           <li><a href="#quick-start" class="nav-link">Quick Start</a></li>
           <li><a href="#workflows" class="nav-link">Workflows</a></li>
           <li><a href="#documentation" class="nav-link">Docs</a></li>
@@ -76,12 +76,50 @@
             >GitHub Repo</a
           >
         </div>
-        <div class="tech-badges">
-          <span class="tech-badge">Python 3.8+</span>
-          <span class="tech-badge">Vue 3</span>
-          <span class="tech-badge">Docker Ready</span>
-          <span class="tech-badge">Kubernetes</span>
-          <span class="tech-badge">Prometheus</span>
+        <div class="hero-marquee-container">
+          <div class="hero-marquee-track">
+            <span class="tech-badge">Python 3.8+</span>
+            <span class="tech-badge">Vue 3</span>
+            <span class="tech-badge">Nuxt 3</span>
+            <span class="tech-badge">Docker Ready</span>
+            <span class="tech-badge">Kubernetes</span>
+            <span class="tech-badge">Prometheus</span>
+            <span class="tech-badge">MCP Server</span>
+            <span class="tech-badge">FastMCP 3.x</span>
+            <span class="tech-badge">Flask</span>
+            <span class="tech-badge">Socket.IO</span>
+            <span class="tech-badge">Pydantic</span>
+            <span class="tech-badge">TailwindCSS</span>
+            <span class="tech-badge">Monaco Editor</span>
+            <span class="tech-badge">Chart.js</span>
+            <span class="tech-badge">Terraform</span>
+            <span class="tech-badge">GitHub Actions</span>
+            <span class="tech-badge">structlog</span>
+            <span class="tech-badge">Grafana</span>
+            <span class="tech-badge">311+ Tests</span>
+            <span class="tech-badge">6 AI Agents</span>
+            <!-- duplicate for seamless loop -->
+            <span class="tech-badge">Python 3.8+</span>
+            <span class="tech-badge">Vue 3</span>
+            <span class="tech-badge">Nuxt 3</span>
+            <span class="tech-badge">Docker Ready</span>
+            <span class="tech-badge">Kubernetes</span>
+            <span class="tech-badge">Prometheus</span>
+            <span class="tech-badge">MCP Server</span>
+            <span class="tech-badge">FastMCP 3.x</span>
+            <span class="tech-badge">Flask</span>
+            <span class="tech-badge">Socket.IO</span>
+            <span class="tech-badge">Pydantic</span>
+            <span class="tech-badge">TailwindCSS</span>
+            <span class="tech-badge">Monaco Editor</span>
+            <span class="tech-badge">Chart.js</span>
+            <span class="tech-badge">Terraform</span>
+            <span class="tech-badge">GitHub Actions</span>
+            <span class="tech-badge">structlog</span>
+            <span class="tech-badge">Grafana</span>
+            <span class="tech-badge">311+ Tests</span>
+            <span class="tech-badge">6 AI Agents</span>
+          </div>
         </div>
         <div class="hero-highlights">
           <div class="hero-highlight">
@@ -99,104 +137,6 @@
         </div>
       </div>
     </header>
-
-    <!-- Screenshots Section -->
-    <section id="screenshots" class="section">
-      <div class="container">
-        <h2 class="section-title">Screenshots</h2>
-        <p class="showcase-lead">
-          Selected product views from the repository screenshot set to give a
-          quick visual tour before diving into architecture and implementation
-          details.
-        </p>
-        <div class="overview-grid showcase-grid">
-          <a
-            class="overview-card showcase-card"
-            href="docs/images/ui.png"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <img
-              src="docs/images/ui.png"
-              alt="Main orchestrator web UI screenshot"
-              loading="lazy"
-              onerror="if(!this.dataset.fallback){this.dataset.fallback='1';this.src=this.src.replace('/images/','/img/');}"
-            />
-            <h3>
-              <i class="fa-solid fa-window-maximize" aria-hidden="true"></i>
-              Web UI Dashboard
-            </h3>
-            <p>
-              Workflow controls, live updates, file management, and editor
-              integration in one interface.
-            </p>
-          </a>
-          <a
-            class="overview-card showcase-card"
-            href="docs/images/agentic-team.png"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <img
-              src="docs/images/agentic-team.png"
-              alt="Agentic team runtime communication UI screenshot"
-              loading="lazy"
-              onerror="if(!this.dataset.fallback){this.dataset.fallback='1';this.src=this.src.replace('/images/','/img/');}"
-            />
-            <h3>
-              <i class="fa-solid fa-users-gear" aria-hidden="true"></i>
-              Agentic Team Runtime
-            </h3>
-            <p>
-              Role routing, communication graph, and turn timeline for
-              multi-role execution.
-            </p>
-          </a>
-          <a
-            class="overview-card showcase-card"
-            href="docs/images/interactive.png"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <img
-              src="docs/images/interactive.png"
-              alt="Interactive shell screenshot"
-              loading="lazy"
-              onerror="if(!this.dataset.fallback){this.dataset.fallback='1';this.src=this.src.replace('/images/','/img/');}"
-            />
-            <h3>
-              <i class="fa-solid fa-terminal" aria-hidden="true"></i>
-              Interactive Shell
-            </h3>
-            <p>
-              Conversation-first command flow for incremental implementation and
-              follow-up tasks.
-            </p>
-          </a>
-          <a
-            class="overview-card showcase-card"
-            href="docs/images/cli-3.png"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <img
-              src="docs/images/cli-3.png"
-              alt="CLI execution output screenshot"
-              loading="lazy"
-              onerror="if(!this.dataset.fallback){this.dataset.fallback='1';this.src=this.src.replace('/images/','/img/');}"
-            />
-            <h3>
-              <i class="fa-solid fa-server" aria-hidden="true"></i>
-              CLI Execution Pipeline
-            </h3>
-            <p>
-              Structured orchestration output showing workflow progress and
-              generated artifacts.
-            </p>
-          </a>
-        </div>
-      </div>
-    </section>
 
     <!-- Overview Section -->
     <section id="overview" class="section">
@@ -271,12 +211,12 @@ graph LR
     I --> H
     H --> J[Final Output + Files]
 
-    style A fill:#667eea,stroke:#667eea,color:#fff
-    style B fill:#764ba2,stroke:#764ba2,color:#fff
-    style D fill:#43e97b,stroke:#43e97b,color:#fff
-    style E fill:#4facfe,stroke:#4facfe,color:#fff
-    style I fill:#f093fb,stroke:#f093fb,color:#fff
-    style J fill:#00c853,stroke:#00c853,color:#fff
+    style A fill:#3b82f6,stroke:#3b82f6,color:#fff
+    style B fill:#2563eb,stroke:#2563eb,color:#fff
+    style D fill:#10b981,stroke:#10b981,color:#fff
+    style E fill:#60a5fa,stroke:#60a5fa,color:#fff
+    style I fill:#60a5fa,stroke:#60a5fa,color:#fff
+    style J fill:#10b981,stroke:#059669,color:#fff
                 </pre
           >
         </div>
@@ -381,13 +321,14 @@ graph LR
             <div class="feature-icon">
               <i class="fa-solid fa-chart-line"></i>
             </div>
-            <h3>Monitoring & Metrics</h3>
+            <h3>Monitoring, Metrics & Reports</h3>
             <ul class="feature-list">
               <li>Prometheus metrics integration</li>
               <li>Structured logging (structlog)</li>
               <li>Health & readiness checks</li>
-              <li>Performance tracking</li>
-              <li>Error rate monitoring</li>
+              <li>Auto-generated execution reports (JSON)</li>
+              <li>Interactive HTML dashboard with Chart.js</li>
+              <li>Agent performance & workflow analytics</li>
             </ul>
           </div>
 
@@ -553,12 +494,12 @@ flowchart TB
     Ollama --> OllamaAPI
     LlamaCpp --> OpenAICompat
 
-    style CLI fill:#667eea,stroke:#667eea,color:#fff
-    style WebUI fill:#667eea,stroke:#667eea,color:#fff
-    style Engine fill:#4facfe,stroke:#4facfe,color:#fff
-    style Workflow fill:#43e97b,stroke:#43e97b,color:#fff
-    style Offline fill:#ffe082,stroke:#ffca28,color:#000
-    style Fallback fill:#f8bbd0,stroke:#ec407a,color:#000
+    style CLI fill:#3b82f6,stroke:#3b82f6,color:#fff
+    style WebUI fill:#3b82f6,stroke:#3b82f6,color:#fff
+    style Engine fill:#60a5fa,stroke:#60a5fa,color:#fff
+    style Workflow fill:#10b981,stroke:#10b981,color:#fff
+    style Offline fill:#f59e0b,stroke:#d97706,color:#fff
+    style Fallback fill:#a78bfa,stroke:#7c3aed,color:#fff
                 </pre>
         </div>
 
@@ -664,11 +605,11 @@ flowchart LR
       PM --> USER[final response to user]
     end
 
-    style OCLI fill:#667eea,stroke:#667eea,color:#fff
-    style OCORE fill:#764ba2,stroke:#764ba2,color:#fff
-    style AENGINE fill:#43e97b,stroke:#43e97b,color:#000
-    style PM fill:#ffe082,stroke:#ffca28,color:#000
-    style USER fill:#4facfe,stroke:#4facfe,color:#fff
+    style OCLI fill:#3b82f6,stroke:#3b82f6,color:#fff
+    style OCORE fill:#2563eb,stroke:#2563eb,color:#fff
+    style AENGINE fill:#10b981,stroke:#10b981,color:#fff
+    style PM fill:#f59e0b,stroke:#d97706,color:#fff
+    style USER fill:#60a5fa,stroke:#60a5fa,color:#fff
           </pre>
         </div>
 
@@ -803,6 +744,104 @@ sequenceDiagram
 
 # Full docs (protocol, examples, failure handling)
 open AGENTIC_TEAM.md</code></pre>
+        </div>
+      </div>
+    </section>
+
+     <!-- Screenshots Section -->
+    <section id="screenshots" class="section">
+      <div class="container">
+        <h2 class="section-title">Screenshots</h2>
+        <p class="showcase-lead">
+          Selected product views from the repository screenshot set to give a
+          quick visual tour before diving into architecture and implementation
+          details.
+        </p>
+        <div class="overview-grid showcase-grid">
+          <a
+            class="overview-card showcase-card"
+            href="docs/images/ui.png"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <img
+              src="docs/images/ui.png"
+              alt="Main orchestrator web UI screenshot"
+              loading="lazy"
+              onerror="if(!this.dataset.fallback){this.dataset.fallback='1';this.src=this.src.replace('/images/','/img/');}"
+            />
+            <h3>
+              <i class="fa-solid fa-window-maximize" aria-hidden="true"></i>
+              Web UI Dashboard
+            </h3>
+            <p>
+              Workflow controls, live updates, file management, and editor
+              integration in one interface.
+            </p>
+          </a>
+          <a
+            class="overview-card showcase-card"
+            href="docs/images/agentic-team.png"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <img
+              src="docs/images/agentic-team.png"
+              alt="Agentic team runtime communication UI screenshot"
+              loading="lazy"
+              onerror="if(!this.dataset.fallback){this.dataset.fallback='1';this.src=this.src.replace('/images/','/img/');}"
+            />
+            <h3>
+              <i class="fa-solid fa-users-gear" aria-hidden="true"></i>
+              Agentic Team Runtime
+            </h3>
+            <p>
+              Role routing, communication graph, and turn timeline for
+              multi-role execution.
+            </p>
+          </a>
+          <a
+            class="overview-card showcase-card"
+            href="docs/images/interactive.png"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <img
+              src="docs/images/interactive.png"
+              alt="Interactive shell screenshot"
+              loading="lazy"
+              onerror="if(!this.dataset.fallback){this.dataset.fallback='1';this.src=this.src.replace('/images/','/img/');}"
+            />
+            <h3>
+              <i class="fa-solid fa-terminal" aria-hidden="true"></i>
+              Interactive Shell
+            </h3>
+            <p>
+              Conversation-first command flow for incremental implementation and
+              follow-up tasks.
+            </p>
+          </a>
+          <a
+            class="overview-card showcase-card"
+            href="docs/images/cli-3.png"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <img
+              src="docs/images/cli-3.png"
+              alt="CLI execution output screenshot"
+              loading="lazy"
+              onerror="if(!this.dataset.fallback){this.dataset.fallback='1';this.src=this.src.replace('/images/','/img/');}"
+            />
+            <h3>
+              <i class="fa-solid fa-server" aria-hidden="true"></i>
+              CLI Execution Pipeline
+            </h3>
+            <p>
+              Structured orchestration output showing workflow progress and
+              generated artifacts.
+            </p>
+          </a>
         </div>
       </div>
     </section>
@@ -990,9 +1029,9 @@ graph TD
     AGG --> REPORT[Generate final result]
     REPORT --> END([End])
 
-    style START fill:#667eea,stroke:#667eea,color:#fff
-    style END fill:#43e97b,stroke:#43e97b,color:#fff
-    style FB fill:#f8bbd0,stroke:#ec407a,color:#000
+    style START fill:#3b82f6,stroke:#3b82f6,color:#fff
+    style END fill:#10b981,stroke:#10b981,color:#fff
+    style FB fill:#a78bfa,stroke:#7c3aed,color:#fff
                 </pre
           >
         </div>
@@ -1001,7 +1040,7 @@ graph TD
           <h3>Custom Workflows</h3>
           <p>
             Define your own workflows in
-            <code style="color: rebeccapurple">orchestrator/config/agents.yaml</code>:
+            <code style="color: #60a5fa">orchestrator/config/agents.yaml</code>:
           </p>
           <pre><code>agents:
   my-custom-llama:
@@ -1122,12 +1161,14 @@ workflows:
               </ul>
             </div>
             <div class="tech-category">
-              <h4>Monitoring</h4>
+              <h4>Monitoring & Reports</h4>
               <ul>
                 <li>Prometheus</li>
                 <li>Structlog</li>
                 <li>Grafana</li>
                 <li>Health Checks</li>
+                <li>Report Generator</li>
+                <li>Chart.js Dashboard</li>
               </ul>
             </div>
             <div class="tech-category">
@@ -1255,18 +1296,70 @@ workflows:
 
         <div class="acknowledgments">
           <h3>Built With</h3>
-          <div class="tools-list">
-            <span>Click</span>
-            <span>Rich</span>
-            <span>Pydantic</span>
-            <span>Vue 3</span>
-            <span>Flask</span>
-            <span>MCP</span>
-            <span>Monaco Editor</span>
-            <span>Pinia</span>
-            <span>Prometheus</span>
-            <span>Docker</span>
-            <span>Kubernetes</span>
+          <div class="marquee-container">
+            <div class="marquee-track">
+              <span>Python</span>
+              <span>Click</span>
+              <span>Rich</span>
+              <span>Pydantic</span>
+              <span>Vue 3</span>
+              <span>Nuxt 3</span>
+              <span>Flask</span>
+              <span>FastMCP</span>
+              <span>Monaco Editor</span>
+              <span>Pinia</span>
+              <span>Prometheus</span>
+              <span>Grafana</span>
+              <span>Docker</span>
+              <span>Kubernetes</span>
+              <span>Terraform</span>
+              <span>structlog</span>
+              <span>Socket.IO</span>
+              <span>TailwindCSS</span>
+              <span>Vite</span>
+              <span>Chart.js</span>
+              <span>HTTPX</span>
+              <span>Tenacity</span>
+              <span>PyYAML</span>
+              <span>Pytest</span>
+              <span>MyPy</span>
+              <span>Black</span>
+              <span>Bandit</span>
+              <span>isort</span>
+              <span>GitHub Actions</span>
+              <span>Mermaid</span>
+              <!-- duplicate set for seamless loop -->
+              <span>Python</span>
+              <span>Click</span>
+              <span>Rich</span>
+              <span>Pydantic</span>
+              <span>Vue 3</span>
+              <span>Nuxt 3</span>
+              <span>Flask</span>
+              <span>FastMCP</span>
+              <span>Monaco Editor</span>
+              <span>Pinia</span>
+              <span>Prometheus</span>
+              <span>Grafana</span>
+              <span>Docker</span>
+              <span>Kubernetes</span>
+              <span>Terraform</span>
+              <span>structlog</span>
+              <span>Socket.IO</span>
+              <span>TailwindCSS</span>
+              <span>Vite</span>
+              <span>Chart.js</span>
+              <span>HTTPX</span>
+              <span>Tenacity</span>
+              <span>PyYAML</span>
+              <span>Pytest</span>
+              <span>MyPy</span>
+              <span>Black</span>
+              <span>Bandit</span>
+              <span>isort</span>
+              <span>GitHub Actions</span>
+              <span>Mermaid</span>
+            </div>
           </div>
         </div>
       </div>

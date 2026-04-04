@@ -585,8 +585,7 @@ class TestConfigManagerE2E:
         from orchestrator.infra.config_manager import ConfigManager
 
         with tempfile.NamedTemporaryFile(suffix=".yaml", mode="w", delete=False) as f:
-            f.write(
-                """
+            f.write("""
 agents:
   test:
     enabled: true
@@ -597,8 +596,7 @@ workflows:
       task: implement
 settings:
   max_iterations: 2
-"""
-            )
+""")
             f.flush()
             try:
                 cm = ConfigManager(config_file=Path(f.name))

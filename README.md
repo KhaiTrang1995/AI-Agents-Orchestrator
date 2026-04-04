@@ -262,7 +262,7 @@ The two systems serve different collaboration models. Choose based on your use c
 | **Config file** | `orchestrator/config/agents.yaml` | `agentic_team/config/agents.yaml` |
 | **Built-in workflows** | 7 (default, quick, thorough, review-only, document, offline-default, hybrid) | N/A (turn-based, no fixed pipeline) |
 | **Fallback strategy** | Per-step cloud-to-local routing | Independent fallback manager |
-| **Observability** | Prometheus metrics, structured logging, health probes | Health and readiness probes |
+| **Observability** | Prometheus metrics, structured logging, health probes, report generation | Health and readiness probes |
 | **Security module** | Input validation, rate limiting, audit logging | N/A (inherits from adapter layer) |
 | **Shared code** | None | None |
 
@@ -278,6 +278,7 @@ The two systems serve different collaboration models. Choose based on your use c
 | **Web UI** | Nuxt 3 + Vue 3 frontend, Flask + Socket.IO backend, Monaco code editor, Pinia state management |
 | **Resilience** | Retry with exponential backoff, circuit breakers, cloud-to-local fallback, offline detection |
 | **Observability** | Prometheus metrics, structured logging via structlog, health and readiness probes |
+| **Reports** | Execution summaries, agent performance, workflow analytics, config audits, HTML dashboard with Chart.js charts |
 | **Security** | Input validation, rate limiting, secret management, audit logging |
 | **Infra** | Async executor, response caching, connection pooling, config manager |
 
@@ -387,10 +388,11 @@ AI-Coding-Tools/
 |   |   |-- retry.py                 #   Retry with exponential backoff
 |   |   |-- fallback.py              #   Cloud-to-local fallback routing
 |   |   +-- offline.py               #   Offline detection
-|   |-- observability/               # Monitoring and logging
+|   |-- observability/               # Monitoring, logging, and reports
 |   |   |-- metrics.py               #   Prometheus metrics
 |   |   |-- logging_config.py        #   Structured logging setup
-|   |   +-- health.py                #   Health and readiness probes
+|   |   |-- health.py                #   Health and readiness probes
+|   |   +-- report_generator.py      #   Execution, performance, and HTML reports
 |   |-- security_module/             # Security layer
 |   |   +-- security.py              #   Validation, rate limiting, audit
 |   |-- infra/                       # Infrastructure utilities
@@ -447,6 +449,15 @@ AI-Coding-Tools/
 |   |-- test_enterprise_hardening.py
 |   |-- test_production_hardening.py
 |   +-- ...
+|
+|-- reports/                          # Generated reports (JSON + HTML dashboard)
+|   |-- INDEX.json                   #   Report catalog
+|   |-- exec_*.json                  #   Per-task execution summaries
+|   |-- perf_*.json                  #   Agent performance analytics
+|   |-- workflow_*.json              #   Workflow-level analytics
+|   |-- health_*.json                #   System health snapshots
+|   |-- config_*.json                #   Configuration audits
+|   +-- dashboard_*.html             #   Interactive HTML dashboard with charts
 |
 |-- deployment/                      # Deployment configurations
 |   |-- kubernetes/
@@ -649,6 +660,26 @@ Prometheus metrics are exposed by the orchestrator UI backend on port 9090.
 | `orchestrator_agent_errors_total` | Agent error count |
 | `orchestrator_cache_hits_total` | Cache performance |
 
+### Reports
+
+The orchestrator automatically generates reports in `reports/` when `create_reports: true` is set in `agents.yaml`. Reports include:
+
+| Report Type | Description |
+|---|---|
+| **Execution Summary** | Per-task results: steps, agents used, fallbacks, suggestions, duration |
+| **Agent Performance** | Aggregated success rates, call counts, task type distribution |
+| **Workflow Analytics** | Per-workflow run counts, success rates, average iterations |
+| **System Health** | Health check results, disk/memory, Python version, platform |
+| **Config Audit** | Agent availability, workflow structure, settings snapshot |
+| **HTML Dashboard** | Interactive Chart.js dashboard with KPI cards, bar/line/doughnut charts |
+
+Reports are also generated programmatically via:
+```python
+from orchestrator.observability import ReportGenerator
+gen = ReportGenerator(reports_dir="./reports")
+gen.seed_reports(config=config)  # Generate all report types with sample data
+```
+
 Health checks:
 - Orchestrator: `http://localhost:5001/health`, `http://localhost:5001/ready`
 - Agentic Team: `http://localhost:5002/health`, `http://localhost:5002/ready`
@@ -763,8 +794,10 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) for detai
 
 <div align="center">
 
-**Made with care by [Son Nguyen](https://github.com/hoangsonww) for the AI development community**
+**Made with care and love by [Son Nguyen](https://github.com/hoangsonww) for the AI development community 🤖**
 
-[Back to Top](#ai-coding-tools)
+[Back to Top](#ai-coding-tools-orchestrator-and-agentic-team-runtime)
+
+> **Easter egg:** Go to our [wiki page](https://hoangsonww.github.io/AI-Agents-Orchestrator/) and enter Konami code (↑ ↑ ↓ ↓ ← → ← → B A) for a surprise!
 
 </div>

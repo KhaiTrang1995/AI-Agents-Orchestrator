@@ -825,6 +825,58 @@ logger.info(
 - Input validation failures
 - Suspicious activities
 
+## Reports & Analytics
+
+### Automated Report Generation
+
+The orchestrator generates reports automatically after each task execution (when `create_reports: true` in config). Reports are written to `reports/` as JSON files and an interactive HTML dashboard.
+
+```mermaid
+graph TD
+    EXEC[Task Execution] --> RG[ReportGenerator]
+    RG --> ES[Execution Summary JSON]
+    RG --> AP[Agent Performance JSON]
+    RG --> WA[Workflow Analytics JSON]
+    RG --> SH[System Health JSON]
+    RG --> CA[Config Audit JSON]
+    RG --> HD[HTML Dashboard]
+    RG --> IDX[INDEX.json Catalog]
+```
+
+**Report Types:**
+
+| Type | File Pattern | Contents |
+|---|---|---|
+| **Execution Summary** | `exec_*.json` | Per-task steps, agents, fallbacks, suggestions, duration |
+| **Agent Performance** | `perf_*.json` | Aggregated success rates, call counts, task type distribution |
+| **Workflow Analytics** | `workflow_*.json` | Per-workflow runs, success rates, average iterations |
+| **System Health** | `health_*.json` | Health checks, disk/memory, Python version, platform |
+| **Config Audit** | `config_*.json` | Agent availability, workflow structure, settings snapshot |
+| **HTML Dashboard** | `dashboard_*.html` | Interactive Chart.js dashboard with 4 charts and KPI cards |
+
+**HTML Dashboard Charts:**
+- Daily Task Volume & Success (bar chart)
+- Agent Success vs Failure (stacked bar chart)
+- Average Duration trend (line chart)
+- Workflow Distribution (doughnut chart)
+
+**Programmatic Usage:**
+```python
+from orchestrator.observability import ReportGenerator
+gen = ReportGenerator(reports_dir="./reports")
+
+# Generate all report types with sample data
+gen.seed_reports(config=config)
+
+# Generate individual reports
+gen.generate_execution_report(task, workflow, results, duration, agents)
+gen.generate_health_report()
+gen.generate_config_audit(config)
+gen.generate_agent_performance_report(execution_history)
+gen.generate_workflow_analytics(execution_history)
+gen.generate_html_dashboard()
+```
+
 ## Monitoring & Metrics
 
 ### Prometheus Metrics
