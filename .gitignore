@@ -45,7 +45,6 @@ logs/
 ai-orchestrator.log
 
 # Output
-output/
 *.tmp
 
 # OS
@@ -63,3 +62,8 @@ config/*.local.yaml
 node_modules/
 /orchestrator/ui/frontend/.nuxt/
 /agentic_team/ui/frontend/.nuxt/
+
+# Runtime directories — output only tracks .gitkeep and README
+output/*
+!output/.gitkeep
+!output/README.md
