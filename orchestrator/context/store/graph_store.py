@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Generator
 
-from orchestrator.context.schemas import Edge, EdgeType, Node, NodeType
+from orchestrator.context.models.schemas import Edge, EdgeType, Node, NodeType
 
 
 class GraphStore:

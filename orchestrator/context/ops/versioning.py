@@ -8,7 +8,7 @@ from datetime import datetime, timezone
 from typing import Any
 from uuid import uuid4
 
-from orchestrator.context.graph_store import GraphStore
+from orchestrator.context.store.graph_store import GraphStore
 
 
 class ContextVersioning:

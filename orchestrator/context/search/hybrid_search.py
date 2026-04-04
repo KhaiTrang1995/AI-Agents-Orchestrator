@@ -10,10 +10,10 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from orchestrator.context.bm25_index import BM25Index
-from orchestrator.context.embeddings import EmbeddingStore
-from orchestrator.context.graph_store import GraphStore
-from orchestrator.context.schemas import Node, NodeType, SearchResult
+from orchestrator.context.models.schemas import Node, NodeType, SearchResult
+from orchestrator.context.search.bm25_index import BM25Index
+from orchestrator.context.search.embeddings import EmbeddingStore
+from orchestrator.context.store.graph_store import GraphStore
 
 
 class HybridSearch:

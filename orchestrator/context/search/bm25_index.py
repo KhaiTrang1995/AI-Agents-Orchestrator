@@ -13,8 +13,8 @@ import re
 from collections import Counter, defaultdict
 from typing import Any
 
-from orchestrator.context.graph_store import GraphStore
-from orchestrator.context.schemas import Node, NodeType
+from orchestrator.context.models.schemas import Node, NodeType
+from orchestrator.context.store.graph_store import GraphStore
 
 
 class BM25Index:

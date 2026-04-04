@@ -9,8 +9,8 @@ from pathlib import Path
 from typing import Any
 from xml.etree.ElementTree import Element, ElementTree, SubElement
 
-from orchestrator.context.graph_store import GraphStore
-from orchestrator.context.schemas import Edge, Node
+from orchestrator.context.models.schemas import Edge, Node
+from orchestrator.context.store.graph_store import GraphStore
 
 
 class ContextExporter:

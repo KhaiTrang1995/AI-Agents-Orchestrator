@@ -6,7 +6,7 @@ import logging
 from collections import defaultdict, deque
 from typing import Any
 
-from orchestrator.context.graph_store import GraphStore
+from orchestrator.context.store.graph_store import GraphStore
 
 
 class AdvancedSearch:

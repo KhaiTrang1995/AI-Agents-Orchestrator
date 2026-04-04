@@ -13,8 +13,8 @@ from typing import Any
 
 import numpy as np
 
-from orchestrator.context.graph_store import GraphStore
-from orchestrator.context.schemas import Node
+from orchestrator.context.models.schemas import Node
+from orchestrator.context.store.graph_store import GraphStore
 
 
 class EmbeddingStore:

@@ -12,11 +12,7 @@ from datetime import datetime, timezone
 from typing import Any, Callable
 from uuid import uuid4
 
-from orchestrator.context.bm25_index import BM25Index
-from orchestrator.context.embeddings import EmbeddingStore
-from orchestrator.context.graph_store import GraphStore
-from orchestrator.context.hybrid_search import HybridSearch
-from orchestrator.context.schemas import (
+from orchestrator.context.models.schemas import (
     CodeSnippetNode,
     ConversationNode,
     DecisionNode,
@@ -30,6 +26,10 @@ from orchestrator.context.schemas import (
     SearchResult,
     TaskNode,
 )
+from orchestrator.context.search.bm25_index import BM25Index
+from orchestrator.context.search.embeddings import EmbeddingStore
+from orchestrator.context.search.hybrid_search import HybridSearch
+from orchestrator.context.store.graph_store import GraphStore
 
 
 class MemoryManager:
