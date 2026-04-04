@@ -3,19 +3,21 @@ requires = ["setuptools>=65.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "ai-orchestrator"
+name = "ai-coding-tools-collaborative"
 version = "1.0.0"
-description = "Production-ready orchestration system for collaborative AI coding assistants"
+description = "Comprehensive AI coding collaboration platform with role-based teams, orchestration, and MCP integration"
 readme = "README.md"
 requires-python = ">=3.8"
 license = {text = "MIT"}
 authors = [
-    {name = "AI Orchestrator Team"}
+    {name = "AI Coding Tools Team"}
 ]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Intended Audience :: Developers",
     "Topic :: Software Development :: Code Generators",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.8",
@@ -35,7 +37,18 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "structlog>=23.1.0",
     "prometheus-client>=0.17.0",
+    "fastmcp>=0.1.0",
+    "flask>=2.3.0",
+    "flask-cors>=4.0.0",
+    "flask-socketio>=5.3.0",
+    "python-socketio>=5.8.0",
 ]
+
+[project.urls]
+"Homepage" = "https://github.com/ai-coding-tools/collaborative"
+"Repository" = "https://github.com/ai-coding-tools/collaborative.git"
+"Documentation" = "https://github.com/ai-coding-tools/collaborative/tree/main/docs"
+"Bug Tracker" = "https://github.com/ai-coding-tools/collaborative/issues"
 
 [project.optional-dependencies]
 dev = [
@@ -58,7 +71,9 @@ dev = [
 ]
 
 [project.scripts]
-ai-orchestrator = "ai_orchestrator.cli:main"
+ai-agentic-team = "agentic_team.cli:main"
+ai-orchestrator = "orchestrator.cli:main"
+ai-mcp-server = "mcp_server.server:main"
 
 [tool.black]
 line-length = 100
@@ -124,8 +139,8 @@ addopts = [
     "--strict-markers",
     "--strict-config",
     "--cov=orchestrator",
-    "--cov=adapters",
     "--cov=agentic_team",
+    "--cov=mcp_server",
     "--cov-branch",
     "--cov-report=term-missing:skip-covered",
     "--cov-report=html",
