@@ -6,8 +6,20 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo 'AI Coding Tools Orchestrator — dual system: orchestrator/ + agentic_team/ (zero shared code). Run tests: python -m pytest tests/ --override-ini=\"addopts=\" -q --timeout=30 -m \"not integration and not slow\"'",
+            "command": "/usr/bin/python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/session_start.py\"",
             "statusMessage": "Loading project context"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/pre_tool_use_policy.py\"",
+            "statusMessage": "Checking command safety"
           }
         ]
       }
@@ -18,9 +30,30 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 -c \"import sys,json; data=json.load(sys.stdin); cmd=data.get('tool_input',{}).get('command',''); ext=cmd.strip().split()[-1] if cmd.strip() else ''; result=json.dumps({'hookSpecificOutput':{'hookEventName':'PostToolUse','additionalContext':'File was auto-formatted.'}}) if ext.endswith('.py') else ''; print(result) if result else None\" 2>/dev/null || true",
-            "statusMessage": "Checking output",
+            "command": "/usr/bin/python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/post_tool_use_review.py\"",
+            "statusMessage": "Reviewing output",
             "timeout": 10
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/user_prompt_submit_data_flywheel.py\""
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "/usr/bin/python3 \"$(git rev-parse --show-toplevel)/.codex/hooks/stop_continue.py\"",
+            "timeout": 30
           }
         ]
       }
