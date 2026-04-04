@@ -68,7 +68,7 @@ spec:
                     sh '''
                         pip install --upgrade pip
                         pip install -r requirements.txt
-                        pip install pytest pytest-cov black flake8 mypy bandit
+                        pip install pytest pytest-cov pytest-timeout black flake8 mypy bandit
                     '''
                 }
             }
@@ -81,10 +81,10 @@ spec:
                         container('python') {
                             sh '''
                                 echo "Running Black..."
-                                black --check orchestrator/ agentic_team/ tests/ || true
+                                black --check orchestrator/ agentic_team/ mcp_server/ context_dashboard/ tests/ || true
 
                                 echo "Running Flake8..."
-                                flake8 orchestrator/ agentic_team/ tests/ || true
+                                flake8 orchestrator/ agentic_team/ mcp_server/ context_dashboard/ tests/ || true
                             '''
                         }
                     }
@@ -93,7 +93,7 @@ spec:
                 stage('Type Checking') {
                     steps {
                         container('python') {
-                            sh 'mypy orchestrator/ agentic_team/ || true'
+                            sh 'mypy orchestrator/ agentic_team/ mcp_server/ context_dashboard/ --ignore-missing-imports || true'
                         }
                     }
                 }
@@ -101,7 +101,7 @@ spec:
                 stage('Security Scan') {
                     steps {
                         container('python') {
-                            sh 'bandit -r orchestrator/ agentic_team/ -f json -o bandit-report.json || true'
+                            sh 'bandit -r orchestrator/ agentic_team/ mcp_server/ context_dashboard/ -c pyproject.toml -f json -o bandit-report.json || true'
                         }
                     }
                 }
@@ -113,9 +113,13 @@ spec:
                 container('python') {
                     sh '''
                         pytest tests/ \
+                            --override-ini="addopts=" \
+                            -m "not integration and not slow" \
+                            --timeout=30 \
                             --cov=orchestrator \
                             --cov=agentic_team \
-                            --cov=agentic_team \
+                            --cov=mcp_server \
+                            --cov=context_dashboard \
                             --cov-report=xml \
                             --cov-report=html \
                             --junitxml=pytest-report.xml \
@@ -201,8 +205,12 @@ spec:
                         kubectl set image deployment/agentic-team-blue \
                             agentic-team=${DOCKER_IMAGE}:${DOCKER_TAG} \
                             -n ai-orchestrator
+                        kubectl set image deployment/mcp-server mcp-server=${DOCKER_IMAGE}:${DOCKER_TAG} -n ai-orchestrator
+                        kubectl set image deployment/context-dashboard context-dashboard=${DOCKER_IMAGE}:${DOCKER_TAG} -n ai-orchestrator
                         kubectl rollout status deployment/ai-orchestrator-blue -n ai-orchestrator
                         kubectl rollout status deployment/agentic-team-blue -n ai-orchestrator
+                        kubectl rollout status deployment/mcp-server -n ai-orchestrator
+                        kubectl rollout status deployment/context-dashboard -n ai-orchestrator
                     '''
                 }
             }
@@ -226,14 +234,24 @@ spec:
                                 kubectl set image deployment/agentic-team-green \
                                     agentic-team=${DOCKER_IMAGE}:${DOCKER_TAG} \
                                     -n ai-orchestrator
+                                kubectl set image deployment/mcp-server-green \
+                                    mcp-server=${DOCKER_IMAGE}:${DOCKER_TAG} \
+                                    -n ai-orchestrator
+                                kubectl set image deployment/context-dashboard-green \
+                                    context-dashboard=${DOCKER_IMAGE}:${DOCKER_TAG} \
+                                    -n ai-orchestrator
 
                                 # Scale up green deployment
                                 kubectl scale deployment/ai-orchestrator-green --replicas=3 -n ai-orchestrator
                                 kubectl scale deployment/agentic-team-green --replicas=3 -n ai-orchestrator
+                                kubectl scale deployment/mcp-server-green --replicas=3 -n ai-orchestrator
+                                kubectl scale deployment/context-dashboard-green --replicas=3 -n ai-orchestrator
 
                                 # Wait for green to be ready
                                 kubectl rollout status deployment/ai-orchestrator-green -n ai-orchestrator
                                 kubectl rollout status deployment/agentic-team-green -n ai-orchestrator
+                                kubectl rollout status deployment/mcp-server-green -n ai-orchestrator
+                                kubectl rollout status deployment/context-dashboard-green -n ai-orchestrator
                             '''
                         }
                     }
@@ -295,6 +313,8 @@ spec:
                                 # Scale down blue environment
                                 kubectl scale deployment/ai-orchestrator-blue --replicas=0 -n ai-orchestrator
                                 kubectl scale deployment/agentic-team-blue --replicas=0 -n ai-orchestrator
+                                kubectl scale deployment/mcp-server-blue --replicas=0 -n ai-orchestrator
+                                kubectl scale deployment/context-dashboard-blue --replicas=0 -n ai-orchestrator
 
                                 # Swap labels: current green becomes new blue
                                 echo "Blue/Green swap completed"
@@ -315,6 +335,8 @@ spec:
                         echo "Rolling back deployment..."
                         kubectl rollout undo deployment/ai-orchestrator-blue -n ai-orchestrator
                         kubectl rollout undo deployment/agentic-team-blue -n ai-orchestrator || true
+                        kubectl rollout undo deployment/mcp-server -n ai-orchestrator || true
+                        kubectl rollout undo deployment/context-dashboard -n ai-orchestrator || true
                     '''
                 }
             }

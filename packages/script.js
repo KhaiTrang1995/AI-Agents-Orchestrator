@@ -97,18 +97,6 @@ function initMobileMenu() {
   hamburger.addEventListener("click", () => {
     navMenu.classList.toggle("active");
     hamburger.classList.toggle("active");
-
-    // Animate hamburger
-    const spans = hamburger.querySelectorAll("span");
-    if (hamburger.classList.contains("active")) {
-      spans[0].style.transform = "rotate(45deg) translate(5px, 5px)";
-      spans[1].style.opacity = "0";
-      spans[2].style.transform = "rotate(-45deg) translate(7px, -6px)";
-    } else {
-      spans[0].style.transform = "none";
-      spans[1].style.opacity = "1";
-      spans[2].style.transform = "none";
-    }
   });
 
   // Close menu when clicking on a link
@@ -117,10 +105,6 @@ function initMobileMenu() {
     link.addEventListener("click", () => {
       navMenu.classList.remove("active");
       hamburger.classList.remove("active");
-      const spans = hamburger.querySelectorAll("span");
-      spans[0].style.transform = "none";
-      spans[1].style.opacity = "1";
-      spans[2].style.transform = "none";
     });
   });
 
@@ -129,10 +113,6 @@ function initMobileMenu() {
     if (!hamburger.contains(e.target) && !navMenu.contains(e.target)) {
       navMenu.classList.remove("active");
       hamburger.classList.remove("active");
-      const spans = hamburger.querySelectorAll("span");
-      spans[0].style.transform = "none";
-      spans[1].style.opacity = "1";
-      spans[2].style.transform = "none";
     }
   });
 }

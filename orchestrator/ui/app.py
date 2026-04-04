@@ -1150,4 +1150,4 @@ if __name__ == "__main__":
     init_orchestrator()
     port = int(os.environ.get("UI_BACKEND_PORT") or os.environ.get("PORT", "5001"))
     debug = os.environ.get("FLASK_DEBUG", "false").lower() in ("true", "1", "yes")
-    socketio.run(app, host="0.0.0.0", port=port, debug=debug)
+    socketio.run(app, host="0.0.0.0", port=port, debug=debug, allow_unsafe_werkzeug=True)

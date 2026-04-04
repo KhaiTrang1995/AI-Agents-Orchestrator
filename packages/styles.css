@@ -210,19 +210,53 @@ body {
 .hamburger {
   display: none;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
   background: none;
   border: none;
   cursor: pointer;
   padding: var(--spacing-xs);
+  width: 30px;
+  height: 24px;
+  position: relative;
 }
 
 .hamburger span {
+  position: absolute;
+  left: 4px;
   width: 22px;
   height: 2px;
   background: var(--text-secondary);
   border-radius: 2px;
-  transition: all var(--transition-base);
+  transition: all 0.3s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+  transform-origin: center;
+}
+
+.hamburger span:nth-child(1) {
+  top: 4px;
+}
+
+.hamburger span:nth-child(2) {
+  top: 11px;
+}
+
+.hamburger span:nth-child(3) {
+  top: 18px;
+}
+
+/* Hamburger to X animation */
+.hamburger.active span:nth-child(1) {
+  top: 11px;
+  transform: rotate(45deg);
+}
+
+.hamburger.active span:nth-child(2) {
+  opacity: 0;
+  transform: scaleX(0);
+}
+
+.hamburger.active span:nth-child(3) {
+  top: 11px;
+  transform: rotate(-45deg);
 }
 
 /* Scroll Progress Bar */
@@ -293,6 +327,8 @@ body {
   position: relative;
   z-index: 1;
   max-width: 900px;
+  width: 100%;
+  overflow: hidden;
 }
 
 .badge {
@@ -313,11 +349,12 @@ body {
 }
 
 .hero-title {
-  font-size: clamp(2.5rem, 5vw, 4rem);
+  font-size: clamp(1.75rem, 5vw, 4rem);
   font-weight: 800;
   margin-bottom: var(--spacing-md);
   line-height: 1.15;
   letter-spacing: -0.03em;
+  word-break: break-word;
   animation: fadeInUp 0.6s ease 0.2s both;
   background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.75) 100%);
   -webkit-background-clip: text;
@@ -326,10 +363,11 @@ body {
 }
 
 .hero-subtitle {
-  font-size: clamp(1rem, 2vw, 1.25rem);
-  margin-bottom: var(--spacing-xl);
+  font-size: clamp(0.9rem, 2vw, 1.25rem);
+  margin-bottom: var(--spacing-lg);
   color: var(--text-secondary);
-  line-height: 1.7;
+  line-height: 1.6;
+  padding: 0 var(--spacing-xs);
   animation: fadeInUp 0.6s ease 0.4s both;
 }
 

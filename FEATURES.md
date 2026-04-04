@@ -3,6 +3,7 @@
 ## Table of Contents
 
 - [Core Features](#core-features)
+- [Agentic Infrastructure](#agentic-infrastructure)
 - [Agentic Team Features](#agentic-team-features)
 - [CLI Features](#cli-features)
 - [Web UI Features](#web-ui-features)
@@ -67,6 +68,188 @@ workflows:
       - agent: "claude"
         task: "refine"
 ```
+
+## Agentic Infrastructure
+
+Beyond the core engines, the platform provides comprehensive infrastructure to empower AI agents:
+
+### Specialized Agents
+
+9 domain-expert agents available for both Claude and Codex:
+
+```mermaid
+mindmap
+  root((Specialized<br/>Agents))
+    Web
+      web-frontend
+        React/Vue/Angular
+        CSS/Tailwind
+        Accessibility
+    Backend
+      backend-api
+        REST/GraphQL
+        Microservices
+      database-architect
+        Schema Design
+        Query Optimization
+    Security
+      security-specialist
+        OWASP Top 10
+        Secure Coding
+    Infrastructure
+      devops-infrastructure
+        Docker/K8s
+        CI/CD
+      performance-engineer
+        Profiling
+        Optimization
+    AI/ML
+      ai-ml-engineer
+        ML Pipelines
+        RAG Systems
+    Mobile
+      mobile-developer
+        React Native
+        Flutter
+    Documentation
+      documentation-writer
+        API Docs
+        Architecture
+```
+
+**Usage:**
+```bash
+# Claude with specialized agent
+claude -a security-specialist "Review this authentication code"
+claude -a backend-api "Design REST API for user management"
+
+# Codex with specialized agent
+codex --agent ai-ml-engineer "Build RAG pipeline"
+```
+
+### Skills Library
+
+22 reusable skills across 6 categories:
+
+| Category | Skills | Examples |
+|----------|--------|----------|
+| **Development** | 6 | react-components, rest-api-design, python-async |
+| **Testing** | 4 | unit-testing, integration-testing, tdd |
+| **Security** | 4 | input-validation, authentication, secure-coding |
+| **DevOps** | 3 | docker-containerization, ci-cd-pipelines, kubernetes |
+| **AI/ML** | 3 | embeddings-retrieval, llm-integration, rag-pipeline |
+| **Documentation** | 3 | api-documentation, architecture-docs |
+
+Skills activate automatically based on task context:
+```bash
+claude "Create a React component with unit tests"
+# → Automatically uses: react-components, unit-testing skills
+```
+
+### MCP Tools
+
+34+ tools exposed via Model Context Protocol:
+
+```mermaid
+graph LR
+    subgraph "MCP Tools"
+        subgraph "Code Analysis"
+            CA[analyze_complexity]
+            CP[find_patterns]
+            CD[analyze_deps]
+        end
+
+        subgraph "Security"
+            SS[scan_secrets]
+            SI[scan_injection]
+            SH[check_headers]
+        end
+
+        subgraph "Testing"
+            TC[generate_tests]
+            TS[generate_stubs]
+            CO[analyze_coverage]
+        end
+
+        subgraph "DevOps"
+            DF[analyze_dockerfile]
+            DC[check_ci_config]
+            DL[deploy_checklist]
+        end
+
+        subgraph "Context"
+            ST[store_context]
+            SR[search_context]
+            LM[log_mistake]
+        end
+    end
+```
+
+### Graph Context System
+
+Persistent memory with hybrid search for learning from past tasks:
+
+```mermaid
+graph TB
+    subgraph "Context System"
+        STORE[(Graph Store<br/>SQLite + FTS5)]
+        BM25[BM25 Search]
+        EMBED[Semantic Search<br/>all-MiniLM-L6-v2]
+        RRF[Hybrid Search<br/>RRF Fusion]
+    end
+
+    subgraph "Node Types"
+        CONV[Conversations]
+        TASK[Tasks]
+        MISTAKE[Mistakes]
+        PATTERN[Patterns]
+    end
+
+    CONV & TASK & MISTAKE & PATTERN --> STORE
+    STORE --> BM25 & EMBED
+    BM25 & EMBED --> RRF
+```
+
+**Key Features:**
+- 7 node types (Conversation, Task, Mistake, Pattern, Decision, CodeSnippet, Preference)
+- 12 edge types for semantic relationships
+- Hybrid search combining BM25 + semantic embeddings
+- Automatic storage of completed tasks
+- Mistake logging for learning
+
+**Usage:**
+```python
+from orchestrator.context import MemoryManager
+
+manager = MemoryManager()
+
+# Store task result
+manager.store_task("Implement auth", outcome="completed", success=True)
+
+# Log mistake for learning
+manager.log_mistake(
+    error_description="Forgot input validation",
+    context="User registration",
+    correction="Always validate with Pydantic"
+)
+
+# Search relevant context
+results = manager.search("authentication patterns", limit=5)
+```
+
+### Domain Rules
+
+Best practices encoded as rules:
+
+| Category | Topics |
+|----------|--------|
+| **Security** | Input validation, authentication, secrets management |
+| **Database** | Schema design, indexing, query optimization |
+| **API Design** | REST conventions, versioning, error handling |
+| **Performance** | Profiling, caching, async patterns |
+| **AI/ML** | Data handling, embeddings, RAG pipelines |
+
+📚 **[Full Agentic Infrastructure Documentation →](AGENTIC_INFRA.md)**
 
 ## Agentic Team Features
 

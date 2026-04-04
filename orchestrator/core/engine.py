@@ -365,6 +365,10 @@ class Orchestrator:
         # Generate execution report if enabled
         self._maybe_generate_report(task, workflow_name, results, execution_start)
 
+        # Store in context memory if available
+        execution_time = time.monotonic() - execution_start
+        self._store_task_in_context(task, workflow_name, results, execution_time)
+
         return results
 
     def _extract_workflow_steps(self, workflow_config: Any) -> List[Dict[str, Any]]:
@@ -551,6 +555,84 @@ class Orchestrator:
             )
         except Exception as e:
             self.logger.warning("Failed to generate execution report: %s", e)
+
+    def _store_task_in_context(
+        self,
+        task: str,
+        workflow_name: str,
+        results: Dict[str, Any],
+        execution_time: float,
+    ) -> None:
+        """Store task execution in context memory for learning."""
+        settings = self.config.get("settings", {})
+        if not settings.get("enable_context_memory", True):
+            return
+
+        try:
+            import os
+
+            from orchestrator.context import MemoryManager
+
+            db_path = os.environ.get(
+                "ORCHESTRATOR_CONTEXT_DB", os.path.expanduser("~/.orchestrator/context.db")
+            )
+            os.makedirs(os.path.dirname(db_path), exist_ok=True)
+
+            manager = MemoryManager(db_path)
+
+            # Get agents involved
+            agents_involved = []
+            for iteration in results.get("iterations", []):
+                for step in iteration.get("steps", []):
+                    agent = step.get("agent")
+                    if agent and agent not in agents_involved:
+                        agents_involved.append(agent)
+
+            # Store the task
+            manager.store_task(
+                task_description=task,
+                outcome=str(results.get("final_output", ""))[:5000],
+                success=results.get("success", False),
+                duration_ms=int(execution_time * 1000),
+                workflow_used=workflow_name,
+                agents_involved=agents_involved,
+                tags=["orchestrator"],
+            )
+
+            self.logger.debug("Stored task in context memory")
+        except ImportError:
+            self.logger.debug("Context system not available")
+        except Exception as e:
+            self.logger.debug("Failed to store task in context: %s", e)
+
+    def get_relevant_context(self, task_description: str) -> Dict[str, Any]:
+        """Get relevant context for a task from memory.
+
+        Args:
+            task_description: Description of the task
+
+        Returns:
+            Dictionary with relevant mistakes, patterns, and decisions
+        """
+        try:
+            import os
+
+            from orchestrator.context import MemoryManager
+
+            db_path = os.environ.get(
+                "ORCHESTRATOR_CONTEXT_DB", os.path.expanduser("~/.orchestrator/context.db")
+            )
+
+            if not os.path.exists(db_path):
+                return {}
+
+            manager = MemoryManager(db_path)
+            return manager.get_relevant_context(task_description)
+        except ImportError:
+            return {}
+        except Exception as e:
+            self.logger.debug("Failed to get context: %s", e)
+            return {}
 
     def get_available_agents(self) -> List[str]:
         """Get list of available agent names."""

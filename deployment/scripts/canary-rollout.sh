@@ -3,6 +3,12 @@ set -euo pipefail
 
 # Canary Deployment Script
 # Gradually increases traffic to canary deployment
+#
+# Services in the full stack:
+#   ai-orchestrator   (port 5001) - Blue/Green deployable
+#   agentic-team      (port 5002) - Blue/Green deployable
+#   mcp-server        (port 8000) - Single replica, rolling update
+#   context-dashboard (port 5003) - Single replica, rolling update
 
 NAMESPACE="${NAMESPACE:-ai-orchestrator}"
 APP_NAME="${APP_NAME:-ai-orchestrator}"

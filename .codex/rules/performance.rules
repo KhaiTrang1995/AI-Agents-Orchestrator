@@ -1,0 +1,62 @@
+# Performance Rules for Codex
+# Guidelines for writing performant code
+
+[performance.code]
+description = "Code optimization"
+patterns = [
+    "Profile before optimizing",
+    "Optimize hot paths identified through profiling",
+    "Use appropriate data structures",
+    "Avoid unnecessary object creation in loops",
+    "Use generators for large data processing"
+]
+
+[performance.database]
+description = "Database performance"
+patterns = [
+    "Index frequently queried columns",
+    "Use connection pooling",
+    "Implement query caching",
+    "Batch database operations",
+    "Monitor slow query logs"
+]
+
+[performance.caching]
+description = "Caching strategy"
+patterns = [
+    "Cache at appropriate levels",
+    "Use TTL and event-driven invalidation",
+    "Implement cache warming",
+    "Monitor hit rates",
+    "Consider multi-tier caching"
+]
+
+[performance.async]
+description = "Async and concurrency"
+patterns = [
+    "Use async I/O for network-bound ops",
+    "Implement proper thread/process pooling",
+    "Avoid blocking in async code",
+    "Use message queues for background tasks",
+    "Implement backpressure for high load"
+]
+
+[performance.memory]
+description = "Memory management"
+patterns = [
+    "Monitor memory usage and set limits",
+    "Use streaming for large files",
+    "Implement pagination for large results",
+    "Clean up resources properly",
+    "Profile with memory_profiler"
+]
+
+[performance.metrics]
+items = [
+    "Response time (p50, p95, p99)",
+    "Throughput (requests/second)",
+    "Error rate",
+    "Resource utilization",
+    "Database query times",
+    "Cache hit/miss ratios"
+]

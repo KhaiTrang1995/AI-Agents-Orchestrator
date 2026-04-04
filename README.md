@@ -49,9 +49,9 @@
 
 <div align="center">
 
-**Two self-contained systems -- an AI Orchestrator and an Agentic Team runtime -- that coordinate cloud and local AI coding assistants (Claude, Codex, Gemini, Copilot, Ollama, llama.cpp) to collaborate on software development tasks.**
+**Two self-contained systems -- an AI Orchestrator and an Agentic Team runtime -- that coordinate cloud and local AI coding assistants (Claude, Codex, Gemini, Copilot, Ollama, llama.cpp) to collaborate on software development tasks. Includes enterprise-grade agentic infrastructure with specialized agents, skills library, 34+ MCP tools, and graph-based context memory.**
 
-[Overview](#overview) | [Architecture](#architecture) | [System Comparison](#system-comparison) | [Features](#feature-highlights) | [Quick Start](#quick-start) | [Project Structure](#project-structure) | [Configuration](#configuration) | [Deployment](#deployment) | [Testing](#testing) | [MCP Server](#mcp-server-optional----model-context-protocol)
+[Overview](#overview) | [Architecture](#architecture) | [Agentic Infrastructure](#agentic-infrastructure) | [System Comparison](#system-comparison) | [Features](#feature-highlights) | [Quick Start](#quick-start) | [Project Structure](#project-structure) | [Configuration](#configuration) | [Deployment](#deployment) | [Testing](#testing) | [MCP Server](#mcp-server-optional----model-context-protocol)
 
 </div>
 
@@ -60,6 +60,258 @@
 ## Overview
 
 AI Coding Tools ships two completely independent systems in a single repository. The **Orchestrator** runs step-based workflows where AI agents execute tasks in sequence (implement, review, refine). The **Agentic Team** runs a free-communication runtime where role-based agents (Project Manager, Architect, Developer, QA, DevOps) discuss a task in turns until the team lead declares the work complete. Each system carries its own adapters, configuration, UI, and CLI -- they share zero code and zero imports.
+
+Beyond the core engines, we provide a complete **Agentic Infrastructure** that empowers AI agents:
+
+- **9 Specialized Agents** for web, backend, security, DevOps, AI/ML, database, mobile, performance, and documentation
+- **22 Reusable Skills** across development, testing, security, DevOps, AI/ML, and documentation
+- **34+ MCP Tools** for code analysis, security scanning, testing, DevOps, and context memory
+- **Graph Context System** with hybrid search (BM25 + semantic) for persistent memory and learning
+- **Domain Rules** encoding best practices for security, database, API design, performance, and AI/ML
+
+## Agentic Infrastructure
+
+```mermaid
+graph TB
+    subgraph "🧠 Agentic Infrastructure"
+        direction LR
+
+        subgraph AGENTS["Specialized Agents (9)"]
+            WEB[Web Frontend]
+            API[Backend API]
+            SEC[Security]
+            OPS[DevOps]
+            ML[AI/ML]
+            DB[Database]
+        end
+
+        subgraph SKILLS["Skills Library (22)"]
+            DEV[Development]
+            TEST[Testing]
+            SECS[Security]
+            DEVOPS[DevOps]
+            AIML[AI/ML]
+            DOCS[Documentation]
+        end
+
+        subgraph TOOLS["MCP Tools (34+)"]
+            CODE[Code Analysis]
+            SCAN[Security Scan]
+            TTOOLS[Testing]
+            DTOOLS[DevOps]
+            CTX[Context Memory]
+        end
+
+        subgraph CONTEXT["Graph Context"]
+            GRAPH[(Graph Store)]
+            SEARCH[Hybrid Search]
+            EMBED[Embeddings]
+        end
+    end
+
+    AGENTS --> SKILLS
+    SKILLS --> TOOLS
+    TOOLS --> CONTEXT
+```
+
+| Component | Count | Description |
+|-----------|-------|-------------|
+| **Specialized Agents** | 9 | Domain experts for web, backend, security, DevOps, AI/ML, database, mobile, performance, documentation |
+| **Skills** | 22 | Reusable task templates across 6 categories |
+| **MCP Tools** | 34+ | Code analysis, security scanning, testing, DevOps, context memory |
+| **Node Types** | 7 | Conversation, Task, Mistake, Pattern, Decision, CodeSnippet, Preference |
+| **Edge Types** | 12 | RELATED_TO, CAUSED_BY, FIXED_BY, SIMILAR_TO, DEPENDS_ON, etc. |
+
+📚 **[Full Agentic Infrastructure Documentation →](AGENTIC_INFRA.md)**
+
+### Context System
+
+Both the Orchestrator and Agentic Team maintain **independent** graph-based context databases for persistent memory and cross-session learning. A unified Context Dashboard aggregates both stores for visualization.
+
+```mermaid
+graph TB
+    subgraph "Context System Architecture"
+        direction TB
+
+        subgraph ORCH_CTX["Orchestrator Context<br/>~/.ai-orchestrator/context.db"]
+            OM[models/ — Node & edge schemas]
+            OS[store/ — Graph persistence]
+            OX[search/ — BM25 + semantic + hybrid]
+            OO[ops/ — Analytics, export, pruning, versioning]
+        end
+
+        subgraph TEAM_CTX["Agentic Team Context<br/>~/.agentic-team/context.db"]
+            TM[models/ — Node & edge schemas]
+            TS[store/ — Graph persistence]
+            TX[search/ — BM25 + semantic + hybrid]
+            TO[ops/ — Analytics, export, pruning, versioning]
+        end
+
+        subgraph DASH["Context Dashboard :5003"]
+            APP[app.py — Flask aggregator]
+            VIZ[templates/ — Interactive visualization]
+        end
+    end
+
+    ORCH_CTX --> DASH
+    TEAM_CTX --> DASH
+
+    style ORCH_CTX fill:#1a365d,color:#fff
+    style TEAM_CTX fill:#1a365d,color:#fff
+    style DASH fill:#2d3748,color:#fff
+```
+
+**Node Types** — 7 types of knowledge stored in the graph:
+
+| Node Type | Description |
+|-----------|-------------|
+| **Conversation** | Past chat sessions with full message history |
+| **Task** | Completed tasks with outcomes, agent used, and duration |
+| **Mistake** | Errors with corrections and prevention strategies |
+| **Pattern** | Reusable code patterns and best practices |
+| **Decision** | Architectural decisions with rationale and trade-offs |
+| **CodeSnippet** | Useful code fragments with language and context |
+| **Preference** | Learned user preferences (tools, style, workflows) |
+
+**Edge Types** — 12 relationship types connecting nodes:
+
+| Edge Type | Description |
+|-----------|-------------|
+| `RELATED_TO` | General semantic relationship |
+| `CAUSED_BY` | Causal chain (mistake → root cause) |
+| `FIXED_BY` | Resolution link (mistake → fix) |
+| `SIMILAR_TO` | Similarity link (patterns, tasks) |
+| `DEPENDS_ON` | Dependency relationship |
+| `PRECEDED_BY` | Temporal ordering (earlier event) |
+| `FOLLOWED_BY` | Temporal ordering (later event) |
+| `LEARNED_FROM` | Knowledge derivation (preference → conversation) |
+| `USED_IN` | Usage relationship (pattern → task) |
+| `REFERENCES` | Cross-reference between nodes |
+| `DERIVED_FROM` | Derived knowledge (snippet → pattern) |
+| `EVOLVED_INTO` | Evolution tracking (v1 pattern → v2) |
+
+**Hybrid Search** combines three retrieval strategies via Reciprocal Rank Fusion (RRF):
+
+1. **BM25** — Keyword-based search using term frequency–inverse document frequency
+2. **Semantic** — Embedding-based similarity using vector cosine distance
+3. **Hybrid** — Fused ranking of BM25 + semantic results using RRF for best-of-both-worlds retrieval
+
+> [!TIP]
+> **Auto-seeding:** Run `scripts/seed_context_graphs.py` to populate both context databases with sample nodes and edges on first use. This is done automatically during `make setup`.
+
+> [!NOTE]
+> **Context Dashboard:** Launch with `python -m context_dashboard` (port 5003) to visualize both context graphs, inspect nodes/edges, and search across all stored knowledge. See [`context_dashboard/README.md`](context_dashboard/README.md) for details.
+
+### Skills Library & Agent Definitions
+
+AI coding agents are enhanced with specialized role definitions, reusable skills, and domain rules that are automatically loaded based on context.
+
+```mermaid
+graph LR
+    subgraph "Agent Ecosystem"
+        direction TB
+
+        subgraph CLAUDE[".claude/"]
+            CA["agents/ (11)"]
+            CS["skills/ (23)"]
+            CR["rules/ (11)"]
+            CC[CLAUDE.md]
+        end
+
+        subgraph CODEX[".codex/"]
+            XA["agents/ (13)"]
+            XC[config.toml]
+            XR[rules/]
+        end
+
+        AGENTS_MD[AGENTS.md — Shared instructions]
+    end
+
+    CA --> CS
+    CA --> CR
+    AGENTS_MD --> CLAUDE
+    AGENTS_MD --> CODEX
+
+    style CLAUDE fill:#7c3aed,color:#fff
+    style CODEX fill:#059669,color:#fff
+```
+
+**Claude Agents** — 11 specialized agents in `.claude/agents/`:
+
+| Agent | File | Domain |
+|-------|------|--------|
+| Web Frontend | `web-frontend.md` | React, Vue, CSS, accessibility, responsive design |
+| Backend API | `backend-api.md` | REST, GraphQL, databases, Flask/FastAPI |
+| Security Specialist | `security-specialist.md` | OWASP, vulnerability analysis, secure coding |
+| DevOps Infrastructure | `devops-infrastructure.md` | Docker, Kubernetes, CI/CD, cloud |
+| AI/ML Engineer | `ai-ml-engineer.md` | ML pipelines, embeddings, LLM integration |
+| Database Architect | `database-architect.md` | Schema design, query optimization, migrations |
+| Mobile Developer | `mobile-developer.md` | iOS, Android, React Native, Flutter |
+| Performance Engineer | `performance-engineer.md` | Profiling, load testing, optimization |
+| Documentation Writer | `documentation-writer.md` | API docs, architecture, tutorials |
+| Code Reviewer | `code-reviewer.md` | Code quality, best practices, PR reviews |
+| Test Runner | `test-runner.md` | Test execution, coverage, failure diagnosis |
+
+**Codex Agents** — 13 specialized agents in `.codex/agents/`:
+
+| Agent | File | Domain |
+|-------|------|--------|
+| Code Reviewer | `code-reviewer.toml` | Code quality and review automation |
+| Explorer | `explorer.toml` | Codebase exploration and research |
+| Security Specialist | `security-specialist.toml` | Security auditing and vulnerability scanning |
+| Web Frontend | `web-frontend.toml` | Frontend development and UI patterns |
+| DevOps Infrastructure | `devops-infrastructure.toml` | Infrastructure and deployment automation |
+| Implementer | `implementer.toml` | Feature implementation and coding |
+| Database Architect | `database-architect.toml` | Database design and optimization |
+| Performance Engineer | `performance-engineer.toml` | Performance profiling and optimization |
+| Test Runner | `test-runner.toml` | Test suite execution and diagnosis |
+| AI/ML Engineer | `ai-ml-engineer.toml` | ML pipelines and AI system design |
+| Backend API | `backend-api.toml` | Backend services and API development |
+| Documentation Writer | `documentation-writer.toml` | Technical documentation |
+| Mobile Developer | `mobile-developer.toml` | Mobile application development |
+
+**Skills Library** — 23 reusable skill templates in `.claude/skills/` across 6 categories:
+
+| Category | Count | Skills |
+|----------|-------|--------|
+| **Development** | 6 | `react-components`, `rest-api-design`, `python-async`, `database-queries`, `graphql-development`, `error-handling` |
+| **Testing** | 4 | `unit-testing`, `integration-testing`, `test-driven-development`, `performance-testing` |
+| **Security** | 4 | `input-validation`, `authentication`, `secure-coding`, `vulnerability-assessment` |
+| **DevOps** | 3 | `docker-containerization`, `ci-cd-pipelines`, `kubernetes-deployment` |
+| **AI/ML** | 3 | `embeddings-retrieval`, `llm-integration`, `rag-pipeline` |
+| **Documentation** | 3 | `api-documentation`, `architecture-docs`, `code-documentation` |
+
+> Three additional standalone skills (`generate-reports`, `health-check`, `run-tests`) provide operational task automation.
+
+**Domain Rules** — 11 rule files in `.claude/rules/` encoding best practices:
+
+| Rule | File | Enforces |
+|------|------|----------|
+| Adapters | `adapters.md` | Adapter pattern, base class contracts |
+| API Design | `api-design.md` | RESTful conventions, versioning, error formats |
+| Testing | `testing.md` | Pytest patterns, coverage requirements, fixtures |
+| Performance | `performance.md` | Profiling, caching, async patterns |
+| Config | `config.md` | YAML config, environment variables, validation |
+| AI/ML | `ai-ml.md` | Model integration, embeddings, prompt patterns |
+| Observability | `observability.md` | Logging, metrics, health checks |
+| Frontend | `frontend.md` | Component patterns, accessibility, state management |
+| CI/CD | `ci-cd.md` | Pipeline design, deployment gates, rollback |
+| Security | `security.md` | Input validation, auth, secrets management |
+| Database | `database.md` | Schema design, migrations, query safety |
+
+> [!NOTE]
+> Agents automatically inherit access to all skills and rules in their scope. When Claude Code is invoked with a specialized agent (e.g., `@security-specialist`), it loads the agent definition, relevant skills, and applicable domain rules to provide expert-level guidance.
+
+### Configuration Files
+
+| File | Purpose |
+|------|---------|
+| `.claude/CLAUDE.md` | Main instructions for Claude Code — imports `AGENTS.md` and sets project context |
+| `.claude/settings.json` | Claude project settings (permissions, model preferences) |
+| `.codex/config.toml` | Codex project configuration |
+| `.codex/agents/*.toml` | Codex agent role definitions with system prompts |
+| `AGENTS.md` | Shared instructions read by all AI coding agents (Codex, Gemini CLI, etc.) |
+| `AGENTIC_INFRA.md` | Full documentation of the agentic infrastructure |
 
 ## Architecture
 
@@ -365,8 +617,77 @@ make run-agentic-ui
 ```
 AI-Coding-Tools/
 |
-|-- mcp_server/                      # MCP server (FastMCP 3.x)
-|   |-- server.py                    # 10 tools + 2 resources
+|-- .claude/                         # Claude Code agentic infrastructure
+|   |-- CLAUDE.md                    #   Main Claude instructions (imports AGENTS.md)
+|   |-- settings.json                #   Project settings and permissions
+|   |-- agents/                      #   11 specialized agent definitions
+|   |   |-- web-frontend.md
+|   |   |-- backend-api.md
+|   |   |-- security-specialist.md
+|   |   |-- devops-infrastructure.md
+|   |   |-- ai-ml-engineer.md
+|   |   |-- database-architect.md
+|   |   |-- mobile-developer.md
+|   |   |-- performance-engineer.md
+|   |   |-- documentation-writer.md
+|   |   |-- code-reviewer.md
+|   |   +-- test-runner.md
+|   |-- skills/                      #   23 reusable skill templates
+|   |   |-- development/             #     6 skills (react, REST, async, DB, GraphQL, errors)
+|   |   |-- testing/                 #     4 skills (unit, integration, TDD, perf)
+|   |   |-- security/                #     4 skills (validation, auth, secure-coding, vuln)
+|   |   |-- devops/                  #     3 skills (Docker, CI/CD, K8s)
+|   |   |-- ai-ml/                   #     3 skills (embeddings, LLM, RAG)
+|   |   |-- documentation/           #     3 skills (API docs, arch docs, code docs)
+|   |   |-- generate-reports/        #     Standalone: report generation
+|   |   |-- health-check/            #     Standalone: system health checks
+|   |   +-- run-tests/               #     Standalone: test suite execution
+|   +-- rules/                       #   11 domain rule files
+|       |-- adapters.md
+|       |-- api-design.md
+|       |-- testing.md
+|       |-- performance.md
+|       |-- config.md
+|       |-- ai-ml.md
+|       |-- observability.md
+|       |-- frontend.md
+|       |-- ci-cd.md
+|       |-- security.md
+|       +-- database.md
+|
+|-- .codex/                          # Codex agentic infrastructure
+|   |-- config.toml                  #   Codex project configuration
+|   |-- agents/                      #   13 specialized agent definitions (.toml)
+|   |   |-- code-reviewer.toml
+|   |   |-- explorer.toml
+|   |   |-- security-specialist.toml
+|   |   |-- web-frontend.toml
+|   |   |-- devops-infrastructure.toml
+|   |   |-- implementer.toml
+|   |   |-- database-architect.toml
+|   |   |-- performance-engineer.toml
+|   |   |-- test-runner.toml
+|   |   |-- ai-ml-engineer.toml
+|   |   |-- backend-api.toml
+|   |   |-- documentation-writer.toml
+|   |   +-- mobile-developer.toml
+|   |-- hooks/                       #   Git hook integrations
+|   +-- rules/                       #   Codex-specific rules
+|
+|-- mcp_server/                      # MCP server (FastMCP 3.x) — 34+ tools
+|   |-- server.py                    #   Server entry point + core tools
+|   |-- engines.py                   #   Engine adapters for both systems
+|   |-- repl.py                      #   Interactive REPL mode
+|   |-- tools/                       #   Tool modules by category
+|   |   |-- orchestrator_tools.py    #     Orchestrator execution tools
+|   |   |-- agentic_team_tools.py    #     Agentic team execution tools
+|   |   |-- shared_tools.py          #     Shared utility tools
+|   |   |-- code_analysis.py         #     4 code analysis tools
+|   |   |-- security_tools.py        #     4 security scanning tools
+|   |   |-- testing_tools.py         #     4 testing tools
+|   |   |-- devops_tools.py          #     5 DevOps tools
+|   |   +-- context_tools.py         #     7 context memory tools
+|   +-- resources/                   #   MCP resource definitions
 |
 |-- orchestrator/                    # Self-contained orchestrator system
 |   |-- __init__.py
@@ -401,6 +722,22 @@ AI-Coding-Tools/
 |   |   +-- config_manager.py        #   Configuration loading
 |   |-- cli/                         # CLI interface
 |   |   +-- shell.py                 #   Interactive REPL shell
+|   |-- context/                     # Graph-based context memory
+|   |   |-- memory_manager.py        #   High-level memory API
+|   |   |-- models/                  #   Node and edge schemas
+|   |   |   +-- schemas.py
+|   |   |-- store/                   #   Graph persistence layer
+|   |   |   +-- graph_store.py
+|   |   |-- search/                  #   Search engines
+|   |   |   |-- bm25_index.py        #     BM25 keyword search
+|   |   |   |-- embeddings.py        #     Embedding generation
+|   |   |   |-- hybrid_search.py     #     Hybrid BM25 + semantic
+|   |   |   +-- advanced_search.py   #     Advanced query support
+|   |   +-- ops/                     #   Operational utilities
+|   |       |-- analytics.py         #     Graph analytics
+|   |       |-- export.py            #     Data export
+|   |       |-- pruning.py           #     Node/edge pruning
+|   |       +-- versioning.py        #     Version tracking
 |   |-- config/
 |   |   +-- agents.yaml              #   Agents, workflows, settings
 |   |-- ui/                          # Web UI
@@ -428,6 +765,12 @@ AI-Coding-Tools/
 |   |   |-- ollama_adapter.py
 |   |   |-- llama_cpp_adapter.py
 |   |   +-- cli_communicator.py
+|   |-- context/                     # Independent graph-based context memory
+|   |   |-- memory_manager.py        #   High-level memory API
+|   |   |-- models/                  #   Node and edge schemas
+|   |   |-- store/                   #   Graph persistence layer
+|   |   |-- search/                  #   BM25 + semantic + hybrid search
+|   |   +-- ops/                     #   Analytics, export, pruning, versioning
 |   |-- config/
 |   |   +-- agents.yaml              #   Agents, roles, team settings
 |   |-- ui/                          # Dedicated Web UI
@@ -481,10 +824,22 @@ AI-Coding-Tools/
 |   |-- orchestrator/
 |   +-- agentic_team/
 |
+|-- context_dashboard/               # Unified context visualization (port 5003)
+|   |-- app.py                       #   Flask app aggregating both context stores
+|   |-- templates/
+|   |   +-- dashboard.html           #   Interactive graph visualization
+|   +-- README.md                    #   Dashboard-specific docs
+|
 |-- scripts/                         # Helper scripts
 |   |-- install.sh
 |   |-- start-ui.sh
 |   |-- start-agentic-ui.sh
+|   |-- start-mcp-server.sh
+|   |-- start-all.sh
+|   |-- seed_context_graphs.py       #   Auto-seed both context databases
+|   |-- health-check.sh
+|   |-- format.sh
+|   |-- lint.sh
 |   +-- test.sh
 |
 |-- ai-orchestrator                  # Main CLI entry point
@@ -493,6 +848,8 @@ AI-Coding-Tools/
 |-- Makefile                         # Development commands
 |-- pyproject.toml                   # Project metadata and tool config
 |-- requirements.txt                 # Python dependencies
+|-- AGENTS.md                        # Shared instructions for all AI coding agents
+|-- AGENTIC_INFRA.md                 # Full agentic infrastructure documentation
 |-- SETUP.md                         # Installation and setup guide
 |-- ARCHITECTURE.md
 |-- FEATURES.md
@@ -702,15 +1059,19 @@ Health checks:
 ## Screenshots
 
 <p align="center">
-  <img src="docs/images/cli.png" alt="Orchestrator CLI" width="100%"/>
-</p>
-
-<p align="center">
   <img src="docs/images/ui.png" alt="Orchestrator Web UI" width="100%"/>
 </p>
 
 <p align="center">
   <img src="docs/images/agentic-team.png" alt="Agentic Team Web UI" width="100%"/>
+</p>
+
+<p align="center">
+  <img src="docs/images/graph.png" alt="Orchestrator Web UI" width="100%"/>
+</p>
+
+<p align="center">
+  <img src="docs/images/cli.png" alt="Orchestrator CLI" width="100%"/>
 </p>
 
 <p align="center">
@@ -727,6 +1088,12 @@ python -m mcp_server.server
 
 # Start MCP server (HTTP -- for remote clients)
 python -m mcp_server.server --transport http --port 8000
+
+# Interactive REPL mode -- explore and test tools from the terminal
+python -m mcp_server repl
+
+# Launch the Context Dashboard (port 5003)
+python -m context_dashboard
 ```
 
 ```mermaid
@@ -735,35 +1102,45 @@ graph LR
         CD[Claude Desktop]
         LA[LLM Agent]
         PY[Python Client]
+        REPL[REPL Mode]
     end
 
-    subgraph "MCP Server :8000"
-        T1[orchestrator_execute]
-        T2[agentic_team_execute]
-        T3[list_engines]
-        T4[orchestrator_health]
-        T5[agentic_team_health]
-        T6[list_workflows]
-        T7[list_agents]
-        T8[validate_config]
-        T9[team_config]
-        T10[agentic_team_validate]
+    subgraph "MCP Server :8000 — 34+ Tools"
+        direction TB
+        CORE["Core (10)<br/>orchestrator_execute, agentic_team_execute,<br/>list_engines, health, config, validate"]
+        CODE["Code Analysis (4)<br/>code_complexity, find_patterns,<br/>analyze_deps, code_summary"]
+        SEC["Security (4)<br/>secrets_scan, security_headers_check,<br/>dependency_audit, injection_scan"]
+        TEST["Testing (4)<br/>suggest_tests, test_coverage_analysis,<br/>parse_tests, create_test_stub"]
+        DEVOPS["DevOps (5)<br/>dockerfile_analysis, compose_analysis,<br/>ci_config_check, deploy_checklist, env_config_analysis"]
+        CTX["Context (7)<br/>context_store_conversation, context_store_task,<br/>context_log_mistake, context_store_pattern,<br/>context_search, context_get_relevant, context_stats"]
     end
 
     subgraph "Engines"
         O[Orchestrator :5001]
         A[Agentic Team :5002]
+        D[Context Dashboard :5003]
     end
 
-    CD & LA & PY -->|MCP Protocol| T1 & T2 & T3 & T4 & T5 & T6 & T7 & T8 & T9 & T10
-    T1 & T3 & T4 & T6 & T7 & T8 --> O
-    T2 & T5 & T9 & T10 --> A
+    CD & LA & PY & REPL -->|MCP Protocol| CORE & CODE & SEC & TEST & DEVOPS & CTX
+    CORE --> O & A
+    CTX --> D
 ```
 
-**10 MCP tools** cover task execution, agent listing, workflow listing, team config, health checks, and validation for both systems. See [`mcp_server/server.py`](mcp_server/server.py) for the full tool catalog.
+**34+ MCP tools** organized across 6 categories:
+
+| Category | Count | Tools |
+|----------|-------|-------|
+| **Core Orchestration** | 10 | `orchestrator_execute`, `agentic_team_execute`, `list_engines`, `orchestrator_health`, `agentic_team_health`, `list_workflows`, `list_agents`, `validate_config`, `team_config`, `agentic_team_validate` |
+| **Code Analysis** | 4 | `code_complexity`, `find_patterns`, `analyze_deps`, `code_summary` |
+| **Security** | 4 | `secrets_scan`, `security_headers_check`, `dependency_audit`, `injection_scan` |
+| **Testing** | 4 | `suggest_tests`, `test_coverage_analysis`, `parse_tests`, `create_test_stub` |
+| **DevOps** | 5 | `dockerfile_analysis`, `compose_analysis`, `ci_config_check`, `deploy_checklist`, `env_config_analysis` |
+| **Context Memory** | 7 | `context_store_conversation`, `context_store_task`, `context_log_mistake`, `context_store_pattern`, `context_search`, `context_get_relevant`, `context_stats` |
+
+See [`mcp_server/tools/`](mcp_server/tools/) for the full tool implementations.
 
 > [!TIP]
-> The MCP server is entirely optional. Both the Orchestrator and Agentic Team work fully via their own CLIs and Web UIs without it.
+> The MCP server is entirely optional. Both the Orchestrator and Agentic Team work fully via their own CLIs and Web UIs without it. Use `python -m mcp_server repl` for an interactive REPL to explore and test tools from the terminal.
 
 ## Contributing
 

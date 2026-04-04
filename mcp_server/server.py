@@ -65,12 +65,28 @@ mcp = FastMCP(
 # ---------------------------------------------------------------------------
 
 from mcp_server.resources import config_resources  # noqa: E402
-from mcp_server.tools import agentic_team_tools, orchestrator_tools, shared_tools  # noqa: E402
+from mcp_server.tools import (  # noqa: E402
+    agentic_team_tools,
+    code_analysis,
+    context_tools,
+    devops_tools,
+    orchestrator_tools,
+    security_tools,
+    shared_tools,
+    testing_tools,
+)
 
 orchestrator_tools.register(mcp)
 agentic_team_tools.register(mcp)
 shared_tools.register(mcp)
 config_resources.register(mcp)
+
+# Register new specialized tools
+code_analysis.register_code_analysis_tools(mcp)
+security_tools.register_security_tools(mcp)
+testing_tools.register_testing_tools(mcp)
+devops_tools.register_devops_tools(mcp)
+context_tools.register_context_tools(mcp)
 
 
 # ---------------------------------------------------------------------------

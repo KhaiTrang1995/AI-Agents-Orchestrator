@@ -1,0 +1,49 @@
+# Security Rules for Codex
+# These rules apply when working on security-sensitive code
+
+[security.input_validation]
+description = "Always validate and sanitize user inputs"
+patterns = [
+    "Use parameterized queries for database operations",
+    "Implement input length limits and type checking",
+    "Escape output data to prevent XSS",
+    "Validate against allowlists when possible"
+]
+
+[security.authentication]
+description = "Secure authentication and authorization"
+patterns = [
+    "Use bcrypt or argon2 for password hashing",
+    "Implement proper session management",
+    "Apply principle of least privilege",
+    "Use rate limiting on authentication endpoints"
+]
+
+[security.secrets]
+description = "Never expose secrets in code"
+patterns = [
+    "Use environment variables for secrets",
+    "Never commit API keys or credentials",
+    "Use secrets management tools",
+    "Rotate credentials regularly"
+]
+
+[security.coding]
+description = "Secure coding patterns"
+patterns = [
+    "Avoid eval() and exec()",
+    "Use safe deserialization",
+    "Handle errors without leaking info",
+    "Apply Content Security Policy headers"
+]
+
+[security.checklist]
+items = [
+    "No hardcoded secrets",
+    "Input validation on user data",
+    "Parameterized database queries",
+    "Proper error handling",
+    "Auth checks in place",
+    "HTTPS/TLS for communication",
+    "Rate limiting on sensitive endpoints"
+]
