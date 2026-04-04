@@ -55,6 +55,7 @@ class AgenticTeamEngine:
         self.is_offline_mode = False
         self.adapters: dict[str, BaseAdapter] = {}
         self.fallback_manager = FallbackManager({}, logger=self.logger)
+        self.context_manager = self._init_context_manager()
         self.reload()
 
     def reload(self) -> None:
@@ -475,7 +476,7 @@ class AgenticTeamEngine:
         duration_ms = int((completed_at - started_at).total_seconds() * 1000)
         turns_executed = len(iteration["steps"])
 
-        return {
+        result = {
             "task": task,
             "engine": "agentic_team",
             "execution_id": execution_id,
@@ -499,6 +500,11 @@ class AgenticTeamEngine:
             },
         }
 
+        # Store in context memory
+        self._store_task_in_context(task, result, duration_ms / 1000.0)
+
+        return result
+
     def get_available_agents(self) -> list[str]:
         """Return names of adapters currently available for execution."""
         return sorted(self.adapters.keys())
@@ -513,3 +519,95 @@ class AgenticTeamEngine:
             "team_validation": self.validate_team_bindings(),
             "runtime_settings": self._runtime_settings(),
         }
+
+    def _init_context_manager(self):
+        """Initialize context manager if available."""
+        try:
+            from orchestrator.context import MemoryManager
+
+            manager = MemoryManager()
+            self.logger.info("Context manager initialized for agentic team")
+            return manager
+        except ImportError:
+            self.logger.debug("Context manager not available (orchestrator.context not found)")
+            return None
+        except Exception as e:
+            self.logger.warning("Failed to initialize context manager: %s", e)
+            return None
+
+    def _store_task_in_context(
+        self,
+        task: str,
+        result: dict[str, Any],
+        duration_seconds: float,
+    ) -> None:
+        """Store completed task in the graph context base."""
+        if not hasattr(self, "context_manager") or self.context_manager is None:
+            return
+
+        try:
+            success = result.get("success", False)
+            final_output = result.get("final_output", "")
+            execution_id = result.get("execution_id", "")
+            stats = result.get("stats", {})
+            team_info = result.get("team", {})
+
+            # Build metadata
+            metadata = {
+                "engine": "agentic_team",
+                "execution_id": execution_id,
+                "lead_role": team_info.get("lead_role", "unknown"),
+                "turns_executed": stats.get("turns_executed", 0),
+                "fallback_count": stats.get("fallback_count", 0),
+                "duration_seconds": duration_seconds,
+                "offline_mode": result.get("offline_mode", False),
+            }
+
+            # Store as task in context
+            self.context_manager.store_task(
+                task_description=task,
+                outcome="completed" if success else "failed",
+                success=success,
+                metadata=metadata,
+            )
+
+            # Log mistakes if task failed
+            if not success and final_output:
+                self.context_manager.log_mistake(
+                    error_description=f"Task failed: {task[:100]}",
+                    context=final_output[:500] if final_output else "",
+                    correction="Review team execution steps for improvement",
+                )
+
+            self.logger.debug("Stored task in context: %s (success=%s)", task[:50], success)
+        except Exception as e:
+            self.logger.warning("Failed to store task in context: %s", e)
+
+    def get_relevant_context(self, query: str, limit: int = 5) -> list[dict[str, Any]]:
+        """Retrieve relevant context from the graph context base.
+
+        Args:
+            query: Search query for finding relevant context
+            limit: Maximum number of results to return
+
+        Returns:
+            List of relevant context items with node data
+        """
+        if not hasattr(self, "context_manager") or self.context_manager is None:
+            return []
+
+        try:
+            results = self.context_manager.search(query, limit=limit)
+            return [
+                {
+                    "node_id": r.node.id,
+                    "type": r.node.type,
+                    "content": r.node.content,
+                    "score": r.score,
+                    "metadata": r.node.metadata,
+                }
+                for r in results
+            ]
+        except Exception as e:
+            self.logger.warning("Failed to retrieve context: %s", e)
+            return []

@@ -49,9 +49,9 @@
 
 <div align="center">
 
-**Two self-contained systems -- an AI Orchestrator and an Agentic Team runtime -- that coordinate cloud and local AI coding assistants (Claude, Codex, Gemini, Copilot, Ollama, llama.cpp) to collaborate on software development tasks.**
+**Two self-contained systems -- an AI Orchestrator and an Agentic Team runtime -- that coordinate cloud and local AI coding assistants (Claude, Codex, Gemini, Copilot, Ollama, llama.cpp) to collaborate on software development tasks. Includes enterprise-grade agentic infrastructure with specialized agents, skills library, 34+ MCP tools, and graph-based context memory.**
 
-[Overview](#overview) | [Architecture](#architecture) | [System Comparison](#system-comparison) | [Features](#feature-highlights) | [Quick Start](#quick-start) | [Project Structure](#project-structure) | [Configuration](#configuration) | [Deployment](#deployment) | [Testing](#testing) | [MCP Server](#mcp-server-optional----model-context-protocol)
+[Overview](#overview) | [Architecture](#architecture) | [Agentic Infrastructure](#agentic-infrastructure) | [System Comparison](#system-comparison) | [Features](#feature-highlights) | [Quick Start](#quick-start) | [Project Structure](#project-structure) | [Configuration](#configuration) | [Deployment](#deployment) | [Testing](#testing) | [MCP Server](#mcp-server-optional----model-context-protocol)
 
 </div>
 
@@ -60,6 +60,69 @@
 ## Overview
 
 AI Coding Tools ships two completely independent systems in a single repository. The **Orchestrator** runs step-based workflows where AI agents execute tasks in sequence (implement, review, refine). The **Agentic Team** runs a free-communication runtime where role-based agents (Project Manager, Architect, Developer, QA, DevOps) discuss a task in turns until the team lead declares the work complete. Each system carries its own adapters, configuration, UI, and CLI -- they share zero code and zero imports.
+
+Beyond the core engines, we provide a complete **Agentic Infrastructure** that empowers AI agents:
+
+- **9 Specialized Agents** for web, backend, security, DevOps, AI/ML, database, mobile, performance, and documentation
+- **22 Reusable Skills** across development, testing, security, DevOps, AI/ML, and documentation
+- **34+ MCP Tools** for code analysis, security scanning, testing, DevOps, and context memory
+- **Graph Context System** with hybrid search (BM25 + semantic) for persistent memory and learning
+- **Domain Rules** encoding best practices for security, database, API design, performance, and AI/ML
+
+## Agentic Infrastructure
+
+```mermaid
+graph TB
+    subgraph "🧠 Agentic Infrastructure"
+        direction LR
+
+        subgraph AGENTS["Specialized Agents (9)"]
+            WEB[Web Frontend]
+            API[Backend API]
+            SEC[Security]
+            OPS[DevOps]
+            ML[AI/ML]
+            DB[Database]
+        end
+
+        subgraph SKILLS["Skills Library (22)"]
+            DEV[Development]
+            TEST[Testing]
+            SECS[Security]
+            DEVOPS[DevOps]
+            AIML[AI/ML]
+            DOCS[Documentation]
+        end
+
+        subgraph TOOLS["MCP Tools (34+)"]
+            CODE[Code Analysis]
+            SCAN[Security Scan]
+            TTOOLS[Testing]
+            DTOOLS[DevOps]
+            CTX[Context Memory]
+        end
+
+        subgraph CONTEXT["Graph Context"]
+            GRAPH[(Graph Store)]
+            SEARCH[Hybrid Search]
+            EMBED[Embeddings]
+        end
+    end
+
+    AGENTS --> SKILLS
+    SKILLS --> TOOLS
+    TOOLS --> CONTEXT
+```
+
+| Component | Count | Description |
+|-----------|-------|-------------|
+| **Specialized Agents** | 9 | Domain experts for web, backend, security, DevOps, AI/ML, database, mobile, performance, documentation |
+| **Skills** | 22 | Reusable task templates across 6 categories |
+| **MCP Tools** | 34+ | Code analysis, security scanning, testing, DevOps, context memory |
+| **Node Types** | 7 | Conversation, Task, Mistake, Pattern, Decision, CodeSnippet, Preference |
+| **Edge Types** | 12 | RELATED_TO, CAUSED_BY, FIXED_BY, SIMILAR_TO, DEPENDS_ON, etc. |
+
+📚 **[Full Agentic Infrastructure Documentation →](AGENTIC_INFRA.md)**
 
 ## Architecture
 

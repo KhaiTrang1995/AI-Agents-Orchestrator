@@ -1,0 +1,61 @@
+# API Design Rules for Codex
+# RESTful API design patterns and conventions
+
+[api.rest]
+description = "RESTful conventions"
+patterns = [
+    "Use nouns for resources, verbs in HTTP methods",
+    "GET: retrieve, POST: create, PUT: update, PATCH: partial, DELETE: remove",
+    "Use plural resource names: /users, /orders",
+    "Nest related resources: /users/{id}/orders",
+    "Use query parameters for filtering/sorting"
+]
+
+[api.responses]
+description = "Response format"
+patterns = [
+    "Consistent JSON structure with data, error, meta",
+    "Appropriate HTTP status codes",
+    "Pagination info in list responses",
+    "Meaningful error messages with codes"
+]
+
+[api.versioning]
+description = "API versioning"
+patterns = [
+    "Version APIs: /api/v1/resource",
+    "Maintain backward compatibility",
+    "Deprecate with advance notice",
+    "Document breaking changes"
+]
+
+[api.security]
+description = "API security"
+patterns = [
+    "Use Bearer tokens for authentication",
+    "Implement OAuth 2.0 for third-party access",
+    "Apply rate limiting per client",
+    "Validate Content-Type headers",
+    "Return proper CORS headers"
+]
+
+[api.performance]
+description = "API performance"
+patterns = [
+    "Support pagination for list endpoints",
+    "Allow field selection to reduce payload",
+    "Implement caching with ETags",
+    "Use compression (gzip, brotli)",
+    "Support batch operations"
+]
+
+[api.error_format]
+example = """
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Validation failed",
+    "details": [{"field": "email", "message": "Invalid format"}]
+  }
+}
+"""

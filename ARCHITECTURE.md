@@ -13,6 +13,11 @@
 - [Monitoring & Observability](#monitoring--observability)
 - [Deployment Architecture](#deployment-architecture)
 - [Design Patterns](#design-patterns)
+- [Graph Context System](#graph-context-system)
+- [Agentic Infrastructure](#agentic-infrastructure)
+- [Performance Considerations](#performance-considerations)
+- [Scalability](#scalability)
+- [Optional: MCP Integration Layer](#optional-mcp-integration-layer)
 
 ## Overview
 
@@ -899,6 +904,181 @@ def execute_agent_task(agent, task):
     return agent.execute_task(task, {"role": "implement"})
 ```
 
+## Graph Context System
+
+The Graph Context System provides persistent memory capabilities for AI agents, enabling learning from past conversations, tasks, and mistakes.
+
+### Architecture
+
+```mermaid
+graph TB
+    subgraph "Graph Context System"
+        subgraph "Storage Layer"
+            SQLITE[(SQLite DB<br/>WAL Mode)]
+            FTS5[FTS5 Full-Text<br/>Index]
+            VECTORS[(Embedding<br/>Vectors)]
+        end
+
+        subgraph "Node Types (7)"
+            CONV[ConversationNode]
+            TASK[TaskNode]
+            MISTAKE[MistakeNode]
+            PATTERN[PatternNode]
+            DECISION[DecisionNode]
+            CODE[CodeSnippetNode]
+            PREF[PreferenceNode]
+        end
+
+        subgraph "Search Engine"
+            BM25[BM25 Index]
+            EMBED[Sentence Transformers<br/>all-MiniLM-L6-v2]
+            RRF[Reciprocal Rank<br/>Fusion]
+        end
+
+        subgraph "API"
+            MM[MemoryManager]
+        end
+    end
+
+    subgraph "Engines"
+        ORCH[Orchestrator]
+        TEAM[Agentic Team]
+    end
+
+    CONV & TASK & MISTAKE --> SQLITE
+    SQLITE --> FTS5
+    EMBED --> VECTORS
+    BM25 --> RRF
+    EMBED --> RRF
+    RRF --> MM
+    ORCH & TEAM --> MM
+```
+
+### Hybrid Search
+
+The system combines keyword-based BM25 search with semantic embedding search using Reciprocal Rank Fusion:
+
+```mermaid
+sequenceDiagram
+    participant Q as Query
+    participant H as HybridSearch
+    participant B as BM25
+    participant E as Embeddings
+    participant R as RRF Fusion
+
+    Q->>H: search("authentication patterns")
+
+    par Parallel Search
+        H->>B: Keyword search
+        B-->>H: keyword_results
+    and
+        H->>E: Generate embedding
+        E-->>H: Semantic results
+    end
+
+    H->>R: Combine results
+    R-->>H: Fused ranking
+    H-->>Q: Top-k results
+```
+
+### Edge Types
+
+12 semantic edge types for building a knowledge graph:
+
+| Edge Type | Purpose | Example |
+|-----------|---------|---------|
+| RELATED_TO | General relationship | Task ↔ Conversation |
+| CAUSED_BY | Error causation | Mistake → Root Cause |
+| FIXED_BY | Solution mapping | Mistake → Fix |
+| SIMILAR_TO | Semantic similarity | Task ↔ Similar Task |
+| DEPENDS_ON | Dependencies | Task → Prerequisite |
+| LEARNED_FROM | Learning source | Pattern → Source |
+
+### Integration
+
+Both engines automatically store task results:
+
+```python
+# Automatic storage in execute_task()
+result = engine.execute_task("Build login system")
+# → Task automatically stored with outcome, duration, metadata
+
+# Retrieve relevant context
+context = engine.get_relevant_context("authentication patterns")
+# → Returns formatted context from past tasks/mistakes
+```
+
+## Agentic Infrastructure
+
+The platform provides comprehensive infrastructure to empower AI agents:
+
+### Specialized Agents
+
+```mermaid
+mindmap
+  root((Specialized<br/>Agents))
+    Web Development
+      web-frontend
+    Backend
+      backend-api
+      database-architect
+    Security
+      security-specialist
+    Infrastructure
+      devops-infrastructure
+      performance-engineer
+    AI/ML
+      ai-ml-engineer
+    Mobile
+      mobile-developer
+    Documentation
+      documentation-writer
+```
+
+9 specialized agents with domain expertise:
+
+| Agent | Expertise |
+|-------|-----------|
+| web-frontend | React, Vue, Angular, CSS, Accessibility |
+| backend-api | REST, GraphQL, Microservices |
+| security-specialist | OWASP, Secure Coding, Audits |
+| devops-infrastructure | Docker, K8s, CI/CD, Cloud |
+| ai-ml-engineer | ML Pipelines, LLMs, RAG |
+| database-architect | Schema, Optimization, Migrations |
+| mobile-developer | React Native, Flutter, Native |
+| performance-engineer | Profiling, Caching, Load Testing |
+| documentation-writer | API Docs, Architecture, READMEs |
+
+### Skills Library
+
+22 reusable skills across 6 categories:
+
+```mermaid
+graph LR
+    subgraph Skills["Skills Library (22)"]
+        DEV[Development<br/>6 skills]
+        TEST[Testing<br/>4 skills]
+        SEC[Security<br/>4 skills]
+        OPS[DevOps<br/>3 skills]
+        ML[AI/ML<br/>3 skills]
+        DOC[Documentation<br/>3 skills]
+    end
+```
+
+### MCP Tools
+
+34+ tools exposed via Model Context Protocol:
+
+| Category | Tools | Purpose |
+|----------|-------|---------|
+| Code Analysis | 4 | Complexity, patterns, dependencies |
+| Security | 4 | Secrets, injection, headers, audit |
+| Testing | 4 | Test cases, stubs, coverage |
+| DevOps | 5 | Docker, compose, CI, deploy |
+| Context | 7 | Store, search, retrieve, learn |
+
+📚 **See [AGENTIC_INFRA.md](AGENTIC_INFRA.md) for complete documentation.**
+
 ## Performance Considerations
 
 ### Caching Strategy
@@ -946,17 +1126,6 @@ async def execute_workflow_async(tasks: List[Task]):
 - **Worker Threads**: Parallel task processing
 - **Memory Management**: Efficient caching strategies
 - **Resource Limits**: CPU and memory constraints
-
-## Future Architecture Enhancements
-
-1. **Message Queue Integration** - RabbitMQ/Kafka for task distribution
-2. **Distributed Caching** - Redis cluster for shared cache
-3. **Service Mesh** - Istio for advanced traffic management
-4. **Event Sourcing** - Complete audit trail of all operations
-5. **GraphQL API** - Flexible query interface
-6. **WebSocket Streaming** - Real-time task progress
-7. **Multi-tenancy** - Isolated environments for multiple users
-8. **Plugin System** - Dynamic agent loading
 
 ## Optional: MCP Integration Layer
 

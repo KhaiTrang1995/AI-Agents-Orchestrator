@@ -1,0 +1,72 @@
+# AI/ML Development Rules for Codex
+# Best practices for machine learning development
+
+[aiml.data]
+description = "Data handling"
+patterns = [
+    "Validate data quality before training",
+    "Implement proper train/val/test splits",
+    "Use stratified sampling for imbalanced data",
+    "Version datasets with DVC",
+    "Document preprocessing steps"
+]
+
+[aiml.models]
+description = "Model development"
+patterns = [
+    "Start with simple baselines",
+    "Use cross-validation for tuning",
+    "Track experiments with MLflow",
+    "Document architecture decisions",
+    "Version models and configs"
+]
+
+[aiml.embeddings]
+description = "Embeddings and vector search"
+patterns = [
+    "Choose embedding model for use case",
+    "Normalize for cosine similarity",
+    "Use appropriate vector DBs (FAISS, Chroma)",
+    "Implement chunking strategies",
+    "Monitor embedding quality"
+]
+
+[aiml.llm]
+description = "LLM integration"
+patterns = [
+    "Use structured prompts with clear instructions",
+    "Implement prompt templating",
+    "Add guardrails and output validation",
+    "Handle rate limits and errors",
+    "Cache responses when appropriate"
+]
+
+[aiml.rag]
+description = "RAG pipeline"
+patterns = [
+    "Optimize chunk size (512-1024 tokens)",
+    "Use hybrid search (BM25 + semantic)",
+    "Implement reranking for precision",
+    "Add context compression",
+    "Monitor retrieval quality"
+]
+
+[aiml.production]
+description = "Production considerations"
+patterns = [
+    "Implement model monitoring",
+    "Set up A/B testing",
+    "Use feature stores",
+    "Implement fallback strategies",
+    "Document limitations"
+]
+
+[aiml.ethics]
+description = "Ethics and bias"
+patterns = [
+    "Audit training data for bias",
+    "Test on diverse inputs",
+    "Document known limitations",
+    "Implement content filtering",
+    "Provide transparency on AI content"
+]
