@@ -21,7 +21,8 @@
       "Bash(codex exec --help:*)",
       "Bash(DEBUG=1 python3:*)",
       "Bash(./ai-orchestrator interactive:*)",
-      "Bash(./ai-orchestrator:*)"
+      "Bash(./ai-orchestrator:*)",
+      "Bash(python:*)"
     ],
     "deny": [],
     "ask": []

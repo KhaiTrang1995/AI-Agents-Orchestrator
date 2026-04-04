@@ -1,4 +1,4 @@
-name: CI/CD Pipeline for AI Coding Tools Project
+name: 🚀 CI/CD Pipeline — AI Coding Tools
 
 on:
   push:
@@ -9,25 +9,25 @@ on:
 jobs:
   # ── Job 1: Lint, Format, Type-check ────────────────────────────────────────
   lint-and-format:
-    name: "Code Quality"
+    name: "🔍 Code Quality"
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+      - name: 📥 Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
+      - name: 🐍 Set up Python 3.11
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
           cache: 'pip'
 
-      - name: Install dependencies
+      - name: 📦 Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Lint — flake8 (orchestrator + agentic_team)
+      - name: 🧹 Lint — flake8 (orchestrator + agentic_team)
         run: |
           pip install flake8
           flake8 orchestrator/ agentic_team/ tests/ \
@@ -35,25 +35,25 @@ jobs:
             --exclude=__pycache__,.git,*.egg-info
         continue-on-error: true
 
-      - name: Format check — black
+      - name: 🎨 Format check — black
         run: |
           pip install black
           black --check orchestrator/ agentic_team/ tests/
         continue-on-error: true
 
-      - name: Import order check — isort
+      - name: 📐 Import order check — isort
         run: |
           pip install isort
           isort --check-only orchestrator/ agentic_team/ tests/
         continue-on-error: true
 
-      - name: Type check — mypy (orchestrator + agentic_team)
+      - name: 🔎 Type check — mypy (orchestrator + agentic_team)
         run: |
           pip install mypy
           mypy orchestrator/ agentic_team/ --ignore-missing-imports || true
         continue-on-error: true
 
-      - name: Security scan — bandit
+      - name: 🛡️ Security scan — bandit
         run: |
           pip install bandit
           bandit -r orchestrator/ agentic_team/ -c pyproject.toml || true
@@ -61,44 +61,44 @@ jobs:
 
   # ── Job 2: Test suite ────────────────────────────────────────────────────────
   test:
-    name: "Tests"
+    name: "🧪 Tests"
     runs-on: ubuntu-latest
     needs: lint-and-format
 
     steps:
-      - name: Checkout repository
+      - name: 📥 Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python 3.11
+      - name: 🐍 Set up Python 3.11
         uses: actions/setup-python@v4
         with:
           python-version: '3.11'
           cache: 'pip'
 
-      - name: Install dependencies
+      - name: 📦 Install dependencies
         run: |
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           pip install pytest pytest-timeout
 
-      - name: Run tests
+      - name: ✅ Run tests
         run: |
           python -m pytest tests/ --override-ini="addopts=" -q --timeout=30 -m "not integration and not slow"
 
   # ── Job 3: Build Docker image ────────────────────────────────────────────────
   build:
-    name: "Build Docker Image"
+    name: "🐳 Build Docker Image"
     runs-on: ubuntu-latest
     needs: test
 
     steps:
-      - name: Checkout repository
+      - name: 📥 Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Docker Buildx
+      - name: ⚙️ Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build Docker image
+      - name: 🏗️ Build Docker image
         uses: docker/build-push-action@v5
         with:
           context: .
@@ -112,7 +112,7 @@ jobs:
           cache-to: type=gha,mode=max
           outputs: type=docker,dest=/tmp/ai-coding-tools.tar
 
-      - name: Upload image artifact
+      - name: 📤 Upload image artifact
         uses: actions/upload-artifact@v4
         with:
           name: docker-image
@@ -121,7 +121,7 @@ jobs:
 
   # ── Job 4: Publish to GHCR (main branch only) ───────────────────────────────
   push-to-ghcr:
-    name: "Publish Image to GHCR"
+    name: "📦 Publish Image to GHCR"
     runs-on: ubuntu-latest
     needs: build
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
@@ -130,44 +130,44 @@ jobs:
       packages: write
 
     steps:
-      - name: Download image artifact
+      - name: 📥 Download image artifact
         uses: actions/download-artifact@v4
         with:
           name: docker-image
           path: /tmp
 
-      - name: Load Docker image
+      - name: 🐳 Load Docker image
         run: docker load --input /tmp/ai-coding-tools.tar
 
-      - name: Login to GitHub Container Registry
+      - name: 🔑 Login to GitHub Container Registry
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Push Docker image to GHCR
+      - name: 🚀 Push Docker image to GHCR
         run: |
           docker push ghcr.io/${{ github.repository_owner }}/ai-coding-tools:${{ github.sha }}
           docker push ghcr.io/${{ github.repository_owner }}/ai-coding-tools:latest
 
   # ── Job 5: CI Summary ────────────────────────────────────────────────────────
   pipeline-summary:
-    name: "CI Summary"
+    name: "📊 CI Summary"
     runs-on: ubuntu-latest
     needs: push-to-ghcr
     if: always()
 
     steps:
-      - name: Write summary
+      - name: 📝 Write summary
         run: |
-          echo "## CI Pipeline Summary" >> $GITHUB_STEP_SUMMARY
+          echo "## 🚀 CI Pipeline Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "| Stage | Status |" >> $GITHUB_STEP_SUMMARY
           echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Lint & Format | ${{ needs.lint-and-format.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Tests | ${{ needs.test.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Docker Build | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| GHCR Publish | ${{ needs.push-to-ghcr.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🔍 Lint & Format | ${{ needs.lint-and-format.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🧪 Tests | ${{ needs.test.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🐳 Docker Build | ${{ needs.build.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| 📦 GHCR Publish | ${{ needs.push-to-ghcr.result }} |" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "Image: \`ghcr.io/${{ github.repository_owner }}/ai-coding-tools:${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "🏷️ Image: \`ghcr.io/${{ github.repository_owner }}/ai-coding-tools:${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY

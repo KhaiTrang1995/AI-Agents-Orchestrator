@@ -3,6 +3,7 @@ Core orchestration logic for coordinating AI agents.
 """
 
 import logging
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -281,6 +282,7 @@ class Orchestrator:
         Returns:
             Dictionary with execution results
         """
+        execution_start = time.monotonic()
         self.logger.info(f"Executing task: {task}")
         self.logger.info(f"Workflow: {workflow_name}")
 
@@ -359,6 +361,9 @@ class Orchestrator:
         if results["iterations"]:  # type: ignore[index]
             last_iteration = results["iterations"][-1]  # type: ignore[index]
             results["final_output"] = last_iteration.get("final_output")
+
+        # Generate execution report if enabled
+        self._maybe_generate_report(task, workflow_name, results, execution_start)
 
         return results
 
@@ -518,6 +523,34 @@ class Orchestrator:
         context["all_iterations"].append(iteration_results)
 
         return context
+
+    def _maybe_generate_report(
+        self,
+        task: str,
+        workflow_name: str,
+        results: Dict[str, Any],
+        execution_start: float,
+    ) -> None:
+        """Generate an execution report if create_reports is enabled in config."""
+        settings = self.config.get("settings", {})
+        if not settings.get("create_reports", False):
+            return
+
+        try:
+            from orchestrator.observability.report_generator import ReportGenerator
+
+            reports_dir = settings.get("reports_dir", "./reports")
+            gen = ReportGenerator(reports_dir=str(reports_dir))
+            duration = time.monotonic() - execution_start
+            gen.generate_execution_report(
+                task=task,
+                workflow=workflow_name,
+                results=results,
+                duration_seconds=duration,
+                available_agents=self.get_available_agents(),
+            )
+        except Exception as e:
+            self.logger.warning("Failed to generate execution report: %s", e)
 
     def get_available_agents(self) -> List[str]:
         """Get list of available agent names."""

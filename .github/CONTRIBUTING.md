@@ -1,4 +1,4 @@
-# Contributing to AI Orchestrator
+# Contributing to AI Coding Tools Project
 
 Thank you for your interest in contributing to AI Orchestrator! This document provides guidelines and instructions for contributing.
 

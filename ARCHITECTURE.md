@@ -25,7 +25,7 @@ The AI Coding Tools Orchestrator is built on a modular, extensible architecture 
 - **Reliability**: Robust error handling and retry logic
 - **Performance**: Async execution and intelligent caching
 - **Security**: Input validation, rate limiting, and audit logging
-- **Observability**: Comprehensive metrics and structured logging
+- **Observability**: Comprehensive metrics, structured logging, and automated report generation
 
 ## System Architecture
 
@@ -711,7 +711,37 @@ graph LR
     A --> F[Structured Logging]
     F --> G[Log Aggregator]
     G --> H[Log Analysis]
+
+    A --> I[Report Generator]
+    I --> J[JSON Reports]
+    I --> K[HTML Dashboard]
 ```
+
+### Report Generation
+
+The `ReportGenerator` (`orchestrator/observability/report_generator.py`) automatically produces reports after each task execution when `create_reports: true` is set in config. Reports are written as JSON files plus an interactive HTML dashboard.
+
+```mermaid
+flowchart LR
+    ENG[Engine.execute_task] --> RG[ReportGenerator]
+    RG --> EXEC[exec_*.json<br/>Execution Summary]
+    RG --> PERF[perf_*.json<br/>Agent Performance]
+    RG --> WF[workflow_*.json<br/>Workflow Analytics]
+    RG --> HEALTH[health_*.json<br/>System Health]
+    RG --> CFG[config_*.json<br/>Config Audit]
+    RG --> DASH[dashboard_*.html<br/>Chart.js Dashboard]
+    RG --> IDX[INDEX.json<br/>Report Catalog]
+
+    style DASH fill:#276749,stroke:#22543d,color:#fff
+```
+
+**Report types:**
+- **Execution Summary** — Per-task results with steps, agents, fallbacks, suggestions, and duration
+- **Agent Performance** — Aggregated success rates, call counts, and task type distribution
+- **Workflow Analytics** — Per-workflow run counts, success rates, and average iterations
+- **System Health** — Health check results with disk, memory, Python version, and platform info
+- **Config Audit** — Agent availability, workflow structure, and settings snapshot
+- **HTML Dashboard** — Interactive Chart.js dashboard with KPI cards, daily volume bar chart, agent success/failure stacked bar, duration trend line, and workflow distribution doughnut
 
 ### Key Metrics
 
