@@ -304,7 +304,9 @@ class ContextAnalytics:
         return {
             "total_embedded_nodes": row[0],
             "embedding_models": row[1],
-            "embedding_coverage": (round(row[0] / max(1, self.graph_store.node_count()) * 100, 1)),
+            "embedding_coverage": (
+                round(row[0] / max(1, self.graph_store.get_stats()["total_nodes"]) * 100, 1)
+            ),
         }
 
     def get_comprehensive_report(self) -> dict[str, Any]:
