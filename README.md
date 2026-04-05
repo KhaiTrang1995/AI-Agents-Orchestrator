@@ -1058,6 +1058,8 @@ Health checks:
 
 ## Screenshots
 
+Some screenshots of the Web UIs and CLI interfaces:
+
 <p align="center">
   <img src="docs/images/ui.png" alt="Orchestrator Web UI" width="100%"/>
   <br/>
