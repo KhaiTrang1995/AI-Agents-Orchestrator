@@ -229,7 +229,7 @@ class ContextPruner:
         Returns:
             Combined pruning statistics
         """
-        results = {"strategies": []}
+        results: dict[str, list[Any]] = {"strategies": []}
 
         if remove_duplicates:
             dup_result = self.prune_duplicates()

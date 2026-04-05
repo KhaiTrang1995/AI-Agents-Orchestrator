@@ -618,9 +618,9 @@ make run-agentic-ui
 AI-Coding-Tools/
 |
 |-- .claude/                         # Claude Code agentic infrastructure
-|   |-- CLAUDE.md                    #   Main Claude instructions (imports AGENTS.md)
-|   |-- settings.json                #   Project settings and permissions
-|   |-- agents/                      #   11 specialized agent definitions
+|   |-- CLAUDE.md                    # Main Claude instructions (imports AGENTS.md)
+|   |-- settings.json                # Project settings and permissions
+|   |-- agents/                      # 11 specialized agent definitions
 |   |   |-- web-frontend.md
 |   |   |-- backend-api.md
 |   |   |-- security-specialist.md
@@ -632,17 +632,17 @@ AI-Coding-Tools/
 |   |   |-- documentation-writer.md
 |   |   |-- code-reviewer.md
 |   |   +-- test-runner.md
-|   |-- skills/                      #   23 reusable skill templates
-|   |   |-- development/             #     6 skills (react, REST, async, DB, GraphQL, errors)
-|   |   |-- testing/                 #     4 skills (unit, integration, TDD, perf)
-|   |   |-- security/                #     4 skills (validation, auth, secure-coding, vuln)
-|   |   |-- devops/                  #     3 skills (Docker, CI/CD, K8s)
-|   |   |-- ai-ml/                   #     3 skills (embeddings, LLM, RAG)
-|   |   |-- documentation/           #     3 skills (API docs, arch docs, code docs)
-|   |   |-- generate-reports/        #     Standalone: report generation
-|   |   |-- health-check/            #     Standalone: system health checks
-|   |   +-- run-tests/               #     Standalone: test suite execution
-|   +-- rules/                       #   11 domain rule files
+|   |-- skills/                      # 23 reusable skill templates
+|   |   |-- development/             # 6 skills (react, REST, async, DB, GraphQL, errors)
+|   |   |-- testing/                 # 4 skills (unit, integration, TDD, perf)
+|   |   |-- security/                # 4 skills (validation, auth, secure-coding, vuln)
+|   |   |-- devops/                  # 3 skills (Docker, CI/CD, K8s)
+|   |   |-- ai-ml/                   # 3 skills (embeddings, LLM, RAG)
+|   |   |-- documentation/           # 3 skills (API docs, arch docs, code docs)
+|   |   |-- generate-reports/        # Standalone: report generation
+|   |   |-- health-check/            # Standalone: system health checks
+|   |   +-- run-tests/               # Standalone: test suite execution
+|   +-- rules/                       # 11 domain rule files
 |       |-- adapters.md
 |       |-- api-design.md
 |       |-- testing.md
@@ -656,8 +656,8 @@ AI-Coding-Tools/
 |       +-- database.md
 |
 |-- .codex/                          # Codex agentic infrastructure
-|   |-- config.toml                  #   Codex project configuration
-|   |-- agents/                      #   13 specialized agent definitions (.toml)
+|   |-- config.toml                  # Codex project configuration
+|   |-- agents/                      # 13 specialized agent definitions (.toml)
 |   |   |-- code-reviewer.toml
 |   |   |-- explorer.toml
 |   |   |-- security-specialist.toml
@@ -671,81 +671,81 @@ AI-Coding-Tools/
 |   |   |-- backend-api.toml
 |   |   |-- documentation-writer.toml
 |   |   +-- mobile-developer.toml
-|   |-- hooks/                       #   Git hook integrations
-|   +-- rules/                       #   Codex-specific rules
+|   |-- hooks/                       # Git hook integrations
+|   +-- rules/                       # Codex-specific rules
 |
 |-- mcp_server/                      # MCP server (FastMCP 3.x) — 34+ tools
-|   |-- server.py                    #   Server entry point + core tools
-|   |-- engines.py                   #   Engine adapters for both systems
-|   |-- repl.py                      #   Interactive REPL mode
-|   |-- tools/                       #   Tool modules by category
-|   |   |-- orchestrator_tools.py    #     Orchestrator execution tools
-|   |   |-- agentic_team_tools.py    #     Agentic team execution tools
-|   |   |-- shared_tools.py          #     Shared utility tools
-|   |   |-- code_analysis.py         #     4 code analysis tools
-|   |   |-- security_tools.py        #     4 security scanning tools
-|   |   |-- testing_tools.py         #     4 testing tools
-|   |   |-- devops_tools.py          #     5 DevOps tools
-|   |   +-- context_tools.py         #     7 context memory tools
-|   +-- resources/                   #   MCP resource definitions
+|   |-- server.py                    # Server entry point + core tools
+|   |-- engines.py                   # Engine adapters for both systems
+|   |-- repl.py                      # Interactive REPL mode
+|   |-- tools/                       # Tool modules by category
+|   |   |-- orchestrator_tools.py    # Orchestrator execution tools
+|   |   |-- agentic_team_tools.py    # Agentic team execution tools
+|   |   |-- shared_tools.py          # Shared utility tools
+|   |   |-- code_analysis.py         # 4 code analysis tools
+|   |   |-- security_tools.py        # 4 security scanning tools
+|   |   |-- testing_tools.py         # 4 testing tools
+|   |   |-- devops_tools.py          # 5 DevOps tools
+|   |   +-- context_tools.py         # 7 context memory tools
+|   +-- resources/                   # MCP resource definitions
 |
 |-- orchestrator/                    # Self-contained orchestrator system
 |   |-- __init__.py
 |   |-- adapters/                    # AI agent adapters
-|   |   |-- base.py                  #   Abstract base adapter
-|   |   |-- claude_adapter.py        #   Claude Code CLI
-|   |   |-- codex_adapter.py         #   OpenAI Codex CLI
-|   |   |-- gemini_adapter.py        #   Google Gemini CLI
-|   |   |-- copilot_adapter.py       #   GitHub Copilot CLI
-|   |   |-- ollama_adapter.py        #   Ollama local models
-|   |   |-- llama_cpp_adapter.py     #   llama.cpp / OpenAI-compatible
-|   |   +-- cli_communicator.py      #   Robust CLI subprocess handling
+|   |   |-- base.py                  # Abstract base adapter
+|   |   |-- claude_adapter.py        # Claude Code CLI
+|   |   |-- codex_adapter.py         # OpenAI Codex CLI
+|   |   |-- gemini_adapter.py        # Google Gemini CLI
+|   |   |-- copilot_adapter.py       # GitHub Copilot CLI
+|   |   |-- ollama_adapter.py        # Ollama local models
+|   |   |-- llama_cpp_adapter.py     # llama.cpp / OpenAI-compatible
+|   |   +-- cli_communicator.py      # Robust CLI subprocess handling
 |   |-- core/                        # Core orchestration logic
-|   |   |-- engine.py                #   Main orchestration engine
-|   |   |-- workflow.py              #   Workflow definitions and runner
-|   |   |-- task_manager.py          #   Task lifecycle management
-|   |   +-- exceptions.py            #   Custom exception hierarchy
+|   |   |-- engine.py                # Main orchestration engine
+|   |   |-- workflow.py              # Workflow definitions and runner
+|   |   |-- task_manager.py          # Task lifecycle management
+|   |   +-- exceptions.py            # Custom exception hierarchy
 |   |-- resilience/                  # Fault tolerance
-|   |   |-- retry.py                 #   Retry with exponential backoff
-|   |   |-- fallback.py              #   Cloud-to-local fallback routing
-|   |   +-- offline.py               #   Offline detection
+|   |   |-- retry.py                 # Retry with exponential backoff
+|   |   |-- fallback.py              # Cloud-to-local fallback routing
+|   |   +-- offline.py               # Offline detection
 |   |-- observability/               # Monitoring, logging, and reports
-|   |   |-- metrics.py               #   Prometheus metrics
-|   |   |-- logging_config.py        #   Structured logging setup
-|   |   |-- health.py                #   Health and readiness probes
-|   |   +-- report_generator.py      #   Execution, performance, and HTML reports
+|   |   |-- metrics.py               # Prometheus metrics
+|   |   |-- logging_config.py        # Structured logging setup
+|   |   |-- health.py                # Health and readiness probes
+|   |   +-- report_generator.py      # Execution, performance, and HTML reports
 |   |-- security_module/             # Security layer
-|   |   +-- security.py              #   Validation, rate limiting, audit
+|   |   +-- security.py              # Validation, rate limiting, audit
 |   |-- infra/                       # Infrastructure utilities
-|   |   |-- cache.py                 #   Response caching
-|   |   |-- async_executor.py        #   Async task execution
-|   |   +-- config_manager.py        #   Configuration loading
+|   |   |-- cache.py                 # Response caching
+|   |   |-- async_executor.py        # Async task execution
+|   |   +-- config_manager.py        # Configuration loading
 |   |-- cli/                         # CLI interface
-|   |   +-- shell.py                 #   Interactive REPL shell
+|   |   +-- shell.py                 # Interactive REPL shell
 |   |-- context/                     # Graph-based context memory
-|   |   |-- memory_manager.py        #   High-level memory API
-|   |   |-- models/                  #   Node and edge schemas
+|   |   |-- memory_manager.py        # High-level memory API
+|   |   |-- models/                  # Node and edge schemas
 |   |   |   +-- schemas.py
-|   |   |-- store/                   #   Graph persistence layer
+|   |   |-- store/                   # Graph persistence layer
 |   |   |   +-- graph_store.py
-|   |   |-- search/                  #   Search engines
-|   |   |   |-- bm25_index.py        #     BM25 keyword search
-|   |   |   |-- embeddings.py        #     Embedding generation
-|   |   |   |-- hybrid_search.py     #     Hybrid BM25 + semantic
-|   |   |   +-- advanced_search.py   #     Advanced query support
-|   |   +-- ops/                     #   Operational utilities
-|   |       |-- analytics.py         #     Graph analytics
-|   |       |-- export.py            #     Data export
-|   |       |-- pruning.py           #     Node/edge pruning
-|   |       +-- versioning.py        #     Version tracking
+|   |   |-- search/                  # Search engines
+|   |   |   |-- bm25_index.py        # BM25 keyword search
+|   |   |   |-- embeddings.py        # Embedding generation
+|   |   |   |-- hybrid_search.py     # Hybrid BM25 + semantic
+|   |   |   +-- advanced_search.py   # Advanced query support
+|   |   +-- ops/                     # Operational utilities
+|   |       |-- analytics.py         # Graph analytics
+|   |       |-- export.py            # Data export
+|   |       |-- pruning.py           # Node/edge pruning
+|   |       +-- versioning.py        # Version tracking
 |   |-- config/
-|   |   +-- agents.yaml              #   Agents, workflows, settings
+|   |   +-- agents.yaml              # Agents, workflows, settings
 |   |-- ui/                          # Web UI
-|   |   |-- app.py                   #   Flask + Socket.IO backend
-|   |   |-- frontend/                #   Nuxt 3 + Vue 3 + Tailwind
+|   |   |-- app.py                   # Flask + Socket.IO backend
+|   |   |-- frontend/                # Nuxt 3 + Vue 3 + Tailwind
 |   |   |-- static/
 |   |   +-- templates/
-|   +-- README.md                    #   Orchestrator-specific docs
+|   +-- README.md                    # Orchestrator-specific docs
 |
 |-- agentic_team/                    # Self-contained agentic team system
 |   |-- __init__.py
@@ -766,19 +766,19 @@ AI-Coding-Tools/
 |   |   |-- llama_cpp_adapter.py
 |   |   +-- cli_communicator.py
 |   |-- context/                     # Independent graph-based context memory
-|   |   |-- memory_manager.py        #   High-level memory API
-|   |   |-- models/                  #   Node and edge schemas
-|   |   |-- store/                   #   Graph persistence layer
-|   |   |-- search/                  #   BM25 + semantic + hybrid search
-|   |   +-- ops/                     #   Analytics, export, pruning, versioning
+|   |   |-- memory_manager.py        # High-level memory API
+|   |   |-- models/                  # Node and edge schemas
+|   |   |-- store/                   # Graph persistence layer
+|   |   |-- search/                  # BM25 + semantic + hybrid search
+|   |   +-- ops/                     # Analytics, export, pruning, versioning
 |   |-- config/
-|   |   +-- agents.yaml              #   Agents, roles, team settings
+|   |   +-- agents.yaml              # Agents, roles, team settings
 |   |-- ui/                          # Dedicated Web UI
-|   |   |-- app.py                   #   Flask + Socket.IO backend
-|   |   |-- frontend/                #   Nuxt 3 + Vue 3 + Tailwind
+|   |   |-- app.py                   # Flask + Socket.IO backend
+|   |   |-- frontend/                # Nuxt 3 + Vue 3 + Tailwind
 |   |   |-- static/
 |   |   +-- templates/
-|   +-- README.md                    #   Agentic team-specific docs
+|   +-- README.md                    # Agentic team-specific docs
 |
 |-- tests/                           # Unified test suite
 |   |-- conftest.py
@@ -793,14 +793,14 @@ AI-Coding-Tools/
 |   |-- test_production_hardening.py
 |   +-- ...
 |
-|-- reports/                          # Generated reports (JSON + HTML dashboard)
-|   |-- INDEX.json                   #   Report catalog
-|   |-- exec_*.json                  #   Per-task execution summaries
-|   |-- perf_*.json                  #   Agent performance analytics
-|   |-- workflow_*.json              #   Workflow-level analytics
-|   |-- health_*.json                #   System health snapshots
-|   |-- config_*.json                #   Configuration audits
-|   +-- dashboard_*.html             #   Interactive HTML dashboard with charts
+|-- reports/                         # Generated reports (JSON + HTML dashboard)
+|   |-- INDEX.json                   # Report catalog
+|   |-- exec_*.json                  # Per-task execution summaries
+|   |-- perf_*.json                  # Agent performance analytics
+|   |-- workflow_*.json              # Workflow-level analytics
+|   |-- health_*.json                # System health snapshots
+|   |-- config_*.json                # Configuration audits
+|   +-- dashboard_*.html             # Interactive HTML dashboard with charts
 |
 |-- deployment/                      # Deployment configurations
 |   |-- kubernetes/
@@ -810,7 +810,7 @@ AI-Coding-Tools/
 |   +-- scripts/
 |
 |-- docs/                            # Documentation
-|   |-- images/                      #   Screenshots
+|   |-- images/                      # Screenshots
 |   |-- orchestrator-architecture.md
 |   |-- orchestrator-api-reference.md
 |   |-- agentic-team-architecture.md
@@ -825,10 +825,10 @@ AI-Coding-Tools/
 |   +-- agentic_team/
 |
 |-- context_dashboard/               # Unified context visualization (port 5003)
-|   |-- app.py                       #   Flask app aggregating both context stores
+|   |-- app.py                       # Flask app aggregating both context stores
 |   |-- templates/
-|   |   +-- dashboard.html           #   Interactive graph visualization
-|   +-- README.md                    #   Dashboard-specific docs
+|   |   +-- dashboard.html           # Interactive graph visualization
+|   +-- README.md                    # Dashboard-specific docs
 |
 |-- scripts/                         # Helper scripts
 |   |-- install.sh
@@ -836,7 +836,7 @@ AI-Coding-Tools/
 |   |-- start-agentic-ui.sh
 |   |-- start-mcp-server.sh
 |   |-- start-all.sh
-|   |-- seed_context_graphs.py       #   Auto-seed both context databases
+|   |-- seed_context_graphs.py
 |   |-- health-check.sh
 |   |-- format.sh
 |   |-- lint.sh
@@ -1043,39 +1043,57 @@ Health checks:
 
 ## Documentation
 
-| Document | Description |
-|---|---|
-| **[SETUP.md](SETUP.md)** | Prerequisites, installation, environment setup, troubleshooting |
-| **[ARCHITECTURE.md](ARCHITECTURE.md)** | System architecture and design patterns |
-| **[FEATURES.md](FEATURES.md)** | Comprehensive feature documentation |
-| **[AGENTIC_TEAM.md](AGENTIC_TEAM.md)** | Agentic team runtime details |
-| **[OFFLINE_MODE.md](OFFLINE_MODE.md)** | Offline mode and local model guide |
-| **[DEPLOYMENT.md](DEPLOYMENT.md)** | Docker, Kubernetes, systemd, Azure deployment |
-| **[ADD_AGENTS.md](ADD_AGENTS.md)** | Guide for adding new AI agents |
-| **[orchestrator/README.md](orchestrator/README.md)** | Orchestrator subsystem documentation |
-| **[agentic_team/README.md](agentic_team/README.md)** | Agentic team subsystem documentation |
-| **[docs/](docs/)** | API references, architecture deep-dives, testing guide, security |
+| Document                                             | Description                                                      |
+|------------------------------------------------------|------------------------------------------------------------------|
+| **[SETUP.md](SETUP.md)**                             | Prerequisites, installation, environment setup, troubleshooting  |
+| **[ARCHITECTURE.md](ARCHITECTURE.md)**               | System architecture and design patterns                          |
+| **[FEATURES.md](FEATURES.md)**                       | Comprehensive feature documentation                              |
+| **[AGENTIC_TEAM.md](AGENTIC_TEAM.md)**               | Agentic team runtime details                                     |
+| **[OFFLINE_MODE.md](OFFLINE_MODE.md)**               | Offline mode and local model guide                               |
+| **[DEPLOYMENT.md](DEPLOYMENT.md)**                   | Docker, Kubernetes, systemd, Azure deployment                    |
+| **[ADD_AGENTS.md](ADD_AGENTS.md)**                   | Guide for adding new AI agents                                   |
+| **[orchestrator/README.md](orchestrator/README.md)** | Orchestrator subsystem documentation                             |
+| **[agentic_team/README.md](agentic_team/README.md)** | Agentic team subsystem documentation                             |
+| **[docs/](docs/)**                                   | API references, architecture deep-dives, testing guide, security |
 
 ## Screenshots
 
+Some screenshots of the Web UIs and CLI interfaces:
+
 <p align="center">
   <img src="docs/images/ui.png" alt="Orchestrator Web UI" width="100%"/>
+  <br/>
+  <em>Orchestrator Web UI — real-time task execution dashboard with agent status and workflow controls</em>
 </p>
 
 <p align="center">
   <img src="docs/images/agentic-team.png" alt="Agentic Team Web UI" width="100%"/>
+  <br/>
+  <em>Agentic Team Web UI — role-based multi-agent collaboration with live communication view</em>
 </p>
 
 <p align="center">
-  <img src="docs/images/graph.png" alt="Orchestrator Web UI" width="100%"/>
+  <img src="docs/images/graph.png" alt="Context Graph Dashboard" width="100%"/>
+  <br/>
+  <em>Context Graph Dashboard — interactive knowledge graph visualization with node inspection and hybrid search</em>
 </p>
 
 <p align="center">
   <img src="docs/images/cli.png" alt="Orchestrator CLI" width="100%"/>
+  <br/>
+  <em>Orchestrator CLI — command-line interface for task execution and agent management</em>
 </p>
 
 <p align="center">
   <img src="docs/images/cli-3.png" alt="Agentic Shell REPL" width="100%"/>
+  <br/>
+  <em>Agentic Shell REPL — interactive shell for direct agent communication and debugging</em>
+</p>
+
+<p align="center">
+  <img src="docs/images/mcp.png" alt="MCP Tools REPL" width="100%"/>
+  <br/>
+  <em>MCP Tools REPL — interactive console for exploring and testing 34+ MCP tools across both engines</em>
 </p>
 
 ## MCP Server (Optional -- Model Context Protocol)
