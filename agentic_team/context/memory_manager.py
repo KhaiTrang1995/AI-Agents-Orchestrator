@@ -96,6 +96,7 @@ class MemoryManager:
         agents_involved: list[str] | None = None,
         tags: list[str] | None = None,
         metadata: dict[str, Any] | None = None,
+        project_id: str = "",
     ) -> str:
         """Store a completed task.
 
@@ -107,6 +108,7 @@ class MemoryManager:
             agents_involved: List of agents that participated.
             tags: Optional tags.
             metadata: Additional metadata.
+            project_id: Optional project scope.
 
         Returns:
             Node ID.
@@ -124,6 +126,7 @@ class MemoryManager:
             tags=tags or ["task", status],
             metadata=metadata or {},
             importance_score=1.5 if success else 2.0,
+            project_id=project_id,
         )
 
         self.graph_store.add_node(node)
@@ -402,6 +405,143 @@ class MemoryManager:
         """
         return ContextExporter(self.graph_store)
 
+    # ------------------------------------------------------------------
+    # Project-scoped operations
+    # ------------------------------------------------------------------
+
+    def register_project(self, project_path: str) -> str:
+        """Register a project and perform an initial scan.
+
+        Args:
+            project_path: Path to the project root directory.
+
+        Returns:
+            Deterministic project_id.
+        """
+        from agentic_team.context.ops.project_scanner import ProjectScanner, generate_project_id
+
+        pid = generate_project_id(project_path)
+
+        existing = self.graph_store.query_nodes(node_type=NodeType.PROJECT, project_id=pid, limit=1)
+        if existing:
+            self.logger.info("Project already registered: %s (id=%s)", project_path, pid)
+            return pid
+
+        scanner = ProjectScanner(project_path)
+        scan_result = scanner.scan()
+
+        self.graph_store.add_node(scan_result["project_node"])
+        for node in scan_result["file_nodes"]:
+            self.graph_store.add_node(node)
+        for node in scan_result["pattern_nodes"]:
+            self.graph_store.add_node(node)
+        for node in scan_result["decision_nodes"]:
+            self.graph_store.add_node(node)
+        for edge in scan_result["edges"]:
+            self.graph_store.add_edge(edge)
+
+        self.logger.info(
+            "Project registered: %s — %d nodes, %d edges",
+            project_path,
+            (
+                1
+                + len(scan_result["file_nodes"])
+                + len(scan_result["pattern_nodes"])
+                + len(scan_result["decision_nodes"])
+            ),
+            len(scan_result["edges"]),
+        )
+        return pid
+
+    def rescan_project(self, project_path: str) -> str:
+        """Delete existing project graph and rebuild from scratch.
+
+        Args:
+            project_path: Project root directory.
+
+        Returns:
+            project_id
+        """
+        from agentic_team.context.ops.project_scanner import generate_project_id
+
+        pid = generate_project_id(project_path)
+        self.delete_project_graph(pid)
+        return self.register_project(project_path)
+
+    def delete_project_graph(self, project_id: str) -> int:
+        """Remove all nodes (and cascading edges) for a project.
+
+        Args:
+            project_id: The project identifier.
+
+        Returns:
+            Number of nodes deleted.
+        """
+        deleted = self.graph_store.delete_nodes_by_project(project_id)
+        self.logger.info("Deleted %d nodes for project %s", deleted, project_id)
+        return deleted
+
+    def get_project_context(
+        self,
+        project_id: str,
+        task: str = "",
+        limit: int = 20,
+    ) -> dict[str, Any]:
+        """Get context scoped to a specific project.
+
+        Args:
+            project_id: The project identifier.
+            task: Optional task description to focus the search.
+            limit: Maximum results per category.
+
+        Returns:
+            Categorised context dictionary.
+        """
+        context: dict[str, Any] = {
+            "project": None,
+            "patterns": [],
+            "decisions": [],
+            "tasks": [],
+            "mistakes": [],
+            "files": [],
+        }
+
+        project_nodes = self.graph_store.query_nodes(
+            node_type=NodeType.PROJECT, project_id=project_id, limit=1
+        )
+        if project_nodes:
+            context["project"] = project_nodes[0].to_dict()
+
+        if task:
+            results = self.search(task, limit=limit)
+            for r in results:
+                if r.node.project_id and r.node.project_id != project_id:
+                    continue
+                entry = r.to_dict()
+                nt = r.node.node_type
+                if nt == NodeType.PATTERN:
+                    context["patterns"].append(entry)
+                elif nt == NodeType.DECISION:
+                    context["decisions"].append(entry)
+                elif nt == NodeType.TASK:
+                    context["tasks"].append(entry)
+                elif nt == NodeType.MISTAKE:
+                    context["mistakes"].append(entry)
+                elif nt == NodeType.FILE:
+                    context["files"].append(entry)
+        else:
+            for nt_key, nt_val in [
+                ("patterns", NodeType.PATTERN),
+                ("decisions", NodeType.DECISION),
+                ("files", NodeType.FILE),
+            ]:
+                nodes = self.graph_store.query_nodes(
+                    node_type=nt_val, project_id=project_id, limit=limit
+                )
+                context[nt_key] = [n.to_dict() for n in nodes]
+
+        return context
+
     def close(self) -> None:
         """Close the memory manager."""
         self.graph_store.close()
@@ -422,5 +562,5 @@ class MemoryManager:
         words = query.split()
         if not words:
             return ""
-        safe_words = [f'"{w}"' for w in words if w.strip()]
+        safe_words = [f'"{w.replace(chr(34), "")}"' for w in words if w.strip()]
         return " ".join(safe_words)

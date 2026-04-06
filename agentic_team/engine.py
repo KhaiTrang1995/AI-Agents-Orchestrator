@@ -524,10 +524,23 @@ class AgenticTeamEngine:
     def _init_context_manager(self):
         """Initialize context manager if available."""
         try:
+            import os
+
             from agentic_team.context import MemoryManager
 
             manager = MemoryManager()
             self.logger.info("Context manager initialized for agentic team")
+
+            # Auto-register project if configured
+            project_path = os.environ.get("PROJECT_PATH", "").strip()
+            if not project_path:
+                project_path = self.config.get("settings", {}).get("project_path", "")
+            if project_path and Path(project_path).is_dir():
+                try:
+                    manager.register_project(project_path)
+                except Exception as exc:
+                    self.logger.debug("Project registration failed: %s", exc)
+
             return manager
         except ImportError:
             self.logger.debug("Context manager not available (agentic_team.context not found)")
@@ -535,6 +548,22 @@ class AgenticTeamEngine:
         except Exception as e:
             self.logger.warning("Failed to initialize context manager: %s", e)
             return None
+
+    def _resolve_project_id(self) -> str:
+        """Resolve the active project_id from env or config."""
+        import os
+
+        project_path = os.environ.get("PROJECT_PATH", "").strip()
+        if not project_path:
+            project_path = self.config.get("settings", {}).get("project_path", "")
+        if not project_path or not Path(project_path).is_dir():
+            return ""
+        try:
+            from agentic_team.context.ops.project_scanner import generate_project_id
+
+            return generate_project_id(project_path)
+        except Exception:
+            return ""
 
     def _store_task_in_context(
         self,
@@ -581,6 +610,7 @@ class AgenticTeamEngine:
                 duration_ms=int(duration_seconds * 1000),
                 agents_involved=roles_used,
                 metadata=metadata,
+                project_id=self._resolve_project_id(),
             )
 
             if not success and final_output:
