@@ -29,6 +29,8 @@ A unified visualization and management UI for the **graph-based context memory s
 - [Pruning Strategies](#pruning-strategies)
 - [Export & Import](#export--import)
 - [Combined View](#combined-view)
+- [Project Filtering](#project-filtering)
+- [Security](#security)
 - [Seed Data](#seed-data)
 - [Integration with AI Agents](#integration-with-ai-agents)
 - [Development](#development)
@@ -276,14 +278,17 @@ sequenceDiagram
 ### Start the Dashboard
 
 ```bash
-# From the project root
+# Start with defaults (localhost:5003, no debug)
 python -m context_dashboard
 
-# Or directly
-python context_dashboard/app.py
+# Custom host/port
+DASHBOARD_HOST=0.0.0.0 DASHBOARD_PORT=8080 python -m context_dashboard
+
+# Development mode with debug
+DASHBOARD_DEBUG=true python -m context_dashboard
 ```
 
-The dashboard starts at **http://localhost:5003**.
+The dashboard starts at **http://localhost:5003** by default.
 
 ### Verify It's Running
 
@@ -666,6 +671,45 @@ Each node and edge also carries a `_system` field (`"orchestrator"` or `"agentic
 
 ---
 
+## Project Filtering
+
+The dashboard supports project-scoped views for multi-project environments:
+
+- **`/api/projects/<system>`** — List all registered projects in a context system
+- **Project filter parameter** — All query endpoints accept an optional `project_id` query parameter to scope results
+- **Global vs project scope** — Nodes with `project_id=""` are global (universal patterns); nodes with a specific `project_id` belong to that project
+
+### API Endpoints
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/api/projects/orchestrator` | List orchestrator projects |
+| GET | `/api/projects/agentic_team` | List agentic team projects |
+| GET | `/api/graph/<system>?project_id=<id>` | Get graph data filtered by project |
+| GET | `/api/search/<system>?q=<query>&project_id=<id>` | Search within a project scope |
+
+---
+
+## Security
+
+The dashboard follows production security best practices:
+
+- **No debug mode in production** — `debug=True` is disabled by default; enable via `DASHBOARD_DEBUG=true` env var
+- **Localhost binding** — Binds to `127.0.0.1` by default; override with `DASHBOARD_HOST` env var
+- **Query limit cap** — All query endpoints enforce `MAX_QUERY_LIMIT = 10,000` to prevent OOM
+- **Error sanitization** — Internal error details are logged server-side only; generic messages returned to clients
+- **Singleton connections** — MemoryManagers are lazily initialized singletons to prevent connection leaks
+
+### Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `DASHBOARD_HOST` | `127.0.0.1` | Bind address |
+| `DASHBOARD_PORT` | `5003` | Listen port |
+| `DASHBOARD_DEBUG` | `false` | Enable Flask debug mode |
+
+---
+
 ## Seed Data
 
 The project includes a seed script to populate both context databases with realistic development data for testing and demonstration:
@@ -799,9 +843,11 @@ Debug mode enables:
 ### Code Style
 
 The project uses:
+- **Pylint** — 10.00/10 score, zero warnings
 - **Black** (120-char line length) for formatting
 - **isort** for import ordering
 - **flake8** for linting
+- **15 pre-commit hooks** — all passing
 - **Type hints** on all function signatures
 
 ---
