@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import io
 import json
+import os
 import sys
 import uuid
 from datetime import datetime, timezone
@@ -29,31 +30,41 @@ app = Flask(__name__)
 CORS(app)
 
 VALID_SYSTEMS = ("orchestrator", "agentic_team")
+MAX_QUERY_LIMIT = 10000
 
 
 # ---------------------------------------------------------------------------
-# Context system accessors
+# Context system accessors (singletons)
 # ---------------------------------------------------------------------------
+
+_orchestrator_ctx = None
+_agentic_team_ctx = None
 
 
 def get_orchestrator_context():
-    """Get orchestrator context manager."""
-    try:
-        from orchestrator.context import MemoryManager
+    """Get orchestrator context manager (singleton)."""
+    global _orchestrator_ctx
+    if _orchestrator_ctx is None:
+        try:
+            from orchestrator.context import MemoryManager
 
-        return MemoryManager()
-    except Exception:
-        return None
+            _orchestrator_ctx = MemoryManager()
+        except Exception:
+            pass
+    return _orchestrator_ctx
 
 
 def get_agentic_team_context():
-    """Get agentic team context manager."""
-    try:
-        from agentic_team.context import MemoryManager
+    """Get agentic team context manager (singleton)."""
+    global _agentic_team_ctx
+    if _agentic_team_ctx is None:
+        try:
+            from agentic_team.context import MemoryManager
 
-        return MemoryManager()
-    except Exception:
-        return None
+            _agentic_team_ctx = MemoryManager()
+        except Exception:
+            pass
+    return _agentic_team_ctx
 
 
 def _get_context(system: str):
@@ -78,9 +89,19 @@ def _validate_system(system: str):
 
 
 def get_graph_data(
-    system: str, node_types: list[str] | None = None, limit: int = 200
+    system: str,
+    node_types: list[str] | None = None,
+    limit: int = 200,
+    project_id: str | None = None,
 ) -> dict[str, Any]:
-    """Query nodes and edges from the graph store."""
+    """Query nodes and edges from the graph store.
+
+    Args:
+        system: 'orchestrator' or 'agentic_team'
+        node_types: Optional filter by node types
+        limit: Maximum number of nodes to return
+        project_id: Optional project scope filter
+    """
     manager = _get_context(system)
     if not manager or not hasattr(manager, "graph_store"):
         return {"nodes": [], "edges": []}
@@ -88,14 +109,24 @@ def get_graph_data(
     store = manager.graph_store
     try:
         with store._transaction() as cursor:
+            conditions: list[str] = []
+            params: list[Any] = []
+
             if node_types:
                 placeholders = ",".join("?" * len(node_types))
-                cursor.execute(
-                    f"SELECT * FROM nodes WHERE node_type IN ({placeholders}) ORDER BY created_at DESC LIMIT ?",
-                    node_types + [limit],
-                )
-            else:
-                cursor.execute("SELECT * FROM nodes ORDER BY created_at DESC LIMIT ?", [limit])
+                conditions.append(f"node_type IN ({placeholders})")
+                params.extend(node_types)
+
+            if project_id is not None:
+                conditions.append("project_id = ?")
+                params.append(project_id)
+
+            where = " AND ".join(conditions) if conditions else "1=1"
+            params.append(limit)
+            cursor.execute(
+                f"SELECT * FROM nodes WHERE {where} ORDER BY created_at DESC LIMIT ?",
+                params,
+            )
 
             columns = [d[0] for d in cursor.description]
             nodes = [dict(zip(columns, row)) for row in cursor.fetchall()]
@@ -113,8 +144,9 @@ def get_graph_data(
                 edges = []
 
         return {"nodes": nodes, "edges": edges}
-    except Exception as exc:
-        return {"nodes": [], "edges": [], "error": str(exc)}
+    except Exception:
+        app.logger.exception("Graph query failed")
+        return {"nodes": [], "edges": [], "error": "Internal error querying graph data"}
 
 
 # ---------------------------------------------------------------------------
@@ -142,10 +174,52 @@ def api_graph(system: str):
 
     node_types_param = request.args.get("node_types")
     node_types = [t.strip() for t in node_types_param.split(",")] if node_types_param else None
-    limit = request.args.get("limit", 200, type=int)
+    limit = min(request.args.get("limit", 200, type=int), MAX_QUERY_LIMIT)
+    project_id = request.args.get("project_id")
 
-    data = get_graph_data(system, node_types=node_types, limit=limit)
+    data = get_graph_data(system, node_types=node_types, limit=limit, project_id=project_id)
     return jsonify(data)
+
+
+@app.route("/api/projects/<system>")
+def api_projects(system: str):
+    """List all registered projects in a context system."""
+    err = _validate_system(system)
+    if err:
+        return err
+
+    manager = _get_context(system)
+    if not manager or not hasattr(manager, "graph_store"):
+        return jsonify({"projects": []})
+
+    store = manager.graph_store
+    try:
+        with store._transaction() as cursor:
+            cursor.execute(
+                "SELECT * FROM nodes WHERE node_type = 'project' ORDER BY created_at DESC"
+            )
+            columns = [d[0] for d in cursor.description]
+            rows = [dict(zip(columns, row)) for row in cursor.fetchall()]
+
+        projects = []
+        for row in rows:
+            extra = json.loads(row.get("extra_data", "{}")) if row.get("extra_data") else {}
+            projects.append(
+                {
+                    "project_id": row.get("project_id", ""),
+                    "name": extra.get("project_name", row.get("title", "")),
+                    "path": extra.get("project_path", ""),
+                    "languages": extra.get("languages", []),
+                    "frameworks": extra.get("frameworks", []),
+                    "file_count": extra.get("file_count", 0),
+                    "last_scanned": extra.get("last_scanned", ""),
+                    "created_at": row.get("created_at", ""),
+                }
+            )
+        return jsonify({"projects": projects})
+    except Exception:
+        app.logger.exception("Projects query failed")
+        return jsonify({"projects": [], "error": "Internal error querying graph data"})
 
 
 @app.route("/api/stats/<system>")
@@ -163,8 +237,9 @@ def api_stats(system: str):
         stats = manager.get_stats() if hasattr(manager, "get_stats") else {}
         graph_stats = manager.graph_store.get_stats() if hasattr(manager, "graph_store") else {}
         return jsonify({"available": True, "stats": stats, "graph_stats": graph_stats})
-    except Exception as exc:
-        return jsonify({"available": False, "error": str(exc)})
+    except Exception:
+        app.logger.exception("Stats query failed")
+        return jsonify({"available": False, "error": "Internal server error"})
 
 
 @app.route("/api/analytics/<system>")
@@ -257,8 +332,9 @@ def api_analytics(system: str):
                 "top_patterns": top_patterns,
             }
         )
-    except Exception as exc:
-        return jsonify({"available": False, "error": str(exc)})
+    except Exception:
+        app.logger.exception("Analytics query failed")
+        return jsonify({"available": False, "error": "Analytics query failed"})
 
 
 @app.route("/api/search/<system>")
@@ -274,7 +350,7 @@ def api_search(system: str):
 
     node_types_param = request.args.get("node_types")
     node_types = [t.strip() for t in node_types_param.split(",")] if node_types_param else None
-    limit = request.args.get("limit", 20, type=int)
+    limit = min(request.args.get("limit", 20, type=int), MAX_QUERY_LIMIT)
 
     manager = _get_context(system)
     if not manager:
@@ -322,8 +398,9 @@ def api_search(system: str):
             return jsonify({"results": items})
         else:
             return jsonify({"results": [], "error": "Search not available"})
-    except Exception as exc:
-        return jsonify({"results": [], "error": str(exc)})
+    except Exception:
+        app.logger.exception("Search query failed")
+        return jsonify({"results": [], "error": "Search query failed"})
 
 
 @app.route("/api/node/<system>/<node_id>")
@@ -379,8 +456,9 @@ def api_node(system: str, node_id: str):
         ]
 
         return jsonify(node_dict)
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
+    except Exception:
+        app.logger.exception("Node operation failed")
+        return jsonify({"error": "Node operation failed"}), 500
 
 
 @app.route("/api/prune/<system>", methods=["POST"])
@@ -437,8 +515,9 @@ def api_prune(system: str):
         return jsonify({"success": True, "result": result})
     except ImportError:
         return jsonify({"error": "Pruning module not available"}), 500
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
+    except Exception:
+        app.logger.exception("Prune operation failed")
+        return jsonify({"error": "Node operation failed"}), 500
 
 
 @app.route("/api/export/<system>")
@@ -496,8 +575,9 @@ def api_export(system: str):
         return send_file(
             buf, mimetype="application/json", as_attachment=True, download_name=filename
         )
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
+    except Exception:
+        app.logger.exception("Export failed")
+        return jsonify({"error": "Export failed"}), 500
 
 
 @app.route("/api/import/<system>", methods=["POST"])
@@ -591,8 +671,9 @@ def api_import(system: str):
         return jsonify(
             {"success": True, "imported_nodes": imported_nodes, "imported_edges": imported_edges}
         )
-    except Exception as exc:
-        return jsonify({"error": str(exc)}), 500
+    except Exception:
+        app.logger.exception("Import failed")
+        return jsonify({"error": "Node operation failed"}), 500
 
 
 @app.route("/health")
@@ -634,8 +715,9 @@ def api_combined_stats():
                     totals["nodes_by_type"][ntype] = totals["nodes_by_type"].get(ntype, 0) + cnt
                 for etype, cnt in graph_stats.get("edges_by_type", {}).items():
                     totals["edges_by_type"][etype] = totals["edges_by_type"].get(etype, 0) + cnt
-            except Exception as exc:
-                systems[system] = {"available": False, "error": str(exc)}
+            except Exception:
+                app.logger.exception("Combined stats query failed for %s", system)
+                systems[system] = {"available": False, "error": "Internal server error"}
         else:
             systems[system] = {"available": False}
     return jsonify(
@@ -650,7 +732,7 @@ def api_combined_stats():
 @app.route("/api/combined/graph")
 def api_combined_graph():
     """Return graph data from BOTH systems, prefixed to avoid ID collisions."""
-    limit = request.args.get("limit", 150, type=int)
+    limit = min(request.args.get("limit", 150, type=int), MAX_QUERY_LIMIT)
     combined_nodes = []
     combined_edges = []
     for system in VALID_SYSTEMS:
@@ -699,7 +781,9 @@ def _auto_seed_if_empty():
                     args += ["--system", "orchestrator"]
                 elif at_empty and not orc_empty:
                     args += ["--system", "agentic_team"]
-                subprocess.run(args, capture_output=True, timeout=30)
+                result = subprocess.run(args, capture_output=True, timeout=30, text=True)
+                if result.returncode != 0:
+                    app.logger.warning("Auto-seed failed: %s", result.stderr[:500])
     except Exception:
         pass
 
@@ -710,4 +794,8 @@ def _auto_seed_if_empty():
 
 if __name__ == "__main__":
     _auto_seed_if_empty()
-    app.run(host="0.0.0.0", port=5003, debug=True)
+    app.run(
+        host=os.environ.get("DASHBOARD_HOST", "127.0.0.1"),
+        port=int(os.environ.get("DASHBOARD_PORT", "5003")),
+        debug=os.environ.get("DASHBOARD_DEBUG", "").lower() == "true",
+    )
