@@ -11,8 +11,6 @@ import logging
 import struct
 from typing import Any
 
-import numpy as np
-
 from orchestrator.context.models.schemas import Node
 from orchestrator.context.store.graph_store import GraphStore
 
@@ -234,6 +232,8 @@ class EmbeddingStore:
 
     def cosine_similarity(self, vec1: list[float], vec2: list[float]) -> float:
         """Calculate cosine similarity between two vectors."""
+        import numpy as np  # pylint: disable=C0415
+
         a = np.array(vec1)
         b = np.array(vec2)
 
