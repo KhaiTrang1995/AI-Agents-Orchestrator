@@ -79,6 +79,9 @@ Beyond the core engines, we provide a complete **Agentic Infrastructure** that e
 - **Graph Context System** with hybrid search (BM25 + semantic) for persistent memory and learning
 - **Domain Rules** encoding best practices for security, database, API design, performance, and AI/ML
 
+> [!TIP]
+> Quickstart with the Orchestrator for structured workflows, or the Agentic Team for open-ended collaboration. Both systems benefit from the shared agentic infrastructure and context memory. See [QUICKSTART.md](QUICKSTART.md) for quick setup instructions to get started in ~2 minutes. Or, see [#quick-start](#quick-start) below for a detailed walkthrough.
+
 ## Agentic Infrastructure
 
 ```mermaid
@@ -132,7 +135,8 @@ graph TB
 | **Node Types** | 10 | Conversation, Task, Mistake, Pattern, Decision, CodeSnippet, Preference, File, Concept, Project |
 | **Edge Types** | 12 | RELATED_TO, CAUSED_BY, FIXED_BY, SIMILAR_TO, DEPENDS_ON, etc. |
 
-📚 **[Full Agentic Infrastructure Documentation →](AGENTIC_INFRA.md)**
+> [!IMPORTANT]
+> 📚 **[Click for Full Agentic Infrastructure Documentation](AGENTIC_INFRA.md)**
 
 ### Context System
 
