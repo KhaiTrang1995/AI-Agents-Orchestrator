@@ -54,7 +54,9 @@ class EmbeddingStore:
                 if self._model is not None:
                     self._dimension = self._model.get_sentence_embedding_dimension()
                     self.logger.info(
-                        f"Loaded embedding model: {self.model_name} (dim={self._dimension})"
+                        "Loaded embedding model: %s (dim=%s)",
+                        self.model_name,
+                        self._dimension,
                     )
             except ImportError:
                 self.logger.warning(
@@ -160,7 +162,7 @@ class EmbeddingStore:
             conn.commit()
             return True
         except Exception as e:
-            self.logger.error(f"Failed to store embedding for {node_id}: {e}")
+            self.logger.error("Failed to store embedding for %s: %s", node_id, e)
             conn.rollback()
             return False
         finally:

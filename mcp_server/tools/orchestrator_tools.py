@@ -3,8 +3,13 @@
 from __future__ import annotations
 
 import json
+import sys
 from datetime import datetime, timezone
-from typing import Annotated
+
+if sys.version_info >= (3, 9):
+    from typing import Annotated
+else:
+    from typing_extensions import Annotated
 
 from fastmcp import Context
 from fastmcp.exceptions import ToolError
@@ -75,7 +80,7 @@ def register(mcp):
         """List available orchestrator agents with their roles."""
         orch = get_engine("orchestrator")
         agents = []
-        for name, adapter in orch.adapters.items():
+        for name, _ in orch.adapters.items():
             cfg = orch.config.get("agents", {}).get(name, {})
             agents.append(
                 {

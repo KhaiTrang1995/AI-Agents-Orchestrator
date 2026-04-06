@@ -81,6 +81,7 @@ class AgenticInteractiveShell:
         force_offline: bool = False,
     ):
         self.console = Console()
+        self._prompt_project_path()
         self.engine = AgenticTeamEngine(config_path=config_path, force_offline=force_offline)
         self.history = AgenticConversationHistory()
         self.history.max_turns = max(1, int(default_max_turns))
@@ -103,7 +104,83 @@ class AgenticInteractiveShell:
             "/info": self.cmd_info,
             "/reload": self.cmd_reload,
             "/validate": self.cmd_validate,
+            "/project": self.cmd_project,
         }
+
+    def _prompt_project_path(self) -> None:
+        """Prompt user for a project path at startup.
+
+        Sets the PROJECT_PATH environment variable if the user provides a valid
+        directory. Accepts absolute or relative paths (relative paths are resolved
+        to absolute automatically). If the user leaves the input empty or the env
+        var / config already has a value, the prompt is skipped.
+        Skipped entirely in non-interactive environments (no TTY, CI, tests).
+        """
+        existing = os.environ.get("PROJECT_PATH", "").strip()
+        if existing:
+            resolved = self._resolve_path(existing)
+            if resolved and resolved.is_dir():
+                self.console.print(
+                    f"[dim]Using project path from environment:[/dim] [green]{resolved}[/green]"
+                )
+                os.environ["PROJECT_PATH"] = str(resolved)
+                return
+            self.console.print(
+                f"[yellow]⚠ PROJECT_PATH env var is set but invalid: '{existing}'[/yellow]"
+            )
+
+        import sys
+
+        if not sys.stdin.isatty():
+            return
+
+        self.console.print()
+        self.console.print("[bold cyan]📁 Project Path Setup[/bold cyan]")
+        self.console.print(
+            "[dim]Point the agentic team at your project so agents gain full codebase context.\n"
+            "Both absolute (/Users/you/project) and relative (../my-app) paths work.\n"
+            "Press Enter to skip — agents will still work, just without project context.[/dim]"
+        )
+
+        max_attempts = 3
+        for attempt in range(max_attempts):
+            raw = Prompt.ask("[cyan]Project path[/cyan]", default="").strip()
+            if not raw:
+                self.console.print("[dim]No project path set — running in task-only mode.[/dim]\n")
+                return
+
+            resolved = self._resolve_path(raw)
+            if resolved and resolved.is_dir():
+                os.environ["PROJECT_PATH"] = str(resolved)
+                self.console.print(f"[green]✓ Project registered:[/green] {resolved}\n")
+                return
+
+            display = str(resolved) if resolved else raw
+            remaining = max_attempts - attempt - 1
+            if remaining > 0:
+                self.console.print(
+                    f"[yellow]⚠ '{display}' is not a valid directory. "
+                    f"{remaining} attempt(s) left, or press Enter to skip.[/yellow]"
+                )
+            else:
+                self.console.print(
+                    f"[yellow]⚠ '{display}' is not a valid directory — skipping.[/yellow]\n"
+                )
+
+    @staticmethod
+    def _resolve_path(raw: str) -> Path | None:
+        """Resolve a user-provided path string to an absolute Path.
+
+        Handles tilde (~), relative paths, quoted strings, and trailing slashes.
+        Returns None only if the path is completely unparseable.
+        """
+        cleaned = raw.strip().strip("'\"")
+        if not cleaned:
+            return None
+        try:
+            return Path(cleaned).expanduser().resolve()
+        except (OSError, ValueError):
+            return None
 
     def _init_session_dir(self) -> Path:
         session_dir = Path.home() / ".ai-orchestrator" / "agentic-sessions"
@@ -145,7 +222,7 @@ class AgenticInteractiveShell:
             pass
 
     def _completer(self, text: str, state: int):
-        options = [cmd for cmd in self.commands.keys() if cmd.startswith(text)]
+        options = [cmd for cmd in self.commands if cmd.startswith(text)]
         if state < len(options):
             return options[state]
         return None
@@ -332,6 +409,7 @@ Standalone REPL for the true agentic team engine.
         table.add_row("/reset", "Clear history/context")
         table.add_row("/reload", "Reload config and adapters from config file")
         table.add_row("/validate", "Validate team role mappings against available agents")
+        table.add_row("/project [path]", "Show or set active project path")
         table.add_row("/clear", "Clear terminal")
         table.add_row("/info", "Show shell summary")
         table.add_row("/exit", "Exit shell")
@@ -407,7 +485,8 @@ Standalone REPL for the true agentic team engine.
                 content = content[:160] + "..."
             role_style = "cyan" if msg.get("role") == "user" else "green"
             self.console.print(
-                f"{idx}. [{role_style}]{msg.get('role')}[/{role_style}] ({msg.get('timestamp', '')})"
+                f"{idx}. [{role_style}]{msg.get('role')}[/{role_style}]"
+                f" ({msg.get('timestamp', '')})"
             )
             self.console.print(f"   {content}")
 
@@ -490,3 +569,31 @@ Standalone REPL for the true agentic team engine.
             for item in missing:
                 table.add_row(str(item.get("role", "")), str(item.get("agent", "")))
             self.console.print(table)
+
+    def cmd_project(self, args: str):
+        """Show or change the active project path."""
+        current = os.environ.get("PROJECT_PATH", "").strip()
+        if not args:
+            if current and Path(current).is_dir():
+                self.console.print(f"[green]Active project:[/green] {current}")
+            else:
+                self.console.print("[yellow]No project path set.[/yellow]")
+            self.console.print(
+                "[dim]Usage: /project /path/to/your/project  (or /project clear)[/dim]"
+            )
+            return
+
+        if args.strip().lower() == "clear":
+            os.environ.pop("PROJECT_PATH", None)
+            self.console.print("[yellow]Project path cleared — running in task-only mode.[/yellow]")
+            return
+
+        resolved = self._resolve_path(args)
+        if not resolved or not resolved.is_dir():
+            display = str(resolved) if resolved else args.strip()
+            self.console.print(f"[red]'{display}' is not a valid directory.[/red]")
+            return
+
+        os.environ["PROJECT_PATH"] = str(resolved)
+        self.console.print(f"[green]✓ Project registered:[/green] {resolved}")
+        self.console.print("[dim]Agents will use this project for context on future tasks.[/dim]")

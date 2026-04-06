@@ -22,179 +22,189 @@ SEED_MARKER_TITLE = "Task: Code review and quality improvement"
 # -- Shared seed data (consumed by both seeders) ----------------------------
 
 _TASK_DEFS: list[dict[str, Any]] = [
-    dict(
-        task_description="Code review and quality improvement",
-        outcome="Reviewed codebase for quality issues. Improved test coverage from 62% to 85%, "
+    {
+        "task_description": "Code review and quality improvement",
+        "outcome": "Reviewed codebase for quality issues. Improved test coverage from 62% to 85%, "
         "resolved 14 linting warnings, and refactored 3 overly complex functions.",
-        success=True,
-        duration_ms=3600000,
-        agents_involved=["claude", "copilot"],
-        tags=["quality", "code-review", "testing"],
-    ),
-    dict(
-        task_description="Documentation generation",
-        outcome="Generated API reference docs, architecture overview, and onboarding guide. "
+        "success": True,
+        "duration_ms": 3600000,
+        "agents_involved": ["claude", "copilot"],
+        "tags": ["quality", "code-review", "testing"],
+    },
+    {
+        "task_description": "Documentation generation",
+        "outcome": "Generated API reference docs, architecture overview, and onboarding guide. "
         "Added docstrings to 47 public functions missing documentation.",
-        success=True,
-        duration_ms=1800000,
-        agents_involved=["claude"],
-        tags=["documentation", "onboarding"],
-    ),
-    dict(
-        task_description="Dependency audit and update",
-        outcome="Audited project dependencies. Updated 12 packages with known vulnerabilities, "
+        "success": True,
+        "duration_ms": 1800000,
+        "agents_involved": ["claude"],
+        "tags": ["documentation", "onboarding"],
+    },
+    {
+        "task_description": "Dependency audit and update",
+        "outcome": "Audited project dependencies. Updated 12 packages with known vulnerabilities, "
         "pinned transitive versions, and removed 5 unused packages.",
-        success=True,
-        duration_ms=2400000,
-        agents_involved=["codex", "copilot"],
-        tags=["dependencies", "security", "maintenance"],
-    ),
-    dict(
-        task_description="Performance profiling and optimization",
-        outcome="Profiled application hot paths. Identified and resolved 3 bottlenecks: "
+        "success": True,
+        "duration_ms": 2400000,
+        "agents_involved": ["codex", "copilot"],
+        "tags": ["dependencies", "security", "maintenance"],
+    },
+    {
+        "task_description": "Performance profiling and optimization",
+        "outcome": "Profiled application hot paths. Identified and resolved 3 bottlenecks: "
         "redundant database calls, unoptimized loops, and missing caching layer.",
-        success=True,
-        duration_ms=5400000,
-        agents_involved=["claude", "gemini"],
-        tags=["performance", "profiling", "optimization"],
-    ),
-    dict(
-        task_description="Security vulnerability scan",
-        outcome="Ran static analysis and dependency vulnerability scans. Found 2 high-severity "
+        "success": True,
+        "duration_ms": 5400000,
+        "agents_involved": ["claude", "gemini"],
+        "tags": ["performance", "profiling", "optimization"],
+    },
+    {
+        "task_description": "Security vulnerability scan",
+        "outcome": "Ran static analysis and dependency vulnerability scans. Found 2 high-severity "
         "issues (missing input validation, outdated TLS config) and 5 medium-severity warnings.",
-        success=True,
-        duration_ms=1200000,
-        agents_involved=["claude"],
-        tags=["security", "scanning", "vulnerability"],
-    ),
+        "success": True,
+        "duration_ms": 1200000,
+        "agents_involved": ["claude"],
+        "tags": ["security", "scanning", "vulnerability"],
+    },
 ]
 
 _MISTAKE_DEFS: list[dict[str, str]] = [
-    dict(
-        category="unhandled_exception",
-        severity="high",
-        message="Uncaught exception at API boundary returned raw stack trace to client",
-        context="Error handler was missing for a route, exposing internal details",
-        correction="Added global error middleware returning safe, structured error responses",
-        prevention="Wrap all API entry points in error handlers; never expose stack traces",
-    ),
-    dict(
-        category="missing_input_validation",
-        severity="critical",
-        message="Untrusted user input passed directly to query without validation",
-        context="API endpoint forwarded raw user input without sanitization",
-        correction="Added schema validation at the API boundary before processing input",
-        prevention="Validate all external inputs at system boundaries; reject malformed data early",
-    ),
-    dict(
-        category="hardcoded_configuration",
-        severity="high",
-        message="Database connection string and API keys embedded in source code",
-        context="Config values hardcoded during prototyping, never extracted",
-        correction="Moved all config to environment variables with validation",
-        prevention="Never hardcode config; use env vars; add pre-commit secret detection",
-    ),
-    dict(
-        category="missing_tests",
-        severity="high",
-        message="Deployed code change broke functionality — no tests caught it",
-        context="Refactoring merged without test coverage caused production regression",
-        correction="Added unit and integration tests achieving 90% branch coverage",
-        prevention="Require test coverage thresholds in CI; block merges without tests",
-    ),
-    dict(
-        category="stale_dependencies",
-        severity="critical",
-        message="Production compromised via known vulnerability in outdated package",
-        context="Dependencies not updated in 8 months; critical CVE in transitive dep",
-        correction="Updated all deps, enabled automated vulnerability scanning",
-        prevention="Run dependency audits in CI; enable Dependabot; schedule regular reviews",
-    ),
+    {
+        "category": "unhandled_exception",
+        "severity": "high",
+        "message": "Uncaught exception at API boundary returned raw stack trace to client",
+        "context": "Error handler was missing for a route, exposing internal details",
+        "correction": "Added global error middleware returning safe, structured error responses",
+        "prevention": "Wrap all API entry points in error handlers; never expose stack traces",
+    },
+    {
+        "category": "missing_input_validation",
+        "severity": "critical",
+        "message": "Untrusted user input passed directly to query without validation",
+        "context": "API endpoint forwarded raw user input without sanitization",
+        "correction": "Added schema validation at the API boundary before processing input",
+        "prevention": "Validate all external inputs at system boundaries; reject malformed data early",
+    },
+    {
+        "category": "hardcoded_configuration",
+        "severity": "high",
+        "message": "Database connection string and API keys embedded in source code",
+        "context": "Config values hardcoded during prototyping, never extracted",
+        "correction": "Moved all config to environment variables with validation",
+        "prevention": "Never hardcode config; use env vars; add pre-commit secret detection",
+    },
+    {
+        "category": "missing_tests",
+        "severity": "high",
+        "message": "Deployed code change broke functionality — no tests caught it",
+        "context": "Refactoring merged without test coverage caused production regression",
+        "correction": "Added unit and integration tests achieving 90% branch coverage",
+        "prevention": "Require test coverage thresholds in CI; block merges without tests",
+    },
+    {
+        "category": "stale_dependencies",
+        "severity": "critical",
+        "message": "Production compromised via known vulnerability in outdated package",
+        "context": "Dependencies not updated in 8 months; critical CVE in transitive dep",
+        "correction": "Updated all deps, enabled automated vulnerability scanning",
+        "prevention": "Run dependency audits in CI; enable Dependabot; schedule regular reviews",
+    },
 ]
 
 _PATTERN_DEFS: list[dict[str, Any]] = [
-    dict(
-        name="Input Validation",
-        category="security",
-        desc="Validate all external inputs at system boundaries. Reject malformed "
+    {
+        "name": "Input Validation",
+        "category": "security",
+        "desc": "Validate all external inputs at system boundaries. Reject malformed "
         "data before it reaches business logic. Prefer allowlists over denylists.",
-        example="def process(data: dict) -> Response:\n    validated = schema.validate(data)\n    return handle(validated)",
-        anti=["Trusting client-side validation alone", "Passing raw input to downstream services"],
-        langs=["python", "typescript", "go", "java"],
-        tags=["pattern", "security", "validation"],
-    ),
-    dict(
-        name="Error Handling",
-        category="reliability",
-        desc="Structured error handling with context propagation. Catch at boundaries, "
+        "example": "def process(data: dict) -> Response:\n"
+        "    validated = schema.validate(data)\n    return handle(validated)",
+        "anti": [
+            "Trusting client-side validation alone",
+            "Passing raw input to downstream services",
+        ],
+        "langs": ["python", "typescript", "go", "java"],
+        "tags": ["pattern", "security", "validation"],
+    },
+    {
+        "name": "Error Handling",
+        "category": "reliability",
+        "desc": "Structured error handling with context propagation. Catch at boundaries, "
         "add context, propagate or handle gracefully.",
-        example="try:\n    result = svc.call(params)\nexcept SvcError as e:\n    log.error('failed', err=str(e))\n    raise AppError('Op failed') from e",
-        anti=["Bare except that swallows errors", "Returning raw exceptions to users"],
-        langs=["python", "typescript", "go", "java"],
-        tags=["pattern", "reliability", "error-handling"],
-    ),
-    dict(
-        name="Configuration Management",
-        category="devops",
-        desc="Externalize config from source code. Use environment variables or "
+        "example": "try:\n    result = svc.call(params)\nexcept SvcError as e:\n"
+        "    log.error('failed', err=str(e))\n    raise AppError('Op failed') from e",
+        "anti": ["Bare except that swallows errors", "Returning raw exceptions to users"],
+        "langs": ["python", "typescript", "go", "java"],
+        "tags": ["pattern", "reliability", "error-handling"],
+    },
+    {
+        "name": "Configuration Management",
+        "category": "devops",
+        "desc": "Externalize config from source code. Use environment variables or "
         "config files with sensible defaults and validation.",
-        example="import os\n\nclass Config:\n    DB_URL = os.environ.get('DB_URL', 'sqlite:///local.db')\n    LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')",
-        anti=["Hardcoded connection strings or API keys", "Different config per environment"],
-        langs=["python", "typescript", "go"],
-        tags=["pattern", "devops", "configuration"],
-    ),
-    dict(
-        name="Logging and Observability",
-        category="observability",
-        desc="Structured logging with consistent fields and correlation IDs. Emit "
+        "example": "import os\n\nclass Config:\n"
+        "    DB_URL = os.environ.get('DB_URL', 'sqlite:///local.db')\n"
+        "    LOG_LEVEL = os.environ.get('LOG_LEVEL', 'INFO')",
+        "anti": ["Hardcoded connection strings or API keys", "Different config per environment"],
+        "langs": ["python", "typescript", "go"],
+        "tags": ["pattern", "devops", "configuration"],
+    },
+    {
+        "name": "Logging and Observability",
+        "category": "observability",
+        "desc": "Structured logging with consistent fields and correlation IDs. Emit "
         "logs as structured data for searching and aggregation.",
-        example="log.info('request_done', correlation_id=req.id, duration_ms=elapsed, status=resp.status)",
-        anti=["Unstructured print in production", "Logging passwords or tokens"],
-        langs=["python", "typescript", "go", "java"],
-        tags=["pattern", "observability", "logging"],
-    ),
-    dict(
-        name="Dependency Injection",
-        category="architecture",
-        desc="Decouple components by injecting dependencies rather than creating "
+        "example": "log.info("
+        "'request_done', correlation_id=req.id, duration_ms=elapsed, status=resp.status)",
+        "anti": ["Unstructured print in production", "Logging passwords or tokens"],
+        "langs": ["python", "typescript", "go", "java"],
+        "tags": ["pattern", "observability", "logging"],
+    },
+    {
+        "name": "Dependency Injection",
+        "category": "architecture",
+        "desc": "Decouple components by injecting dependencies rather than creating "
         "them internally. Improves testability and flexibility.",
-        example="class OrderSvc:\n    def __init__(self, repo: OrderRepo, notifier: Notifier):\n        self._repo = repo\n        self._notifier = notifier",
-        anti=["Hard-wiring concrete implementations", "Global singletons preventing testing"],
-        langs=["python", "typescript", "java", "go"],
-        tags=["pattern", "architecture", "dependency-injection"],
-    ),
+        "example": "class OrderSvc:\n"
+        "    def __init__(self, repo: OrderRepo, notifier: Notifier):\n"
+        "        self._repo = repo\n        self._notifier = notifier",
+        "anti": ["Hard-wiring concrete implementations", "Global singletons preventing testing"],
+        "langs": ["python", "typescript", "java", "go"],
+        "tags": ["pattern", "architecture", "dependency-injection"],
+    },
 ]
 
 _DECISION_DEFS: list[dict[str, Any]] = [
-    dict(
-        title="Test Before Deploy",
-        desc="Always run the full automated test suite before deploying.",
-        rationale="Catching regressions before deployment is far cheaper than in production.",
-        alternatives=["Manual QA only", "Deploy then monitor", "Canary releases only"],
-        chosen="Mandatory CI test gate before every deployment",
-        tags=["decision", "testing", "deployment"],
-    ),
-    dict(
-        title="Semantic Versioning",
-        desc="Follow semver for all packages and services.",
-        rationale="Shared language for change impact; enables informed upgrade decisions.",
-        alternatives=["Calendar versioning", "Commit-hash versioning", "No versioning"],
-        chosen="Strict semver with automated version bumps",
-        tags=["decision", "versioning", "releases"],
-    ),
-    dict(
-        title="Code Review Required",
-        desc="All changes require at least one peer review before merge.",
-        rationale="Catches bugs, shares knowledge, maintains quality, documents decisions.",
-        alternatives=["Pair programming only", "Automated review only", "No review"],
-        chosen="Mandatory peer review with branch protection rules",
-        tags=["decision", "process", "quality"],
-    ),
+    {
+        "title": "Test Before Deploy",
+        "desc": "Always run the full automated test suite before deploying.",
+        "rationale": "Catching regressions before deployment is far cheaper than in production.",
+        "alternatives": ["Manual QA only", "Deploy then monitor", "Canary releases only"],
+        "chosen": "Mandatory CI test gate before every deployment",
+        "tags": ["decision", "testing", "deployment"],
+    },
+    {
+        "title": "Semantic Versioning",
+        "desc": "Follow semver for all packages and services.",
+        "rationale": "Shared language for change impact; enables informed upgrade decisions.",
+        "alternatives": ["Calendar versioning", "Commit-hash versioning", "No versioning"],
+        "chosen": "Strict semver with automated version bumps",
+        "tags": ["decision", "versioning", "releases"],
+    },
+    {
+        "title": "Code Review Required",
+        "desc": "All changes require at least one peer review before merge.",
+        "rationale": "Catches bugs, shares knowledge, maintains quality, documents decisions.",
+        "alternatives": ["Pair programming only", "Automated review only", "No review"],
+        "chosen": "Mandatory peer review with branch protection rules",
+        "tags": ["decision", "process", "quality"],
+    },
 ]
 
 _CONV_DEFS: list[dict[str, Any]] = [
-    dict(
-        messages=[
+    {
+        "messages": [
             {
                 "role": "user",
                 "content": "We should establish coding standards. What are the essentials?",
@@ -214,13 +224,13 @@ _CONV_DEFS: list[dict[str, Any]] = [
                 "prevent style debates in code reviews.",
             },
         ],
-        summary="Establishing coding standards with automated enforcement",
-        session_id="session-seed-001",
-        participants=["user", "assistant"],
-        tags=["standards", "quality", "ci"],
-    ),
-    dict(
-        messages=[
+        "summary": "Establishing coding standards with automated enforcement",
+        "session_id": "session-seed-001",
+        "participants": ["user", "assistant"],
+        "tags": ["standards", "quality", "ci"],
+    },
+    {
+        "messages": [
             {"role": "user", "content": "What should our deployment checklist look like?"},
             {
                 "role": "assistant",
@@ -235,11 +245,11 @@ _CONV_DEFS: list[dict[str, Any]] = [
                 "artifacts so rollback is just re-deploying an older build. Test regularly.",
             },
         ],
-        summary="Deployment checklist and rollback strategy",
-        session_id="session-seed-002",
-        participants=["user", "assistant"],
-        tags=["deployment", "checklist", "rollback"],
-    ),
+        "summary": "Deployment checklist and rollback strategy",
+        "session_id": "session-seed-002",
+        "participants": ["user", "assistant"],
+        "tags": ["deployment", "checklist", "rollback"],
+    },
 ]
 
 

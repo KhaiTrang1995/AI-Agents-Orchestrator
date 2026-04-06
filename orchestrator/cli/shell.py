@@ -73,7 +73,7 @@ class ConversationHistory:
     def load(self, filepath: str):
         """Load conversation history from file."""
         try:
-            with open(filepath) as f:
+            with open(filepath, encoding="utf-8") as f:
                 data = json.load(f)
         except (OSError, json.JSONDecodeError) as e:
             raise OSError(f"Failed to load session: {e}") from e
@@ -90,6 +90,7 @@ class InteractiveShell:
 
     def __init__(self, config_path: Optional[str] = None):
         self.console = Console()
+        self._prompt_project_path()
         self.orchestrator = Orchestrator(config_path)
         self.history = ConversationHistory()
         self.running = True
@@ -117,7 +118,83 @@ class InteractiveShell:
             "/reset": self.cmd_reset,
             "/info": self.cmd_info,
             "/followup": self.cmd_followup,
+            "/project": self.cmd_project,
         }
+
+    def _prompt_project_path(self) -> None:
+        """Prompt user for a project path at startup.
+
+        Sets the PROJECT_PATH environment variable if the user provides a valid
+        directory. Accepts absolute or relative paths (relative paths are resolved
+        to absolute automatically). If the user leaves the input empty or the env
+        var / config already has a value, the prompt is skipped.
+        Skipped entirely in non-interactive environments (no TTY, CI, tests).
+        """
+        existing = os.environ.get("PROJECT_PATH", "").strip()
+        if existing:
+            resolved = self._resolve_path(existing)
+            if resolved and resolved.is_dir():
+                self.console.print(
+                    f"[dim]Using project path from environment:[/dim] [green]{resolved}[/green]"
+                )
+                os.environ["PROJECT_PATH"] = str(resolved)
+                return
+            self.console.print(
+                f"[yellow]⚠ PROJECT_PATH env var is set but invalid: '{existing}'[/yellow]"
+            )
+
+        import sys
+
+        if not sys.stdin.isatty():
+            return
+
+        self.console.print()
+        self.console.print("[bold cyan]📁 Project Path Setup[/bold cyan]")
+        self.console.print(
+            "[dim]Point the orchestrator at your project so agents gain full codebase context.\n"
+            "Both absolute (/Users/you/project) and relative (../my-app) paths work.\n"
+            "Press Enter to skip — agents will still work, just without project context.[/dim]"
+        )
+
+        max_attempts = 3
+        for attempt in range(max_attempts):
+            raw = Prompt.ask("[cyan]Project path[/cyan]", default="").strip()
+            if not raw:
+                self.console.print("[dim]No project path set — running in task-only mode.[/dim]\n")
+                return
+
+            resolved = self._resolve_path(raw)
+            if resolved and resolved.is_dir():
+                os.environ["PROJECT_PATH"] = str(resolved)
+                self.console.print(f"[green]✓ Project registered:[/green] {resolved}\n")
+                return
+
+            display = str(resolved) if resolved else raw
+            remaining = max_attempts - attempt - 1
+            if remaining > 0:
+                self.console.print(
+                    f"[yellow]⚠ '{display}' is not a valid directory. "
+                    f"{remaining} attempt(s) left, or press Enter to skip.[/yellow]"
+                )
+            else:
+                self.console.print(
+                    f"[yellow]⚠ '{display}' is not a valid directory — skipping.[/yellow]\n"
+                )
+
+    @staticmethod
+    def _resolve_path(raw: str) -> Optional[Path]:
+        """Resolve a user-provided path string to an absolute Path.
+
+        Handles tilde (~), relative paths, quoted strings, and trailing slashes.
+        Returns None only if the path is completely unparseable.
+        """
+        cleaned = raw.strip().strip("'\"")
+        if not cleaned:
+            return None
+        try:
+            return Path(cleaned).expanduser().resolve()
+        except (OSError, ValueError):
+            return None
 
     def _init_session_dir(self) -> Path:
         """Initialize session directory with robust error handling."""
@@ -237,7 +314,7 @@ class InteractiveShell:
 
     def _completer(self, text: str, state: int):
         """Auto-completion for commands."""
-        options = [cmd for cmd in self.commands.keys() if cmd.startswith(text)]
+        options = [cmd for cmd in self.commands if cmd.startswith(text)]
 
         # Also complete agent names
         if text.startswith("/switch "):
@@ -308,6 +385,7 @@ collaborate on tasks, and iterate on implementations.
 - `/agents` - List available agents
 - `/workflows` - List available workflows
 - `/switch <agent>` - Switch to a specific agent
+- `/project [path]` - Show or set the active project path
 - `/exit` or `/quit` - Exit the shell
 
 **Getting Started:**
@@ -383,7 +461,7 @@ Type `/help` for more information.
                 return True
 
             # Otherwise ask user
-            self.console.print(f"\n[yellow]Continue previous task?[/yellow]")
+            self.console.print("\n[yellow]Continue previous task?[/yellow]")
             self.console.print(f"[dim]Previous: {self.history.context['last_task'][:60]}...[/dim]")
 
             response = Prompt.ask(
@@ -395,12 +473,12 @@ Type `/help` for more information.
             if response == "c":
                 self.console.print("[dim]✓ Continuing previous task with context[/dim]\n")
                 return True
-            elif response == "x":
+            if response == "x":
                 self.console.print("[yellow]Cancelled[/yellow]")
                 return None  # Signal to skip
-            else:
-                self.console.print("[dim]✓ Starting new task[/dim]\n")
-                return False
+
+            self.console.print("[dim]✓ Starting new task[/dim]\n")
+            return False
 
         return False
 
@@ -416,7 +494,11 @@ Type `/help` for more information.
         if is_followup and self.history.context.get("last_task"):
             previous_task = self.history.context["last_task"]
             previous_output = self.history.context.get("last_output", "")
-            message = f"Previous task: {previous_task}\nPrevious result: {previous_output}\n\nFollow-up: {message}"
+            message = (
+                f"Previous task: {previous_task}\n"
+                f"Previous result: {previous_output}\n\n"
+                f"Follow-up: {message}"
+            )
 
         # Show thinking indicator
         with self.console.status("[bold cyan]Orchestrating agents...[/bold cyan]"):
@@ -462,7 +544,7 @@ Type `/help` for more information.
                 if os.getenv("DEBUG"):
                     self.console.print_exception()
 
-    def _display_results(self, results: Dict[str, Any]):
+    def _display_results(self, results: Dict[str, Any]):  # pylint: disable=too-many-branches
         """Display execution results with enhanced formatting."""
         self.console.print()
 
@@ -500,7 +582,7 @@ Type `/help` for more information.
             self.console.print("[bold cyan]📁 Generated Files:[/bold cyan]")
             for file in all_files:
                 self.console.print(f"  📄 [green]{file}[/green]")
-            self.console.print(f"\n[dim]Workspace: ./workspace[/dim]\n")
+            self.console.print("\n[dim]Workspace: ./workspace[/dim]\n")
 
         # Show final output
         final_output = results.get("final_output", "")
@@ -554,6 +636,7 @@ Type `/help` for more information.
         table.add_row("/context", "Show current context")
         table.add_row("/reset", "Reset conversation and context")
         table.add_row("/info", "Show system information")
+        table.add_row("/project [path]", "Show or set active project path")
 
         self.console.print(table)
 
@@ -563,7 +646,7 @@ Type `/help` for more information.
 
     def cmd_clear(self, args: str):
         """Clear the screen."""
-        os.system("clear" if os.name != "nt" else "cls")
+        os.system("clear" if os.name != "nt" else "cls")  # noqa: S605 S607
 
     def cmd_history(self, args: str):
         """Show conversation history."""
@@ -763,9 +846,37 @@ Type `/help` for more information.
 
         self.console.print(f"\n[bold cyan]Following up on:[/bold cyan] {last_task[:100]}...")
         if files:
-            self.console.print(
-                f"[dim]Files in context: {', '.join(files[:3])}{'...' if len(files) > 3 else ''}[/dim]\n"
-            )
+            files_str = ", ".join(files[:3])
+            suffix = "..." if len(files) > 3 else ""
+            self.console.print(f"[dim]Files in context: {files_str}{suffix}[/dim]\n")
 
         # Handle as a follow-up message
         self._handle_message(args, is_followup=True)
+
+    def cmd_project(self, args: str):
+        """Show or change the active project path."""
+        current = os.environ.get("PROJECT_PATH", "").strip()
+        if not args:
+            if current and Path(current).is_dir():
+                self.console.print(f"[green]Active project:[/green] {current}")
+            else:
+                self.console.print("[yellow]No project path set.[/yellow]")
+            self.console.print(
+                "[dim]Usage: /project /path/to/your/project  (or /project clear)[/dim]"
+            )
+            return
+
+        if args.strip().lower() == "clear":
+            os.environ.pop("PROJECT_PATH", None)
+            self.console.print("[yellow]Project path cleared — running in task-only mode.[/yellow]")
+            return
+
+        resolved = self._resolve_path(args)
+        if not resolved or not resolved.is_dir():
+            display = str(resolved) if resolved else args.strip()
+            self.console.print(f"[red]'{display}' is not a valid directory.[/red]")
+            return
+
+        os.environ["PROJECT_PATH"] = str(resolved)
+        self.console.print(f"[green]✓ Project registered:[/green] {resolved}")
+        self.console.print("[dim]Agents will use this project for context on future tasks.[/dim]")

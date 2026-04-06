@@ -30,7 +30,8 @@ class OrchestratorMCPClient:
     """
 
     def __init__(self, server_url: str | None = None):
-        """
+        """Initialize the orchestrator MCP client.
+
         Args:
             server_url: HTTP URL of the MCP server (e.g. http://localhost:8000/mcp).
                         If None, connects in-memory to the local server instance.

@@ -11,6 +11,7 @@ from orchestrator.context.models.schemas import (
     NodeType,
     PatternNode,
     PreferenceNode,
+    ProjectNode,
     SearchResult,
     TaskNode,
 )
@@ -28,4 +29,5 @@ __all__ = [
     "DecisionNode",
     "CodeSnippetNode",
     "PreferenceNode",
+    "ProjectNode",
 ]

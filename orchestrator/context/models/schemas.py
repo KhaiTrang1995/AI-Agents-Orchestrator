@@ -26,6 +26,7 @@ class NodeType(str, Enum):
     FILE = "file"
     CONCEPT = "concept"
     AGENT_OUTPUT = "agent_output"
+    PROJECT = "project"
 
 
 class EdgeType(str, Enum):
@@ -59,9 +60,9 @@ class Node:
     updated_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
     embedding: list[float] | None = None
     importance_score: float = 1.0
+    project_id: str = ""
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert node to dictionary representation."""
         """Convert node to dictionary for storage."""
         return {
             "id": self.id,
@@ -74,6 +75,7 @@ class Node:
             "updated_at": self.updated_at.isoformat(),
             "embedding": self.embedding,
             "importance_score": self.importance_score,
+            "project_id": self.project_id,
         }
 
     @classmethod
@@ -98,6 +100,7 @@ class Node:
             ),
             embedding=data.get("embedding"),
             importance_score=data.get("importance_score", 1.0),
+            project_id=data.get("project_id", ""),
         )
 
 
@@ -114,7 +117,6 @@ class Edge:
     created_at: datetime = field(default_factory=lambda: datetime.now(timezone.utc))
 
     def to_dict(self) -> dict[str, Any]:
-        """Convert node to dictionary representation."""
         """Convert edge to dictionary for storage."""
         return {
             "id": self.id,
@@ -341,6 +343,36 @@ class PreferenceNode(Node):
                 "confidence": self.confidence,
                 "learned_from": self.learned_from,
                 "times_applied": self.times_applied,
+            }
+        )
+        return data
+
+
+@dataclass
+class ProjectNode(Node):
+    """Node representing a registered user project."""
+
+    node_type: NodeType = field(default=NodeType.PROJECT)
+    project_path: str = ""
+    project_name: str = ""
+    languages: list[str] = field(default_factory=list)
+    frameworks: list[str] = field(default_factory=list)
+    description: str = ""
+    file_count: int = 0
+    last_scanned: str = ""
+
+    def to_dict(self) -> dict[str, Any]:
+        """Convert node to dictionary representation."""
+        data = super().to_dict()
+        data.update(
+            {
+                "project_path": self.project_path,
+                "project_name": self.project_name,
+                "languages": self.languages,
+                "frameworks": self.frameworks,
+                "description": self.description,
+                "file_count": self.file_count,
+                "last_scanned": self.last_scanned,
             }
         )
         return data

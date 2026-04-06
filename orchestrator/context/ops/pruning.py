@@ -11,7 +11,6 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
-from orchestrator.context.models.schemas import NodeType  # noqa: F401
 from orchestrator.context.store.graph_store import GraphStore
 
 
@@ -74,9 +73,9 @@ class ContextPruner:
                 self.graph_store.delete_node(node_id)
                 deleted_count += 1
             except Exception as e:
-                self.logger.warning(f"Failed to delete node {node_id}: {e}")
+                self.logger.warning("Failed to delete node %s: %s", node_id, e)
 
-        self.logger.info(f"Pruned {deleted_count} nodes older than {max_age_days} days")
+        self.logger.info("Pruned %s nodes older than %s days", deleted_count, max_age_days)
 
         return {
             "strategy": "age_based",
@@ -126,7 +125,7 @@ class ContextPruner:
         seen_content: dict[str, str] = {}  # content -> oldest node_id
         duplicates = []
 
-        for node_id, content, node_type, created_at in nodes:
+        for node_id, content, node_type, _ in nodes:
             key = f"{node_type}:{content}"
             if key in seen_content:
                 # This is a duplicate, keep the older one
@@ -141,9 +140,9 @@ class ContextPruner:
                 self.graph_store.delete_node(node_id)
                 deleted_count += 1
             except Exception as e:
-                self.logger.warning(f"Failed to delete duplicate {node_id}: {e}")
+                self.logger.warning("Failed to delete duplicate %s: %s", node_id, e)
 
-        self.logger.info(f"Removed {deleted_count} duplicate nodes")
+        self.logger.info("Removed %s duplicate nodes", deleted_count)
 
         return {
             "strategy": "duplicate_removal",
@@ -198,11 +197,13 @@ class ContextPruner:
                 self.graph_store.delete_node(node_id)
                 deleted_count += 1
             except Exception as e:
-                self.logger.warning(f"Failed to delete node {node_id}: {e}")
+                self.logger.warning("Failed to delete node %s: %s", node_id, e)
 
         self.logger.info(
-            f"Pruned {deleted_count} low-importance nodes "
-            f"(importance < {importance_threshold}, age > {min_age_days} days)"
+            "Pruned %s low-importance nodes (importance < %s, age > %s days)",
+            deleted_count,
+            importance_threshold,
+            min_age_days,
         )
 
         return {
@@ -245,6 +246,6 @@ class ContextPruner:
 
         results["total_deleted"] = sum(s.get("deleted", 0) for s in results["strategies"])
 
-        self.logger.info(f"Completed pruning: {results['total_deleted']} nodes removed")
+        self.logger.info("Completed pruning: %s nodes removed", results["total_deleted"])
 
         return results

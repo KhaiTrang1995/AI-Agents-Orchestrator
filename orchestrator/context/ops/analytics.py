@@ -106,7 +106,7 @@ class ContextAnalytics:
             for agents_json, success, count in cursor.fetchall():
                 # agents_json might be a JSON array string
                 # For simplicity, we'll just use it as-is
-                success_bool = success == 1 or success == "true"
+                success_bool = success in (1, "true")
 
                 agent_stats[str(agents_json)]["total"] += count
                 if success_bool:
@@ -115,7 +115,7 @@ class ContextAnalytics:
                     agent_stats[str(agents_json)]["failed"] += count
 
             # Calculate success rates
-            for agent, stats in agent_stats.items():
+            for _, stats in agent_stats.items():
                 if stats["total"] > 0:
                     stats["success_rate"] = stats["successful"] / stats["total"]
                 else:

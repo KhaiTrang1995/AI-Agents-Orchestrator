@@ -23,6 +23,7 @@ from orchestrator.context.models import (
     NodeType,
     PatternNode,
     PreferenceNode,
+    ProjectNode,
     TaskNode,
 )
 from orchestrator.context.ops import (  # noqa: F401
@@ -76,5 +77,6 @@ __all__ = [
     "NodeType",
     "PatternNode",
     "PreferenceNode",
+    "ProjectNode",
     "TaskNode",
 ]

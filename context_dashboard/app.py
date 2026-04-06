@@ -71,7 +71,7 @@ def _get_context(system: str):
     """Return the MemoryManager for *system*, or None."""
     if system == "orchestrator":
         return get_orchestrator_context()
-    elif system == "agentic_team":
+    if system == "agentic_team":
         return get_agentic_team_context()
     return None
 
@@ -377,7 +377,7 @@ def api_search(system: str):
                     }
                 )
             return jsonify({"results": items})
-        elif hasattr(manager, "graph_store"):
+        if hasattr(manager, "graph_store"):
             results = manager.graph_store.full_text_search(query, limit=limit)
             items = []
             for node, score in results:
@@ -396,8 +396,7 @@ def api_search(system: str):
                     }
                 )
             return jsonify({"results": items})
-        else:
-            return jsonify({"results": [], "error": "Search not available"})
+        return jsonify({"results": [], "error": "Search not available"})
     except Exception:
         app.logger.exception("Search query failed")
         return jsonify({"results": [], "error": "Search query failed"})
@@ -498,7 +497,9 @@ def api_prune(system: str):
             threshold = body.get("importance_threshold", 0.3)
             min_age = body.get("min_age_days", 7)
             if system == "agentic_team":
-                result = pruner.prune_low_importance(threshold=threshold, min_age_days=min_age)  # type: ignore[call-arg]
+                result = pruner.prune_low_importance(  # type: ignore[call-arg]
+                    threshold=threshold, min_age_days=min_age
+                )
             else:
                 result = pruner.prune_low_importance(
                     importance_threshold=threshold, min_age_days=min_age  # type: ignore[call-arg]
@@ -532,13 +533,6 @@ def api_export(system: str):
         return jsonify({"error": "Context not available"}), 404
 
     try:
-        if system == "agentic_team":
-            from agentic_team.context.ops.export import (  # noqa: F401
-                ContextExporter as ATContextExporter,
-            )
-        else:
-            from orchestrator.context.export import ContextExporter  # noqa: F401
-
         # Build export dict in memory
         data = get_graph_data(system, limit=100000)
         export_payload = {
@@ -614,7 +608,9 @@ def api_import(system: str):
             for n in nodes:
                 try:
                     cursor.execute(
-                        "INSERT OR IGNORE INTO nodes (id, node_type, title, content, metadata, tags, created_at, updated_at, importance_score, extra_data) "
+                        "INSERT OR IGNORE INTO nodes "
+                        "(id, node_type, title, content, metadata, tags, "
+                        "created_at, updated_at, importance_score, extra_data) "
                         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                         (
                             n.get("id", str(uuid.uuid4())),
@@ -648,7 +644,8 @@ def api_import(system: str):
             for e in edges:
                 try:
                     cursor.execute(
-                        "INSERT OR IGNORE INTO edges (id, source_id, target_id, edge_type, weight, metadata, created_at) "
+                        "INSERT OR IGNORE INTO edges "
+                        "(id, source_id, target_id, edge_type, weight, metadata, created_at) "
                         "VALUES (?, ?, ?, ?, ?, ?, ?)",
                         (
                             e.get("id", str(uuid.uuid4())),
@@ -781,7 +778,9 @@ def _auto_seed_if_empty():
                     args += ["--system", "orchestrator"]
                 elif at_empty and not orc_empty:
                     args += ["--system", "agentic_team"]
-                result = subprocess.run(args, capture_output=True, timeout=30, text=True)
+                result = subprocess.run(
+                    args, capture_output=True, timeout=30, text=True, check=False
+                )
                 if result.returncode != 0:
                     app.logger.warning("Auto-seed failed: %s", result.stderr[:500])
     except Exception:

@@ -138,11 +138,11 @@ class AppSettings(BaseSettings):
 
     def is_production(self) -> bool:
         """Check if running in production."""
-        return self.app_env.lower() == "production"
+        return self.app_env.lower() == "production"  # pylint: disable=no-member
 
     def is_development(self) -> bool:
         """Check if running in development."""
-        return self.app_env.lower() == "development"
+        return self.app_env.lower() == "development"  # pylint: disable=no-member
 
 
 class ConfigManager:
@@ -173,7 +173,7 @@ class ConfigManager:
         if config_file and config_file.exists():
             import yaml
 
-            with open(config_file) as f:
+            with open(config_file, encoding="utf-8") as f:
                 self.yaml_config = yaml.safe_load(f) or {}
 
     def get_agent_config(self, agent_name: str) -> Optional[Dict[str, Any]]:

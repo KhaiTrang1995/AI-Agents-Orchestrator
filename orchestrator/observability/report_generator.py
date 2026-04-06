@@ -1,3 +1,4 @@
+# pylint: disable=too-many-lines
 """Report generation for orchestrator executions, health, and analytics."""
 
 import json
@@ -26,7 +27,11 @@ SAMPLE_EXECUTION_HISTORY: List[Dict[str, Any]] = [
                         "agent": "codex",
                         "task": "implement",
                         "success": True,
-                        "output": "Created auth module with JWT signing, token refresh, and middleware. Files: auth.py, middleware.py, models/user.py",
+                        "output": (
+                            "Created auth module with JWT signing, token refresh,"
+                            " and middleware. Files: auth.py, middleware.py,"
+                            " models/user.py"
+                        ),
                         "error": None,
                         "files_modified": ["auth.py", "middleware.py", "models/user.py"],
                         "suggestions": [
@@ -38,7 +43,10 @@ SAMPLE_EXECUTION_HISTORY: List[Dict[str, Any]] = [
                         "agent": "gemini",
                         "task": "review",
                         "success": True,
-                        "output": "Code follows SOLID principles. Minor: missing input validation on email field.",
+                        "output": (
+                            "Code follows SOLID principles."
+                            " Minor: missing input validation on email field."
+                        ),
                         "error": None,
                         "files_modified": [],
                         "suggestions": ["Add email validation", "Add password complexity check"],
@@ -47,13 +55,19 @@ SAMPLE_EXECUTION_HISTORY: List[Dict[str, Any]] = [
                         "agent": "claude",
                         "task": "refine",
                         "success": True,
-                        "output": "Added email validation via regex, password complexity enforcement, and rate limiting decorator.",
+                        "output": (
+                            "Added email validation via regex, password"
+                            " complexity enforcement, and rate limiting"
+                            " decorator."
+                        ),
                         "error": None,
                         "files_modified": ["auth.py", "validators.py"],
                         "suggestions": [],
                     },
                 ],
-                "final_output": "Authentication system complete with JWT, validation, and rate limiting.",
+                "final_output": (
+                    "Authentication system complete with JWT," " validation, and rate limiting."
+                ),
             }
         ],
     },
@@ -77,7 +91,10 @@ SAMPLE_EXECUTION_HISTORY: List[Dict[str, Any]] = [
                         "agent": "gemini",
                         "task": "review",
                         "success": True,
-                        "output": "Well-structured. Suggest adding error handling for database constraints.",
+                        "output": (
+                            "Well-structured. Suggest adding error"
+                            " handling for database constraints."
+                        ),
                         "error": None,
                         "files_modified": [],
                         "suggestions": ["Add unique constraint handling"],
@@ -86,13 +103,20 @@ SAMPLE_EXECUTION_HISTORY: List[Dict[str, Any]] = [
                         "agent": "claude",
                         "task": "refine",
                         "success": True,
-                        "output": "Added pagination, status filtering, and proper HTTP error codes for constraint violations.",
+                        "output": (
+                            "Added pagination, status filtering, and"
+                            " proper HTTP error codes for constraint"
+                            " violations."
+                        ),
                         "error": None,
                         "files_modified": ["routes/tasks.py"],
                         "suggestions": [],
                     },
                 ],
-                "final_output": "Task management API complete with full CRUD, pagination, and error handling.",
+                "final_output": (
+                    "Task management API complete with full CRUD,"
+                    " pagination, and error handling."
+                ),
             }
         ],
     },
@@ -107,7 +131,10 @@ SAMPLE_EXECUTION_HISTORY: List[Dict[str, Any]] = [
                         "agent": "codex",
                         "task": "implement",
                         "success": True,
-                        "output": "Created .github/workflows/ci.yml with lint, test, build, and deploy stages.",
+                        "output": (
+                            "Created .github/workflows/ci.yml with"
+                            " lint, test, build, and deploy stages."
+                        ),
                         "error": None,
                         "files_modified": [".github/workflows/ci.yml", "Dockerfile"],
                         "suggestions": [],
@@ -142,7 +169,11 @@ SAMPLE_EXECUTION_HISTORY: List[Dict[str, Any]] = [
                         "agent": "gemini",
                         "task": "review",
                         "success": True,
-                        "output": "Async migration looks correct. Connection pool size should be configurable.",
+                        "output": (
+                            "Async migration looks correct."
+                            " Connection pool size should be"
+                            " configurable."
+                        ),
                         "error": None,
                         "files_modified": [],
                         "suggestions": [
@@ -154,13 +185,19 @@ SAMPLE_EXECUTION_HISTORY: List[Dict[str, Any]] = [
                         "agent": "claude",
                         "task": "refine",
                         "success": True,
-                        "output": "Added configurable pool size, health check, and retry with exponential backoff.",
+                        "output": (
+                            "Added configurable pool size, health"
+                            " check, and retry with exponential"
+                            " backoff."
+                        ),
                         "error": None,
                         "files_modified": ["database.py", "config.py", "routes/health.py"],
                         "suggestions": [],
                     },
                 ],
-                "final_output": "Database layer fully async with connection pooling and health monitoring.",
+                "final_output": (
+                    "Database layer fully async with connection" " pooling and health monitoring."
+                ),
             },
             {
                 "steps": [
@@ -177,7 +214,9 @@ SAMPLE_EXECUTION_HISTORY: List[Dict[str, Any]] = [
                         "agent": "gemini",
                         "task": "review",
                         "success": True,
-                        "output": "All database operations are now async. Test coverage looks good.",
+                        "output": (
+                            "All database operations are now async." " Test coverage looks good."
+                        ),
                         "error": None,
                         "files_modified": [],
                         "suggestions": [],
@@ -246,7 +285,10 @@ SAMPLE_EXECUTION_HISTORY: List[Dict[str, Any]] = [
                         "agent": "claude",
                         "task": "document",
                         "success": True,
-                        "output": "Generated comprehensive OpenAPI 3.1 spec with examples for all endpoints.",
+                        "output": (
+                            "Generated comprehensive OpenAPI 3.1 spec"
+                            " with examples for all endpoints."
+                        ),
                         "error": None,
                         "files_modified": ["docs/openapi.yaml", "docs/README.md"],
                         "suggestions": ["Add webhook documentation"],
@@ -295,7 +337,11 @@ SAMPLE_EXECUTION_HISTORY: List[Dict[str, Any]] = [
                         "agent": "claude",
                         "task": "refine",
                         "success": True,
-                        "output": "Implemented rate limiter with sliding window algorithm, Redis backend, and configurable limits per endpoint.",
+                        "output": (
+                            "Implemented rate limiter with sliding"
+                            " window algorithm, Redis backend, and"
+                            " configurable limits per endpoint."
+                        ),
                         "error": None,
                         "files_modified": ["middleware/rate_limit.py", "config.py"],
                         "suggestions": [],
@@ -316,7 +362,11 @@ SAMPLE_EXECUTION_HISTORY: List[Dict[str, Any]] = [
                         "agent": "gemini",
                         "task": "review",
                         "success": True,
-                        "output": "Auth module needs tests for: login, register, token refresh, invalid tokens, expired tokens, rate limiting.",
+                        "output": (
+                            "Auth module needs tests for: login,"
+                            " register, token refresh, invalid tokens,"
+                            " expired tokens, rate limiting."
+                        ),
                         "error": None,
                         "files_modified": [],
                         "suggestions": [
@@ -329,7 +379,9 @@ SAMPLE_EXECUTION_HISTORY: List[Dict[str, Any]] = [
                         "agent": "claude",
                         "task": "refine",
                         "success": True,
-                        "output": "Created 24 test cases covering all auth flows including edge cases.",
+                        "output": (
+                            "Created 24 test cases covering all" " auth flows including edge cases."
+                        ),
                         "error": None,
                         "files_modified": ["tests/test_auth.py", "tests/conftest.py"],
                         "suggestions": [],
@@ -497,7 +549,11 @@ class ReportGenerator:
             "overall_status": health_results.get("status"),
             "checks": health_results.get("checks", []),
             "system": {
-                "python_version": f"{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}",
+                "python_version": (
+                    f"{sys.version_info.major}"
+                    f".{sys.version_info.minor}"
+                    f".{sys.version_info.micro}"
+                ),
                 "platform": sys.platform,
                 "disk_free_gb": round(disk.free / (1024**3), 2),
                 "disk_total_gb": round(disk.total / (1024**3), 2),
@@ -707,6 +763,7 @@ class ReportGenerator:
         total_tasks = len(execution_history)
         total_success = sum(1 for r in execution_history if r.get("success"))
         total_fail = total_tasks - total_success
+        success_pct = round(total_success / total_tasks * 100, 1) if total_tasks else 0
 
         # Build chart data
         agent_names = json.dumps(list(agent_stats.keys()))
@@ -725,7 +782,11 @@ class ReportGenerator:
             status = "✅" if r.get("success") else "❌"
             iters = len(r.get("iterations", []))
             wf = r.get("workflow", "—")
-            task_rows += f"<tr><td>{status}</td><td>{r['task']}</td><td><code>{wf}</code></td><td>{iters}</td></tr>\n"
+            task_rows += (
+                f"<tr><td>{status}</td><td>{r['task']}</td>"
+                f"<td><code>{wf}</code></td>"
+                f"<td>{iters}</td></tr>\n"
+            )
 
         html = f"""<!DOCTYPE html>
 <html lang="en">
@@ -742,41 +803,77 @@ class ReportGenerator:
     --purple: #a78bfa; --pink: #f472b6;
   }}
   * {{ margin: 0; padding: 0; box-sizing: border-box; }}
-  body {{ font-family: 'Inter', -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); padding: 2rem; }}
+  body {{
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
+    background: var(--bg); color: var(--text); padding: 2rem;
+  }}
   h1 {{ font-size: 1.8rem; margin-bottom: .25rem; }}
   .subtitle {{ color: var(--muted); margin-bottom: 2rem; font-size: .9rem; }}
-  .grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }}
-  .card {{ background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; }}
-  .card h3 {{ font-size: .85rem; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: .5rem; }}
+  .grid {{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem; margin-bottom: 2rem;
+  }}
+  .card {{
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 1.5rem;
+  }}
+  .card h3 {{
+    font-size: .85rem; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .05em;
+    margin-bottom: .5rem;
+  }}
   .stat {{ font-size: 2.2rem; font-weight: 700; }}
   .stat.green {{ color: var(--green); }}
   .stat.red {{ color: var(--red); }}
   .stat.accent {{ color: var(--accent); }}
   .stat.amber {{ color: var(--amber); }}
-  .chart-grid {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 1.5rem; margin-bottom: 2rem; }}
-  .chart-card {{ background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 1.5rem; }}
+  .chart-grid {{
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+    gap: 1.5rem; margin-bottom: 2rem;
+  }}
+  .chart-card {{
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 1.5rem;
+  }}
   .chart-card h3 {{ font-size: 1rem; margin-bottom: 1rem; }}
   canvas {{ max-height: 280px; }}
   table {{ width: 100%; border-collapse: collapse; font-size: .9rem; }}
-  th {{ text-align: left; padding: .75rem 1rem; border-bottom: 2px solid var(--border); color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .05em; }}
+  th {{
+    text-align: left; padding: .75rem 1rem;
+    border-bottom: 2px solid var(--border);
+    color: var(--muted); font-size: .8rem;
+    text-transform: uppercase; letter-spacing: .05em;
+  }}
   td {{ padding: .75rem 1rem; border-bottom: 1px solid var(--border); }}
   tr:hover td {{ background: rgba(56, 189, 248, .05); }}
-  code {{ background: rgba(56, 189, 248, .1); padding: 2px 6px; border-radius: 4px; font-size: .85rem; color: var(--accent); }}
+  code {{
+    background: rgba(56, 189, 248, .1); padding: 2px 6px;
+    border-radius: 4px; font-size: .85rem; color: var(--accent);
+  }}
   .footer {{ text-align: center; color: var(--muted); font-size: .8rem; margin-top: 3rem; }}
 </style>
 </head>
 <body>
 
 <h1>📊 AI Coding Tools — Reports Dashboard</h1>
-<p class="subtitle">Generated {now.strftime('%B %d, %Y at %H:%M UTC')} &middot; {total_tasks} tasks analysed</p>
+<p class="subtitle">
+  Generated {now.strftime('%B %d, %Y at %H:%M UTC')}
+  &middot; {total_tasks} tasks analysed
+</p>
 
 <!-- KPI Cards -->
 <div class="grid">
   <div class="card"><h3>📋 Total Tasks</h3><div class="stat accent">{total_tasks}</div></div>
   <div class="card"><h3>✅ Succeeded</h3><div class="stat green">{total_success}</div></div>
   <div class="card"><h3>❌ Failed</h3><div class="stat red">{total_fail}</div></div>
-  <div class="card"><h3>📈 Success Rate</h3><div class="stat green">{round(total_success / total_tasks * 100, 1) if total_tasks else 0}%</div></div>
-  <div class="card"><h3>🤖 Active Agents</h3><div class="stat accent">{len(agent_stats)}</div></div>
+  <div class="card"><h3>📈 Success Rate</h3>
+    <div class="stat green">{success_pct}%</div>
+  </div>
+  <div class="card"><h3>🤖 Active Agents</h3>
+    <div class="stat accent">{len(agent_stats)}</div>
+  </div>
   <div class="card"><h3>⚡ Workflows Used</h3><div class="stat amber">{len(wf_counts)}</div></div>
 </div>
 
@@ -822,11 +919,22 @@ new Chart(document.getElementById('dailyChart'), {{
   data: {{
     labels: {daily_labels},
     datasets: [
-      {{ label: 'Total Tasks', data: {daily_tasks}, backgroundColor: 'rgba(56,189,248,.6)', borderRadius: 4 }},
-      {{ label: 'Succeeded', data: {daily_success}, backgroundColor: 'rgba(74,222,128,.6)', borderRadius: 4 }}
+      {{ label: 'Total Tasks', data: {daily_tasks},
+        backgroundColor: 'rgba(56,189,248,.6)',
+        borderRadius: 4 }},
+      {{ label: 'Succeeded', data: {daily_success},
+        backgroundColor: 'rgba(74,222,128,.6)',
+        borderRadius: 4 }}
     ]
   }},
-  options: {{ responsive: true, plugins: {{ legend: {{ labels: {{ font: fontOpts }} }} }}, scales: {{ y: {{ beginAtZero: true, ticks: {{ font: fontOpts }} }}, x: {{ ticks: {{ font: fontOpts }} }} }} }}
+  options: {{
+    responsive: true,
+    plugins: {{ legend: {{ labels: {{ font: fontOpts }} }} }},
+    scales: {{
+      y: {{ beginAtZero: true, ticks: {{ font: fontOpts }} }},
+      x: {{ ticks: {{ font: fontOpts }} }}
+    }}
+  }}
 }});
 
 // Agent Success/Failure
@@ -835,11 +943,23 @@ new Chart(document.getElementById('agentChart'), {{
   data: {{
     labels: {agent_names},
     datasets: [
-      {{ label: 'Success', data: {agent_successes}, backgroundColor: 'rgba(74,222,128,.7)', borderRadius: 4 }},
-      {{ label: 'Failure', data: {agent_failures}, backgroundColor: 'rgba(248,113,113,.7)', borderRadius: 4 }}
+      {{ label: 'Success', data: {agent_successes},
+        backgroundColor: 'rgba(74,222,128,.7)',
+        borderRadius: 4 }},
+      {{ label: 'Failure', data: {agent_failures},
+        backgroundColor: 'rgba(248,113,113,.7)',
+        borderRadius: 4 }}
     ]
   }},
-  options: {{ responsive: true, plugins: {{ legend: {{ labels: {{ font: fontOpts }} }} }}, scales: {{ x: {{ stacked: true, ticks: {{ font: fontOpts }} }}, y: {{ stacked: true, beginAtZero: true, ticks: {{ font: fontOpts }} }} }} }}
+  options: {{
+    responsive: true,
+    plugins: {{ legend: {{ labels: {{ font: fontOpts }} }} }},
+    scales: {{
+      x: {{ stacked: true, ticks: {{ font: fontOpts }} }},
+      y: {{ stacked: true, beginAtZero: true,
+        ticks: {{ font: fontOpts }} }}
+    }}
+  }}
 }});
 
 // Duration Trend
@@ -858,7 +978,14 @@ new Chart(document.getElementById('durationChart'), {{
       pointBackgroundColor: '#fbbf24'
     }}]
   }},
-  options: {{ responsive: true, plugins: {{ legend: {{ labels: {{ font: fontOpts }} }} }}, scales: {{ y: {{ beginAtZero: true, ticks: {{ font: fontOpts }} }}, x: {{ ticks: {{ font: fontOpts }} }} }} }}
+  options: {{
+    responsive: true,
+    plugins: {{ legend: {{ labels: {{ font: fontOpts }} }} }},
+    scales: {{
+      y: {{ beginAtZero: true, ticks: {{ font: fontOpts }} }},
+      x: {{ ticks: {{ font: fontOpts }} }}
+    }}
+  }}
 }});
 
 // Workflow Distribution
@@ -868,11 +995,20 @@ new Chart(document.getElementById('workflowChart'), {{
     labels: {wf_labels},
     datasets: [{{
       data: {wf_values},
-      backgroundColor: ['#38bdf8', '#4ade80', '#fbbf24', '#a78bfa', '#f472b6', '#fb923c'],
+      backgroundColor: [
+        '#38bdf8', '#4ade80', '#fbbf24',
+        '#a78bfa', '#f472b6', '#fb923c'
+      ],
       borderWidth: 0
     }}]
   }},
-  options: {{ responsive: true, plugins: {{ legend: {{ position: 'bottom', labels: {{ font: fontOpts, padding: 16 }} }} }} }}
+  options: {{
+    responsive: true,
+    plugins: {{ legend: {{
+      position: 'bottom',
+      labels: {{ font: fontOpts, padding: 16 }}
+    }} }}
+  }}
 }});
 </script>
 </body>

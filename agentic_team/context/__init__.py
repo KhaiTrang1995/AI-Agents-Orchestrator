@@ -25,6 +25,7 @@ from agentic_team.context.models import (
     NodeType,
     PatternNode,
     PreferenceNode,
+    ProjectNode,
     SearchResult,
     TaskNode,
     schemas,
@@ -34,7 +35,9 @@ from agentic_team.context.store import GraphStore
 
 sys.modules["agentic_team.context.schemas"] = schemas
 
-from agentic_team.context.store import graph_store  # noqa: E402
+from agentic_team.context.store import (  # noqa: E402  # pylint: disable=wrong-import-position
+    graph_store,
+)
 
 sys.modules["agentic_team.context.graph_store"] = graph_store
 
@@ -52,6 +55,7 @@ __all__ = [
     "DecisionNode",
     "CodeSnippetNode",
     "PreferenceNode",
+    "ProjectNode",
     "SearchResult",
     "ContextAnalytics",
     "ContextExporter",

@@ -13,7 +13,9 @@ from __future__ import annotations
 from typing import Any
 
 ROLE_SYSTEM_PROMPTS: dict[str, str] = {
-    "project_manager": """You are the **Project Manager and Team Lead** of a software development team.
+    "project_manager": """\
+You are the **Project Manager and Team Lead** \
+of a software development team.
 
 RESPONSIBILITIES:
 - Decompose the user's task into subtasks for your team
@@ -207,10 +209,17 @@ def build_team_prompt(
     urgency = ""
     remaining = max_turns - turn
     if remaining <= 2:
+        if role_name == lead_role:
+            urgency_action = "Finalize NOW with whatever is ready."
+        else:
+            urgency_action = f"Send your current results to {lead_role} immediately."
         urgency = (
-            f"\n⚠️ URGENT: Only {remaining} turn(s) remaining before timeout. "
-            f"{'Finalize NOW with whatever is ready.' if role_name == lead_role else f'Send your current results to {lead_role} immediately.'}"
+            f"\n⚠️ URGENT: Only {remaining} turn(s) remaining" f" before timeout. {urgency_action}"
         )
+
+    transcript_text = (
+        chr(10).join(transcript_lines) if transcript_lines else "(first turn — no prior messages)"
+    )
 
     return (
         f"{system}\n\n"
@@ -223,8 +232,9 @@ def build_team_prompt(
         f"## Original User Task\n{original_task}\n\n"
         f"## Team Roster\n{chr(10).join(roster)}\n\n"
         f"## Recent Transcript\n"
-        f"{chr(10).join(transcript_lines) if transcript_lines else '(first turn — no prior messages)'}\n\n"
-        f"## Incoming Message (from {sender_role})\n{incoming_message}\n\n"
+        f"{transcript_text}\n\n"
+        f"## Incoming Message (from {sender_role})\n"
+        f"{incoming_message}\n\n"
         f"## Your Instructions\n{finalize_note}{urgency}\n\n"
         f"Respond with JSON only."
     )

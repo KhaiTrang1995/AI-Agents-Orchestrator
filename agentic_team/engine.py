@@ -131,7 +131,7 @@ class AgenticTeamEngine:
                 if provider in cli_adapter_classes:
                     return cli_adapter_classes[provider]
                 command_name = str(agent_config.get("command", "")).strip().lower()
-                command_name = command_name.split("/")[-1]
+                command_name = command_name.rsplit("/", maxsplit=1)[-1]
                 command_name = cli_command_aliases.get(command_name, command_name)
                 return cli_adapter_classes.get(command_name)
             return type_adapter_classes.get(agent_type)
@@ -240,7 +240,7 @@ class AgenticTeamEngine:
                 for item in payload.get("missing_roles", [])
             ]
             raise ValueError(
-                "Agentic team roles mapped to unavailable agents: %s" % ", ".join(missing_roles)
+                f"Agentic team roles mapped to unavailable agents: {', '.join(missing_roles)}"
             )
         if reason == "no_available_agents":
             raise ValueError("No available agents detected for agentic team execution")
@@ -289,7 +289,7 @@ class AgenticTeamEngine:
             default_to_role=lead_role,
         )
 
-    def execute_task(
+    def execute_task(  # pylint: disable=too-many-branches,too-many-statements
         self,
         task: str,
         max_turns: int | None = None,
@@ -390,7 +390,10 @@ class AgenticTeamEngine:
             if not response.success:
                 action = "message"
                 to_role = lead_role
-                message = f"Execution failed for role '{current_role}': {response.error or 'unknown error'}"
+                message = (
+                    f"Execution failed for role '{current_role}': "
+                    f"{response.error or 'unknown error'}"
+                )
 
             if to_role not in roles and to_role != "user":
                 to_role = lead_role
@@ -406,8 +409,8 @@ class AgenticTeamEngine:
             ):
                 to_role = lead_role
                 message = (
-                    message
-                    + "\n\n[System] Repetition detected in team routing. Escalating to lead for decision."
+                    message + "\n\n[System] Repetition detected in team routing. "
+                    "Escalating to lead for decision."
                 ).strip()
                 lead_escalation_count += 1
 

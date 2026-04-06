@@ -202,7 +202,7 @@ def _build_registry() -> dict[str, dict[str, Any]]:
     }
 
     # Attach introspected parameter info to each entry
-    for name, entry in registry.items():
+    for _, entry in registry.items():
         fn: Callable[..., Any] = entry["fn"]
         sig = inspect.signature(fn)
         params: list[dict[str, Any]] = []
@@ -713,7 +713,7 @@ async def _repl_loop() -> None:
             if cmd in ("exit", "quit"):
                 console.print("[dim]Goodbye![/dim]")
                 break
-            elif cmd == "help":
+            if cmd == "help":
                 _cmd_help()
             elif cmd == "tools":
                 _cmd_tools()

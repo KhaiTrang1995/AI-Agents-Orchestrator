@@ -73,8 +73,6 @@ class HealthChecker:
         """Check available disk space."""
         start = time.time()
         try:
-            import shutil
-
             stat = shutil.disk_usage(".")
             free_gb = stat.free / (1024**3)
 
@@ -153,7 +151,7 @@ class HealthChecker:
             if config_path.exists():
                 import yaml
 
-                with open(config_path) as f:
+                with open(config_path, encoding="utf-8") as f:
                     config = yaml.safe_load(f)
 
                 if config and "agents" in config and "workflows" in config:

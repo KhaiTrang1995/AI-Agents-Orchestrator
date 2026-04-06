@@ -53,6 +53,7 @@ class Orchestrator:
         self.session_dir: Optional[Path] = None
         self.is_offline_mode = self._resolve_offline_mode()
         self._initialize_adapters()
+        self._maybe_register_project()
 
     def _load_config(self, config_path: Optional[str]) -> Dict[str, Any]:
         """Load configuration from file."""
@@ -62,10 +63,10 @@ class Orchestrator:
             config_path_obj = Path(config_path)
 
         if not config_path_obj.exists():
-            self.logger.warning(f"Config file not found: {config_path_obj}, using defaults")
+            self.logger.warning("Config file not found: %s, using defaults", config_path_obj)
             return self._get_default_config()
 
-        with open(config_path_obj) as f:
+        with open(config_path_obj, encoding="utf-8") as f:
             return yaml.safe_load(f) or {}
 
     def _get_default_config(self) -> Dict[str, Any]:
@@ -198,7 +199,7 @@ class Orchestrator:
                     return cli_adapter_classes[provider]
 
                 command_name = str(agent_config.get("command", "")).strip().lower()
-                command_name = command_name.split("/")[-1]
+                command_name = command_name.rsplit("/", maxsplit=1)[-1]
                 command_name = cli_command_aliases.get(command_name, command_name)
                 return cli_adapter_classes.get(command_name)
 
@@ -222,7 +223,7 @@ class Orchestrator:
 
         for agent_name, agent_config in agents_config.items():
             if not agent_config.get("enabled", True):
-                self.logger.info(f"Agent {agent_name} is disabled")
+                self.logger.info("Agent %s is disabled", agent_name)
                 continue
 
             if self.is_offline_mode and not self._is_local_agent(agent_config):
@@ -263,10 +264,10 @@ class Orchestrator:
                     continue
 
                 self.adapters[agent_name] = adapter
-                self.logger.info(f"Initialized adapter: {agent_name}")
+                self.logger.info("Initialized adapter: %s", agent_name)
 
             except Exception as e:
-                self.logger.error(f"Failed to initialize {agent_name}: {e}")
+                self.logger.error("Failed to initialize %s: %s", agent_name, e)
 
     def execute_task(
         self, task: str, workflow_name: str = "default", max_iterations: Optional[int] = None
@@ -283,8 +284,8 @@ class Orchestrator:
             Dictionary with execution results
         """
         execution_start = time.monotonic()
-        self.logger.info(f"Executing task: {task}")
-        self.logger.info(f"Workflow: {workflow_name}")
+        self.logger.info("Executing task: %s", task)
+        self.logger.info("Workflow: %s", workflow_name)
 
         # Get workflow
         workflows = self.config.get("workflows", {})
@@ -316,12 +317,16 @@ class Orchestrator:
             working_dir = str(project_root)
 
         # Execute workflow
+        # Resolve project context
+        project_id = self._resolve_project_id()
+
         context = {
             "task": task,
             "iteration": 0,
             "max_iterations": max_iterations,
             "working_dir": working_dir,
             "offline_mode": self.is_offline_mode,
+            "project_id": project_id,
         }
 
         results = {
@@ -333,9 +338,9 @@ class Orchestrator:
         }
 
         for iteration in range(max_iterations):
-            self.logger.info(f"\n{'='*60}")
-            self.logger.info(f"Iteration {iteration + 1}/{max_iterations}")
-            self.logger.info(f"{'='*60}")
+            self.logger.info("\n%s", "=" * 60)
+            self.logger.info("Iteration %d/%d", iteration + 1, max_iterations)
+            self.logger.info("%s", "=" * 60)
 
             context["iteration"] = iteration
 
@@ -405,7 +410,7 @@ class Orchestrator:
             )
 
             if agent_name not in self.adapters:
-                self.logger.warning(f"Agent {agent_name} not available, skipping step")
+                self.logger.warning("Agent %s not available, skipping step", agent_name)
                 continue
 
             step = WorkflowStep(
@@ -425,7 +430,7 @@ class Orchestrator:
         iteration_results: Dict[str, Any] = {"steps": [], "final_output": None}
 
         for i, step in enumerate(steps):
-            self.logger.info(f"\nStep {i+1}: {step.agent_name} - {step.task_type}")
+            self.logger.info("\nStep %d: %s - %s", i + 1, step.agent_name, step.task_type)
 
             try:
                 task = step.build_task_description(context)
@@ -462,11 +467,11 @@ class Orchestrator:
                             fallback_from,
                         )
                     else:
-                        self.logger.info(f"✓ {agent_used} completed successfully")
+                        self.logger.info("✓ %s completed successfully", agent_used)
                     if response.suggestions:
-                        self.logger.info(f"  Suggestions: {len(response.suggestions)}")
+                        self.logger.info("  Suggestions: %d", len(response.suggestions))
                 else:
-                    self.logger.error(f"✗ {agent_used} failed: {response.error}")
+                    self.logger.error("✗ %s failed: %s", agent_used, response.error)
 
                 # Update context for next step
                 context["previous_output"] = response.output
@@ -482,7 +487,7 @@ class Orchestrator:
                 iteration_results["final_output"] = response.output
 
             except Exception as e:
-                self.logger.error(f"Error executing step: {e}", exc_info=True)
+                self.logger.error("Error executing step: %s", e, exc_info=True)
                 step_result = {
                     "agent": step.agent_name,
                     "task": step.task_type,
@@ -597,6 +602,7 @@ class Orchestrator:
                 workflow_used=workflow_name,
                 agents_involved=agents_involved,
                 tags=["orchestrator"],
+                project_id=self._resolve_project_id(),
             )
 
             self.logger.debug("Stored task in context memory")
@@ -604,6 +610,53 @@ class Orchestrator:
             self.logger.debug("Context system not available")
         except Exception as e:
             self.logger.debug("Failed to store task in context: %s", e)
+
+    def _resolve_project_id(self) -> str:
+        """Resolve the active project_id from env or config.
+
+        Returns:
+            project_id string, or "" if no project configured.
+        """
+        import os
+
+        project_path = os.environ.get("PROJECT_PATH", "").strip()
+        if not project_path:
+            project_path = self.config.get("settings", {}).get("project_path", "")
+        if not project_path or not Path(project_path).is_dir():
+            return ""
+
+        try:
+            from orchestrator.context.ops.project_scanner import generate_project_id
+
+            return generate_project_id(project_path)
+        except Exception:
+            return ""
+
+    def _maybe_register_project(self) -> None:
+        """Register project in context graph if configured and not yet scanned."""
+        import os
+
+        project_path = os.environ.get("PROJECT_PATH", "").strip()
+        if not project_path:
+            project_path = self.config.get("settings", {}).get("project_path", "")
+        if not project_path or not Path(project_path).is_dir():
+            return
+
+        try:
+            from orchestrator.context import MemoryManager
+
+            db_path = os.environ.get(
+                "ORCHESTRATOR_CONTEXT_DB",
+                os.path.expanduser("~/.orchestrator/context.db"),
+            )
+            os.makedirs(os.path.dirname(db_path), exist_ok=True)
+            manager = MemoryManager(db_path)
+            try:
+                manager.register_project(project_path)
+            finally:
+                manager.close()
+        except Exception as e:
+            self.logger.debug("Failed to register project: %s", e)
 
     def get_relevant_context(self, task_description: str) -> Dict[str, Any]:
         """Get relevant context for a task from memory.
@@ -627,7 +680,10 @@ class Orchestrator:
                 return {}
 
             manager = MemoryManager(db_path)
-            return manager.get_relevant_context(task_description)
+            try:
+                return manager.get_relevant_context(task_description)
+            finally:
+                manager.close()
         except ImportError:
             return {}
         except Exception as e:

@@ -74,7 +74,6 @@ class BaseAdapter(ABC):
         Returns:
             List of capabilities
         """
-        pass
 
     @abstractmethod
     def execute_task(self, task: str, context: Dict[str, Any]) -> AgentResponse:
@@ -87,7 +86,6 @@ class BaseAdapter(ABC):
         Returns:
             AgentResponse with results
         """
-        pass
 
     async def execute_task_async(self, task: str, context: Dict[str, Any]) -> AgentResponse:
         """Async execution hook.
@@ -116,7 +114,7 @@ class BaseAdapter(ABC):
 
             return shutil.which(str(command_to_check)) is not None
         except Exception as e:
-            self.logger.warning(f"Failed to check availability: {e}")
+            self.logger.warning("Failed to check availability: %s", e)
             return False
 
     def _run_command_with_prompt(
@@ -141,7 +139,7 @@ class BaseAdapter(ABC):
 
         try:
             self.logger.info(
-                f"Executing {self.command} with prompt (method: {self.communication_method})"
+                "Executing %s with prompt (method: %s)", self.command, self.communication_method
             )
 
             # If tool supports workspace and we want to track files
@@ -186,7 +184,7 @@ class BaseAdapter(ABC):
             )
 
         except Exception as e:
-            self.logger.error(f"Command execution failed: {e}", exc_info=True)
+            self.logger.error("Command execution failed: %s", e, exc_info=True)
             return AgentResponse(success=False, output="", error=str(e))
 
     def _run_http_with_prompt(self, payload: Dict) -> AgentResponse:
@@ -207,21 +205,21 @@ class BaseAdapter(ABC):
                 metadata=data if isinstance(data, dict) else {},
             )
         except httpx.HTTPStatusError as e:
-            self.logger.error(f"{self.name} returned error status: {e}", exc_info=True)
+            self.logger.error("%s returned error status: %s", self.name, e, exc_info=True)
             return AgentResponse(
                 success=False,
                 output="",
                 error=f"HTTP error: {str(e)}",
             )
         except httpx.RequestError as e:
-            self.logger.error(f"{self.name} request failed: {e}", exc_info=True)
+            self.logger.error("%s request failed: %s", self.name, e, exc_info=True)
             return AgentResponse(
                 success=False,
                 output="",
                 error=f"Connection error: {str(e)}",
             )
         except Exception as e:
-            self.logger.error(f"{self.name} execution failed: {e}", exc_info=True)
+            self.logger.error("%s execution failed: %s", self.name, e, exc_info=True)
             return AgentResponse(
                 success=False,
                 output="",
@@ -239,9 +237,9 @@ class BaseAdapter(ABC):
             AgentResponse with command results
         """
         try:
-            self.logger.info(f"Executing: {' '.join(args)}")
+            self.logger.info("Executing: %s", " ".join(args))
 
-            process = subprocess.Popen(
+            process = subprocess.Popen(  # pylint: disable=consider-using-with
                 args,
                 stdin=subprocess.PIPE if stdin_input else None,
                 stdout=subprocess.PIPE,
@@ -261,7 +259,7 @@ class BaseAdapter(ABC):
             )
 
         except subprocess.TimeoutExpired:
-            self.logger.error(f"Command timed out after {self.timeout}s")
+            self.logger.error("Command timed out after %ds", self.timeout)
             process.kill()
             process.wait(timeout=5)
             return AgentResponse(
@@ -269,7 +267,7 @@ class BaseAdapter(ABC):
             )
 
         except Exception as e:
-            self.logger.error(f"Command failed: {e}")
+            self.logger.error("Command failed: %s", e)
             return AgentResponse(success=False, output="", error=str(e))
 
     def format_task_prompt(self, task: str, context: Dict[str, Any]) -> str:
