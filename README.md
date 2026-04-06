@@ -22,7 +22,7 @@
 ![Vite](https://img.shields.io/badge/Vite-5.x-646CFF?logo=vite&logoColor=white)
 ![TailwindCSS](https://img.shields.io/badge/Tailwind-3.x-06B6D4?logo=tailwindcss&logoColor=white)
 ![Pinia](https://img.shields.io/badge/Pinia-State-FFD859?logo=vue.js&logoColor=white)
-![Monaco](https://img.shields.io/badge/Monaco_Editor-VS_Code-007ACC?logo=visualstudiocode&logoColor=white)
+![Monaco](https://img.shields.io/badge/Monaco_Editor-VS_Code-007ACC?logo=visualparadigm&logoColor=white)
 ![Socket.IO](https://img.shields.io/badge/Socket.IO-4.x-010101?logo=socket.io&logoColor=white)
 ![Axios](https://img.shields.io/badge/Axios-HTTP-5A29E4?logo=axios&logoColor=white)
 ![Prometheus](https://img.shields.io/badge/Prometheus-Metrics-E6522C?logo=prometheus&logoColor=white)

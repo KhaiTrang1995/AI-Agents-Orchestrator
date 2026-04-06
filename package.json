@@ -5,6 +5,25 @@
   "author": "Son Nguyen",
   "license": "MIT",
   "version": "1.1.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hoangsonww/AI-Agents-Orchestrator.git"
+  },
+  "bugs": {
+    "url": "https://github.com/hoangsonww/AI-Agents-Orchestrator/issues"
+  },
+  "keywords": [
+    "AI",
+    "agentic",
+    "coding",
+    "tools",
+    "orchestrator",
+    "development",
+    "workflow",
+    "automation",
+    "infrastructure",
+    "python"
+  ],
   "private": false,
   "scripts": {
     "format": "prettier --write \"**/*.{js,ts,tsx,json,css,html}\""
