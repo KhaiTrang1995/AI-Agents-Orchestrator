@@ -145,6 +145,11 @@ settings:
   min_suggestions_threshold: 3
   colored_output: true
 
+  # Project context — path to the user's project for full codebase awareness.
+  # Set to "" or omit to work in task-only mode (no project scanning).
+  # Override at runtime via PROJECT_PATH environment variable or --project CLI flag.
+  project_path: ""
+
   # Offline behavior
   offline:
     enabled: false

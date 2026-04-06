@@ -168,7 +168,7 @@ class FileCache:
             return None
 
         try:
-            with open(cache_path) as f:
+            with open(cache_path, encoding="utf-8") as f:
                 data = json.load(f)
 
             entry = CacheEntry(data["value"], data.get("ttl"))
@@ -196,7 +196,7 @@ class FileCache:
         }
 
         try:
-            with open(cache_path, "w") as f:
+            with open(cache_path, "w", encoding="utf-8") as f:
                 json.dump(data, f)
         except TypeError:
             # Value not JSON serializable - expected for complex objects

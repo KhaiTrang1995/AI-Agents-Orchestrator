@@ -51,20 +51,19 @@ class WorkflowStep:
         if self.task_type == "implement":
             return f"Implement the following: {base_task}"
 
-        elif self.task_type == "review":
+        if self.task_type == "review":
             return f"Review the implementation of: {base_task}"
 
-        elif self.task_type == "refine":
+        if self.task_type == "refine":
             return f"Refine the implementation based on review feedback for: {base_task}"
 
-        elif self.task_type == "test":
+        if self.task_type == "test":
             return f"Write tests for: {base_task}"
 
-        elif self.task_type == "document":
+        if self.task_type == "document":
             return f"Document the implementation of: {base_task}"
 
-        else:
-            return base_task
+        return base_task
 
 
 class WorkflowEngine:
@@ -79,7 +78,7 @@ class WorkflowEngine:
         """Set the workflow steps."""
         self.steps = steps
         self.current_step = 0
-        self.logger.info(f"Workflow configured with {len(steps)} steps")
+        self.logger.info("Workflow configured with %d steps", len(steps))
 
     def execute(self, context: Dict[str, Any]) -> List[AgentResponse]:
         """
@@ -95,7 +94,7 @@ class WorkflowEngine:
 
         for i, step in enumerate(self.steps):
             self.current_step = i
-            self.logger.info(f"Executing step {i+1}/{len(self.steps)}: {step.agent_name}")
+            self.logger.info("Executing step %d/%d: %s", i + 1, len(self.steps), step.agent_name)
 
             try:
                 response = step.execute(context)
@@ -106,7 +105,7 @@ class WorkflowEngine:
                 context["previous_output"] = response.output
 
             except Exception as e:
-                self.logger.error(f"Step {i+1} failed: {e}", exc_info=True)
+                self.logger.error("Step %d failed: %s", i + 1, e, exc_info=True)
                 # Create error response
                 error_response = AgentResponse(success=False, output="", error=str(e))
                 results.append(error_response)

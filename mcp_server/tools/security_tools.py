@@ -1,9 +1,12 @@
 """Security scanning MCP tools for vulnerability detection."""
 
+import logging
 import re
 from typing import Any, Dict, List, Optional
 
 from mcp.server.fastmcp import Context
+
+logger = logging.getLogger(__name__)
 
 
 async def scan_secrets(
@@ -61,7 +64,7 @@ async def scan_secrets(
     for pattern in include_patterns:
         for file_path in glob.glob(f"{directory}/**/{pattern}", recursive=True):
             try:
-                with open(file_path) as f:
+                with open(file_path, encoding="utf-8") as f:
                     content = f.read()
                     lines = content.splitlines()
 
@@ -83,7 +86,7 @@ async def scan_secrets(
                             )
             except Exception as e:  # noqa: B112
                 # Skip files that cannot be parsed, log and continue
-                print(f"Warning: Could not parse {file_path}: {e}")
+                logger.warning("Could not parse %s: %s", file_path, e)
                 continue
 
     # Group by type
@@ -180,7 +183,7 @@ async def detect_injection_vulnerabilities(ctx: Context, file_path: str) -> Dict
     ]
 
     try:
-        with open(file_path) as f:
+        with open(file_path, encoding="utf-8") as f:
             content = f.read()
             lines = content.splitlines()
 
@@ -280,7 +283,7 @@ async def check_security_headers(ctx: Context, code_path: str) -> Dict[str, Any]
         found = False
         for file_path in all_files:
             try:
-                with open(file_path) as f:
+                with open(file_path, encoding="utf-8") as f:
                     content = f.read()
                 for pattern in info["patterns"]:
                     if re.search(pattern, content, re.IGNORECASE):
@@ -290,7 +293,7 @@ async def check_security_headers(ctx: Context, code_path: str) -> Dict[str, Any]
                     break
             except Exception as e:  # noqa: B112
                 # Skip files that cannot be parsed, log and continue
-                print(f"Warning: Could not parse file: {e}")
+                logger.warning("Could not parse file: %s", e)
                 continue
 
         if found:
@@ -376,7 +379,7 @@ async def run_security_audit(ctx: Context, directory: str) -> Dict[str, Any]:
 
     for file_path in py_files:
         try:
-            with open(file_path) as f:
+            with open(file_path, encoding="utf-8") as f:
                 content = f.read()
                 lines = content.splitlines()
 
@@ -395,7 +398,7 @@ async def run_security_audit(ctx: Context, directory: str) -> Dict[str, Any]:
                         )
         except Exception as e:  # noqa: B112
             # Skip files that cannot be parsed, log and continue
-            print(f"Warning: Could not parse {file_path}: {e}")
+            logger.warning("Could not parse %s: %s", file_path, e)
             continue
 
     audit_results["issues"] = issues

@@ -131,7 +131,7 @@ class AgenticTeamEngine:
                 if provider in cli_adapter_classes:
                     return cli_adapter_classes[provider]
                 command_name = str(agent_config.get("command", "")).strip().lower()
-                command_name = command_name.split("/")[-1]
+                command_name = command_name.rsplit("/", maxsplit=1)[-1]
                 command_name = cli_command_aliases.get(command_name, command_name)
                 return cli_adapter_classes.get(command_name)
             return type_adapter_classes.get(agent_type)
@@ -240,7 +240,7 @@ class AgenticTeamEngine:
                 for item in payload.get("missing_roles", [])
             ]
             raise ValueError(
-                "Agentic team roles mapped to unavailable agents: %s" % ", ".join(missing_roles)
+                f"Agentic team roles mapped to unavailable agents: {', '.join(missing_roles)}"
             )
         if reason == "no_available_agents":
             raise ValueError("No available agents detected for agentic team execution")
@@ -289,7 +289,7 @@ class AgenticTeamEngine:
             default_to_role=lead_role,
         )
 
-    def execute_task(
+    def execute_task(  # pylint: disable=too-many-branches,too-many-statements
         self,
         task: str,
         max_turns: int | None = None,
@@ -390,7 +390,10 @@ class AgenticTeamEngine:
             if not response.success:
                 action = "message"
                 to_role = lead_role
-                message = f"Execution failed for role '{current_role}': {response.error or 'unknown error'}"
+                message = (
+                    f"Execution failed for role '{current_role}': "
+                    f"{response.error or 'unknown error'}"
+                )
 
             if to_role not in roles and to_role != "user":
                 to_role = lead_role
@@ -406,8 +409,8 @@ class AgenticTeamEngine:
             ):
                 to_role = lead_role
                 message = (
-                    message
-                    + "\n\n[System] Repetition detected in team routing. Escalating to lead for decision."
+                    message + "\n\n[System] Repetition detected in team routing. "
+                    "Escalating to lead for decision."
                 ).strip()
                 lead_escalation_count += 1
 
@@ -524,10 +527,23 @@ class AgenticTeamEngine:
     def _init_context_manager(self):
         """Initialize context manager if available."""
         try:
+            import os
+
             from agentic_team.context import MemoryManager
 
             manager = MemoryManager()
             self.logger.info("Context manager initialized for agentic team")
+
+            # Auto-register project if configured
+            project_path = os.environ.get("PROJECT_PATH", "").strip()
+            if not project_path:
+                project_path = self.config.get("settings", {}).get("project_path", "")
+            if project_path and Path(project_path).is_dir():
+                try:
+                    manager.register_project(project_path)
+                except Exception as exc:
+                    self.logger.debug("Project registration failed: %s", exc)
+
             return manager
         except ImportError:
             self.logger.debug("Context manager not available (agentic_team.context not found)")
@@ -535,6 +551,22 @@ class AgenticTeamEngine:
         except Exception as e:
             self.logger.warning("Failed to initialize context manager: %s", e)
             return None
+
+    def _resolve_project_id(self) -> str:
+        """Resolve the active project_id from env or config."""
+        import os
+
+        project_path = os.environ.get("PROJECT_PATH", "").strip()
+        if not project_path:
+            project_path = self.config.get("settings", {}).get("project_path", "")
+        if not project_path or not Path(project_path).is_dir():
+            return ""
+        try:
+            from agentic_team.context.ops.project_scanner import generate_project_id
+
+            return generate_project_id(project_path)
+        except Exception:
+            return ""
 
     def _store_task_in_context(
         self,
@@ -581,6 +613,7 @@ class AgenticTeamEngine:
                 duration_ms=int(duration_seconds * 1000),
                 agents_involved=roles_used,
                 metadata=metadata,
+                project_id=self._resolve_project_id(),
             )
 
             if not success and final_output:

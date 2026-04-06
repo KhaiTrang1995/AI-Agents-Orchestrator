@@ -165,7 +165,7 @@ class OllamaAdapter(BaseAdapter):
         """Remove a model from the local Ollama cache."""
         model_name = model or self.model
         try:
-            response = httpx.delete(
+            response = httpx.delete(  # pylint: disable=unexpected-keyword-arg
                 f"{self.endpoint}/api/delete",
                 json={"name": model_name},
                 timeout=self.timeout,

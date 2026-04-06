@@ -34,7 +34,8 @@ DO NOT:
 - Ask the user questions
 - Leave incomplete implementations
 - Add unnecessary complexity or over-engineering""",
-    "review": """You are a senior code reviewer with expertise in software quality, security, and best practices.
+    "review": """You are a senior code reviewer with expertise in software quality, """
+    """security, and best practices.
 
 ROLE: Review the provided code and give specific, actionable feedback.
 
@@ -179,7 +180,7 @@ def get_system_prompt(role: str) -> str:
         System prompt string. Returns a generic prompt for unknown roles.
     """
     prompt = SYSTEM_PROMPTS.get(
-        role, f"You are an expert software engineer. Complete the following task."
+        role, "You are an expert software engineer. Complete the following task."
     )
     return prompt + "\n\n" + NO_CLARIFICATION_INSTRUCTION
 

@@ -87,7 +87,7 @@ class TaskManager:
         task = Task(id=task_id, description=description, metadata=metadata or {})
 
         self.tasks[task_id] = task
-        self.logger.info(f"Created task: {task_id}")
+        self.logger.info("Created task: %s", task_id)
 
         return task
 

@@ -27,6 +27,12 @@ agentic_team/
 │   ├── gemini_adapter.py
 │   ├── ollama_adapter.py
 │   └── llama_cpp_adapter.py
+├── context/             # Independent graph-based context memory (zero orchestrator imports)
+│   ├── memory_manager.py    # High-level memory API (project-scoped)
+│   ├── models/schemas.py    # Node and edge type definitions (10 node types)
+│   ├── store/graph_store.py # SQLite-backed graph persistence with UPSERT
+│   ├── search/              # BM25 + FTS5 hybrid search (no external deps)
+│   └── ops/                 # Analytics, export, pruning, project_scanner
 ├── config/
 │   └── agents.yaml      # Agent definitions, workflows, settings, and agentic_team role mappings
 ├── ui/
@@ -115,6 +121,14 @@ graph TB
         cfg_yaml["agents.yaml"]
     end
 
+    subgraph context_pkg["context/"]
+        ctx_mm["memory_manager.py<br/>Project-scoped API"]
+        ctx_store["store/graph_store.py<br/>SQLite + UPSERT"]
+        ctx_models["models/schemas.py<br/>10 node types"]
+        ctx_search["search/<br/>BM25 + FTS5"]
+        ctx_ops["ops/<br/>Analytics, export,<br/>pruning, scanner"]
+    end
+
     subgraph ui_pkg["ui/"]
         ui_app["app.py<br/>Flask + SocketIO"]
     end
@@ -135,6 +149,7 @@ graph TB
     engine --> fb
     engine --> off
     engine --> a_base
+    engine --> ctx_mm
     cfg_utils --> cfg_yaml
     a_claude --> a_base
     a_codex --> a_base
@@ -426,3 +441,44 @@ When offline, only agents marked with `offline: true` or typed as `ollama`/`llam
 | GitHub Copilot CLI | `cli` | No |
 | Ollama | `ollama` | Yes |
 | llama.cpp / OpenAI-compatible | `llamacpp` | Yes |
+
+## Context System
+
+The Agentic Team maintains its own independent graph-based context database at `~/.agentic-team/context.db`. This is fully separate from the Orchestrator's context — **zero shared imports**.
+
+### Capabilities
+
+| Feature | Description |
+|---------|-------------|
+| **10 Node Types** | Conversation, Task, Mistake, Pattern, Decision, CodeSnippet, Preference, File, Concept, Project |
+| **12 Edge Types** | RELATED_TO, CAUSED_BY, FIXED_BY, SIMILAR_TO, DEPENDS_ON, and more |
+| **FTS5 + BM25 Search** | Lightweight hybrid search using SQLite built-in FTS5 — no external embedding dependency |
+| **Project Scanning** | Automatic codebase analysis detecting languages, frameworks, and structure |
+| **Multi-Project Isolation** | Per-project graph partitions with deterministic SHA-256 IDs |
+| **Atomic Operations** | UPSERT nodes (edge-preserving), single-transaction bulk project delete |
+
+### Project-Scoped Operation
+
+Configure `PROJECT_PATH` environment variable or `settings.project_path` in config YAML. On engine startup:
+
+1. Project is scanned by `ProjectScanner` (independent copy — no orchestrator imports)
+2. A `PROJECT` node plus `FILE`, `PATTERN`, and `DECISION` nodes are created
+3. All task results are tagged with the project's `project_id`
+4. Context queries filter by `project_id` for focused results
+
+```python
+from agentic_team.context import MemoryManager
+
+manager = MemoryManager()
+pid = manager.register_project("/path/to/project")
+context = manager.get_project_context(pid, task="Add user auth")
+```
+
+### Independence Guarantee
+
+The `agentic_team/context/` package is a fully independent implementation:
+
+- Own `models/schemas.py` — mirrors orchestrator schemas but shares zero code
+- Own `store/graph_store.py` — independent SQLite graph store with UPSERT
+- Own `ops/project_scanner.py` — independent copy of the project scanner
+- **Zero imports from `orchestrator/`** — enforced by CI

@@ -22,7 +22,7 @@ from flask_socketio import SocketIO, emit, join_room
 # Add project root to import path.
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from agentic_team import AgenticTeamEngine  # noqa: E402
+from agentic_team import AgenticTeamEngine  # noqa: E402  # pylint: disable=wrong-import-position
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.config["SECRET_KEY"] = os.environ.get("FLASK_SECRET_KEY_AGENTIC", os.urandom(32).hex())
@@ -451,7 +451,10 @@ def execute():
         return (
             jsonify(
                 {
-                    "error": "No available agents detected. Enable/install at least one agent before running.",
+                    "error": (
+                        "No available agents detected. "
+                        "Enable/install at least one agent before running."
+                    ),
                     "validation": validation,
                 }
             ),
@@ -478,7 +481,11 @@ def execute():
     if is_followup and session_snapshot.get("last_task"):
         previous_task = session_snapshot["last_task"]
         previous_output = session_snapshot.get("last_output", "")
-        actual_task = f"Previous task: {previous_task}\nPrevious result: {previous_output}\n\nFollow-up: {task}"
+        actual_task = (
+            f"Previous task: {previous_task}\n"
+            f"Previous result: {previous_output}\n\n"
+            f"Follow-up: {task}"
+        )
 
     with session_lock:
         session = client_sessions.setdefault(client_id, _new_session_state())
@@ -761,5 +768,6 @@ def on_disconnect():
 if __name__ == "__main__":
     _init_engine()
     port = int(os.environ.get("AGENTIC_UI_BACKEND_PORT") or os.environ.get("PORT", "5002"))
+    host = os.environ.get("AGENTIC_UI_BACKEND_HOST", "127.0.0.1")
     debug = os.environ.get("FLASK_DEBUG", "false").lower() in ("true", "1", "yes")
-    socketio.run(app, host="0.0.0.0", port=port, debug=debug, allow_unsafe_werkzeug=True)
+    socketio.run(app, host=host, port=port, debug=debug, allow_unsafe_werkzeug=True)

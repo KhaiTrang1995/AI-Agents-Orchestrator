@@ -3,6 +3,7 @@
 ## Table of Contents
 
 - [Overview](#overview)
+- [Code Quality & Production Readiness](#code-quality--production-readiness)
 - [System Architecture](#system-architecture)
 - [Agentic Team Architecture](#agentic-team-architecture)
 - [Component Design](#component-design)
@@ -14,6 +15,8 @@
 - [Deployment Architecture](#deployment-architecture)
 - [Design Patterns](#design-patterns)
 - [Graph Context System](#graph-context-system)
+  - [Project-Scoped Graphs](#project-scoped-graphs)
+  - [Project Scanner](#project-scanner)
 - [Agentic Infrastructure](#agentic-infrastructure)
 - [Performance Considerations](#performance-considerations)
 - [Scalability](#scalability)
@@ -31,6 +34,49 @@ The AI Coding Tools Orchestrator is built on a modular, extensible architecture 
 - **Performance**: Async execution and intelligent caching
 - **Security**: Input validation, rate limiting, and audit logging
 - **Observability**: Comprehensive metrics, structured logging, and automated report generation
+
+## Code Quality & Production Readiness
+
+The codebase has undergone a production-readiness overhaul achieving **Pylint 10.00/10** (up from 9.39/10) with 520 warnings eliminated, 386 tests passing, and all 15 pre-commit hooks green.
+
+### Quality Metrics
+
+| Metric | Value |
+|--------|-------|
+| **Pylint Score** | 10.00 / 10 (perfect — zero warnings) |
+| **Test Suite** | 386 tests passing |
+| **Pre-commit Hooks** | 15/15 passing (black, isort, flake8, mypy, bandit, pyupgrade, …) |
+| **Warnings Eliminated** | 520 across the entire codebase |
+
+### Pylint Configuration Philosophy
+
+The `pyproject.toml` pylint configuration follows a strict philosophy: **suppress intentional design-pattern violations; fix everything else**.
+
+**Line length** — `max-line-length = 120`. Black formats at 100 characters; pylint allows 120 to give slack for long strings, URLs, and generated code.
+
+**Intentional suppressions (with documented rationale):**
+
+| Code | Name | Rationale |
+|------|------|-----------|
+| R0801 | `duplicate-code` | `orchestrator/` and `agentic_team/` are independent by architectural design — parallel structure is intentional |
+| R0902 | `too-many-instance-attributes` | Domain dataclasses legitimately carry many fields |
+| R0917 | `too-many-positional-arguments` | Domain methods require multiple parameters |
+| C0415 | `import-outside-toplevel` | Lazy imports for optional dependencies (Ollama, llama.cpp) |
+| W0718 | `broad-exception-caught` | Error boundaries at adapter/CLI layer intentionally catch broadly |
+| R0914 | `too-many-locals` | Complex algorithms (graph traversal, search ranking) |
+| W0613 | `unused-argument` | Interface conformance — adapters implement `BaseAdapter` signatures |
+| W0603 | `global-statement` | Singleton patterns for configuration and metrics |
+
+**Similarity analysis** — minimum 8 similar lines, ignoring imports, docstrings, and comments to avoid false positives from boilerplate.
+
+### Code Quality Patterns Enforced
+
+- **Logging**: All logging uses lazy `%s` formatting — no f-string overhead in log calls
+- **File I/O**: All file operations use explicit `encoding="utf-8"`
+- **Abstract methods**: Use docstring-only body (no `pass` or `...`)
+- **Subprocess calls**: Annotated with pylint disable comments where context manager usage isn't feasible
+- **No stray `print()`**: All print statements in production code converted to `logger` calls
+- **Pydantic compatibility**: `FieldInfo` false positives suppressed with inline comments
 
 ## System Architecture
 
@@ -1153,6 +1199,90 @@ context = engine.get_relevant_context("authentication patterns")
 ### Auto-Seeding
 
 The script `scripts/seed_context_graphs.py` pre-populates both context databases with sample data (conversations, tasks, mistakes, patterns, decisions) for development and testing. The Context Dashboard also calls `_auto_seed_if_empty()` on startup to ensure a non-empty graph for first-run exploration.
+
+### Project-Scoped Graphs
+
+Both systems support project-scoped context graphs that isolate knowledge per user project. This enables portable, multi-project operation without context bleed.
+
+```mermaid
+graph TB
+    subgraph "Project-Scoped Architecture"
+        direction TB
+
+        ENV["PROJECT_PATH env var<br/>or settings.project_path"] --> ENGINE[Engine Startup]
+        ENGINE --> REG[register_project]
+        REG --> SCANNER[ProjectScanner]
+
+        SCANNER --> PID["project_id = SHA-256[:16]<br/>of normalized absolute path"]
+
+        subgraph "Graph Partitioning"
+            direction LR
+            G1["Project A<br/>All nodes tagged with pid_A"]
+            G2["Project B<br/>All nodes tagged with pid_B"]
+            G3["Global<br/>project_id='' (universal knowledge)"]
+        end
+
+        PID --> G1
+        PID --> G2
+
+        subgraph "Atomic Operations"
+            UPSERT["add_node: INSERT ON CONFLICT UPDATE<br/>(preserves edges)"]
+            BULK["delete_nodes_by_project<br/>(single transaction)"]
+            RESCAN["rescan_project: delete + rebuild<br/>(atomic swap)"]
+        end
+    end
+
+    style G1 fill:#2b6cb0,stroke:#2c5282,color:#fff
+    style G2 fill:#276749,stroke:#22543d,color:#fff
+    style G3 fill:#744210,stroke:#975a16,color:#fff
+```
+
+**Data Integrity Guarantees:**
+
+| Operation | Guarantee | Implementation |
+|-----------|-----------|----------------|
+| Node upsert | Edge-preserving | `INSERT ... ON CONFLICT(id) DO UPDATE SET` (no cascade delete) |
+| Project deletion | Atomic | Single-transaction `DELETE FROM nodes WHERE project_id = ?` |
+| Project rescan | Atomic swap | `delete_nodes_by_project()` then `register_project()` |
+| Schema migration | Race-safe | `ALTER TABLE` with catch on existing column |
+
+**Configuration:**
+
+```yaml
+# In orchestrator/config/agents.yaml or agentic_team/config/agents.yaml
+settings:
+  project_path: "/path/to/user/project"  # or set PROJECT_PATH env var
+```
+
+### Project Scanner
+
+The `ProjectScanner` module (`orchestrator/context/ops/project_scanner.py` and its independent copy at `agentic_team/context/ops/project_scanner.py`) analyzes a project directory and produces context graph nodes.
+
+```mermaid
+flowchart TD
+    PATH[Project Root Path] --> WALK[os.walk with SKIP_DIRS filter]
+    WALK --> FILES["File Metadata<br/>(path, size, language, extension)"]
+    WALK --> DETECT["Language Detection<br/>(extension mapping)"]
+    WALK --> FW["Framework Detection<br/>(indicator files)"]
+    WALK --> STRUCT["Structure Analysis<br/>(top-level directories)"]
+
+    FILES --> FN[File Nodes]
+    DETECT --> PN[Pattern Nodes]
+    FW --> DN[Decision Nodes]
+    STRUCT --> PROJ[Project Node]
+
+    FN & PN & DN & PROJ --> EDGES[Relationship Edges]
+    EDGES --> GRAPH[(Context Graph)]
+
+    style GRAPH fill:#2b6cb0,stroke:#2c5282,color:#fff
+```
+
+**Scanner capabilities:**
+- Detects 30+ programming languages via file extension mapping
+- Identifies 20+ frameworks from indicator files (package.json, requirements.txt, Cargo.toml, etc.)
+- Respects `.gitignore`-style skip patterns (node_modules, __pycache__, .git, etc.)
+- Safety limit of 5,000 files per scan to prevent runaway on monorepos
+- Produces `ProjectNode`, `FileNode`, `PatternNode`, and `DecisionNode` objects with relationship edges
 
 ## Agentic Infrastructure
 

@@ -11,6 +11,7 @@ from agentic_team.context.models.schemas import (
     NodeType,
     PatternNode,
     PreferenceNode,
+    ProjectNode,
     SearchResult,
     TaskNode,
 )
@@ -28,4 +29,5 @@ __all__ = [
     "DecisionNode",
     "CodeSnippetNode",
     "PreferenceNode",
+    "ProjectNode",
 ]

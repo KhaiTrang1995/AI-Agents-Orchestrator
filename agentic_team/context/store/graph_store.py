@@ -150,6 +150,13 @@ class GraphStore:
                 END
             """)
 
+            # Migrate: add project_id column if missing (backward-compatible)
+            try:
+                cursor.execute("ALTER TABLE nodes ADD COLUMN project_id TEXT DEFAULT ''")
+            except sqlite3.OperationalError:
+                pass  # Column already exists
+            cursor.execute("CREATE INDEX IF NOT EXISTS idx_nodes_project ON nodes(project_id)")
+
         self.logger.info("Agentic team graph store initialized at %s", self.db_path)
 
     def add_node(self, node: Node) -> str:
@@ -179,10 +186,20 @@ class GraphStore:
         with self._transaction() as cursor:
             cursor.execute(
                 """
-                INSERT OR REPLACE INTO nodes
+                INSERT INTO nodes
                 (id, node_type, title, content, metadata, tags,
-                 created_at, updated_at, importance_score, extra_data)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 created_at, updated_at, importance_score, extra_data, project_id)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(id) DO UPDATE SET
+                    node_type = excluded.node_type,
+                    title = excluded.title,
+                    content = excluded.content,
+                    metadata = excluded.metadata,
+                    tags = excluded.tags,
+                    updated_at = excluded.updated_at,
+                    importance_score = excluded.importance_score,
+                    extra_data = excluded.extra_data,
+                    project_id = excluded.project_id
                 """,
                 (
                     node.id,
@@ -195,6 +212,7 @@ class GraphStore:
                     node.updated_at.isoformat(),
                     node.importance_score,
                     json.dumps(extra_data),
+                    node.project_id,
                 ),
             )
 
@@ -231,6 +249,7 @@ class GraphStore:
             "created_at": row["created_at"],
             "updated_at": row["updated_at"],
             "importance_score": row["importance_score"],
+            "project_id": row["project_id"] if "project_id" in row.keys() else "",
         }
         extra_data = json.loads(row["extra_data"]) if row["extra_data"] else {}
         data.update(extra_data)
@@ -272,7 +291,8 @@ class GraphStore:
                     tags = ?,
                     updated_at = ?,
                     importance_score = ?,
-                    extra_data = ?
+                    extra_data = ?,
+                    project_id = ?
                 WHERE id = ?
                 """,
                 (
@@ -284,10 +304,29 @@ class GraphStore:
                     node.updated_at.isoformat(),
                     node.importance_score,
                     json.dumps(extra_data),
+                    node.project_id,
                     node.id,
                 ),
             )
             return cursor.rowcount > 0
+
+    def delete_nodes_by_project(self, project_id: str) -> int:
+        """Delete all nodes (and cascading edges) for a project in a single transaction.
+
+        Args:
+            project_id: The project identifier.
+
+        Returns:
+            Number of nodes deleted.
+        """
+        with self._transaction() as cursor:
+            cursor.execute(
+                "DELETE FROM edges WHERE source_id IN (SELECT id FROM nodes WHERE project_id = ?) "
+                "OR target_id IN (SELECT id FROM nodes WHERE project_id = ?)",
+                (project_id, project_id),
+            )
+            cursor.execute("DELETE FROM nodes WHERE project_id = ?", (project_id,))
+            return cursor.rowcount
 
     def delete_node(self, node_id: str) -> bool:
         """Delete a node and its associated edges.
@@ -403,6 +442,7 @@ class GraphStore:
         created_before: datetime | None = None,
         limit: int = 100,
         offset: int = 0,
+        project_id: str | None = None,
     ) -> list[Node]:
         """Query nodes with filters.
 
@@ -414,6 +454,7 @@ class GraphStore:
             created_before: Created before this time.
             limit: Maximum results.
             offset: Skip first N results.
+            project_id: Filter by project ID.
 
         Returns:
             List of matching nodes.
@@ -436,6 +477,10 @@ class GraphStore:
         if created_before:
             conditions.append("created_at <= ?")
             params.append(created_before.isoformat())
+
+        if project_id is not None:
+            conditions.append("project_id = ?")
+            params.append(project_id)
 
         where_clause = " AND ".join(conditions) if conditions else "1=1"
         query = f"""

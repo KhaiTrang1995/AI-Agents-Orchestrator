@@ -136,6 +136,33 @@ The context system provides persistent memory for AI agents:
 - **Decision**: Architectural decisions with rationale
 - **CodeSnippet**: Useful code fragments
 - **Preference**: Learned user preferences
+- **File**: Source file metadata from project scans
+- **Concept**: Abstract concepts and domain knowledge
+- **Project**: Registered project roots with scan metadata
+
+### Project-Scoped Context
+
+Both systems support project-scoped graphs. Configure `PROJECT_PATH` env var or `settings.project_path` in config YAML to point at a user project. The engine will:
+
+1. Scan the directory with `ProjectScanner` (languages, frameworks, structure)
+2. Create a `PROJECT` node plus `FILE`, `PATTERN`, and `DECISION` nodes
+3. Tag all nodes with a deterministic `project_id` (SHA-256 prefix of path)
+4. Isolate queries by `project_id` — no cross-project contamination
+
+```python
+from orchestrator.context import MemoryManager
+
+manager = MemoryManager()
+
+# Register a project (idempotent)
+pid = manager.register_project("/path/to/project")
+
+# Get project-scoped context for a task
+context = manager.get_project_context(pid, task="Add authentication")
+
+# Rescan after major changes
+manager.rescan_project("/path/to/project")
+```
 
 ### Using Context
 ```python

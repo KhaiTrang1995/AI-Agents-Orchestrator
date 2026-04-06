@@ -425,7 +425,7 @@ async def analyze_deployment_config(ctx: Context, config_path: str) -> Dict[str,
     recommendations: List[str] = []
 
     try:
-        with open(config_path) as f:
+        with open(config_path, encoding="utf-8") as f:
             content = f.read()
 
         # Check for common issues
@@ -473,7 +473,7 @@ async def check_environment_config(ctx: Context, env_file: str = ".env.example")
         Environment configuration analysis.
     """
     try:
-        with open(env_file) as f:
+        with open(env_file, encoding="utf-8") as f:
             content = f.read()
 
         env_vars: List[Dict[str, Any]] = []

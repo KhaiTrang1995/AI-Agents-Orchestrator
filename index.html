@@ -64,7 +64,7 @@
         <h1 class="hero-title">AI Coding Tools Orchestrator</h1>
         <p class="hero-subtitle">
           Coordinate multiple AI coding assistants with enterprise-grade agentic infrastructure:
-          specialized agents, skills library, 34+ MCP tools, and persistent context memory
+          specialized agents, skills library, 34+ MCP tools, and project-scoped context memory
         </p>
         <div class="hero-buttons">
           <a href="#quick-start" class="btn btn-primary">Get Started</a>
@@ -97,7 +97,7 @@
             <span class="tech-badge">GitHub Actions</span>
             <span class="tech-badge">structlog</span>
             <span class="tech-badge">Grafana</span>
-            <span class="tech-badge">311+ Tests</span>
+            <span class="tech-badge">386+ Tests</span>
             <span class="tech-badge">6 AI Agents</span>
             <!-- duplicate for seamless loop -->
             <span class="tech-badge">Python 3.8+</span>
@@ -118,10 +118,10 @@
             <span class="tech-badge">GitHub Actions</span>
             <span class="tech-badge">structlog</span>
             <span class="tech-badge">Grafana</span>
-            <span class="tech-badge">351+ Tests</span>
+            <span class="tech-badge">386+ Tests</span>
             <span class="tech-badge">6 AI Agents</span>
             <span class="tech-badge">9 Specialized Agents</span>
-            <span class="tech-badge">22 Skills</span>
+            <span class="tech-badge">24 Skills</span>
             <span class="tech-badge">34+ MCP Tools</span>
             <span class="tech-badge">Graph Context</span>
             <span class="tech-badge">Hybrid Search</span>
@@ -135,7 +135,7 @@
           </div>
           <div class="hero-highlight">
             <i class="fa-solid fa-brain" aria-hidden="true"></i>
-            <span>9 Specialized Agents + 22 Skills + 34+ MCP Tools</span>
+            <span>9 Specialized Agents + 24 Skills + 34+ MCP Tools</span>
           </div>
           <div class="hero-highlight">
             <i class="fa-solid fa-database" aria-hidden="true"></i>
@@ -208,7 +208,7 @@
             </div>
             <h3>Agentic Infrastructure</h3>
             <p>
-              9 specialized agents, 22 skills, and 34+ MCP tools provide
+              9 specialized agents, 24 skills, and 34+ MCP tools provide
               enterprise-grade support for any development task.
             </p>
           </div>
@@ -216,10 +216,10 @@
             <div class="card-icon">
               <i class="fa-solid fa-database"></i>
             </div>
-            <h3>Persistent Context Memory</h3>
+            <h3>Project-Scoped Context Memory</h3>
             <p>
-              Graph-based memory with hybrid search lets agents learn from past
-              tasks and avoid repeating mistakes.
+              Graph-based memory with hybrid search and project-scoped isolation
+              lets agents learn from past tasks and avoid repeating mistakes.
             </p>
           </div>
         </div>
@@ -271,7 +271,7 @@ graph LR
             <div class="stat-label">Python Modules</div>
           </div>
           <div class="stat-item">
-            <div class="stat-number">351</div>
+            <div class="stat-number">386</div>
             <div class="stat-label">Automated Tests</div>
           </div>
           <div class="stat-item">
@@ -291,11 +291,11 @@ graph LR
             <div class="stat-label">Specialized Agents</div>
           </div>
           <div class="stat-item">
-            <div class="stat-number">22</div>
+            <div class="stat-number">24</div>
             <div class="stat-label">Reusable Skills</div>
           </div>
           <div class="stat-item">
-            <div class="stat-number">7</div>
+            <div class="stat-number">10</div>
             <div class="stat-label">Node Types</div>
           </div>
           <div class="stat-item">
@@ -431,11 +431,11 @@ graph LR
             </div>
             <h3>Code Quality</h3>
             <ul class="feature-list">
+              <li>Pylint 10.00/10 (zero warnings)</li>
+              <li>386+ tests (pytest)</li>
+              <li>15 pre-commit hooks passing</li>
+              <li>Black + isort + flake8 + MyPy</li>
               <li>Type hints with Pydantic</li>
-              <li>351+ tests (pytest)</li>
-              <li>Black code formatting</li>
-              <li>Flake8 linting</li>
-              <li>MyPy type checking</li>
             </ul>
           </div>
 
@@ -456,7 +456,7 @@ graph LR
             <h3>Graph Context Memory</h3>
             <ul class="feature-list">
               <li>SQLite + FTS5 graph database</li>
-              <li>7 node types, 12 edge types</li>
+              <li>10 node types, 12 edge types</li>
               <li>Hybrid search (BM25 + semantic)</li>
               <li>Sentence transformer embeddings</li>
               <li>Auto-storage of tasks &amp; mistakes</li>
@@ -468,7 +468,7 @@ graph LR
             <h3>Specialized Agents &amp; Skills</h3>
             <ul class="feature-list">
               <li>9 domain-specific agents (Claude + Codex)</li>
-              <li>22 reusable skills across 6 categories</li>
+              <li>24 reusable skills across 6 categories</li>
               <li>10 domain-specific rules per platform</li>
               <li>Web, API, Security, DevOps, AI/ML, DB</li>
               <li>Extensible YAML/TOML configuration</li>
@@ -488,7 +488,7 @@ graph LR
             Beyond the core engines, we provide enterprise-grade infrastructure
             that empowers AI agents to accomplish any development task effectively.
             This includes specialized agents, reusable skills, MCP tools, and
-            persistent context memory.
+            persistent context memory with project-scoped isolation.
           </p>
         </div>
 
@@ -587,11 +587,12 @@ graph TB
             <h3>Graph Context System</h3>
             <p>Persistent memory with intelligent retrieval:</p>
             <ul class="feature-list">
-              <li><strong>7 Node Types:</strong> Task, Mistake, Pattern, etc.</li>
+              <li><strong>10 Node Types:</strong> Task, Mistake, Pattern, etc.</li>
               <li><strong>12 Edge Types:</strong> RELATED_TO, CAUSED_BY, etc.</li>
               <li><strong>Hybrid Search:</strong> BM25 + Semantic embeddings</li>
               <li><strong>Auto-storage:</strong> Tasks stored automatically</li>
               <li><strong>Learning:</strong> Agents learn from mistakes</li>
+              <li><strong>Project Scoping:</strong> Project-scoped context graphs with multi-project isolation, automatic codebase scanning, and portable configuration via PROJECT_PATH</li>
             </ul>
           </div>
 

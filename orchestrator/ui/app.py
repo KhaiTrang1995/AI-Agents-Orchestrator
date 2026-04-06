@@ -1,3 +1,4 @@
+# pylint: disable=too-many-lines
 """
 Web UI Backend for AI Orchestrator
 
@@ -63,14 +64,15 @@ class WebSocketLogHandler(logging.Handler):
             else:
                 self.socketio.emit("progress_log", payload, namespace="/")
         except Exception as e:
-            print(f"[WebSocketLogHandler] Error: {e}")
-            pass
+            logging.getLogger(__name__).debug("WebSocketLogHandler error: %s", e)
 
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from orchestrator.core.engine import Orchestrator  # noqa: E402
+from orchestrator.core.engine import (  # noqa: E402  # pylint: disable=wrong-import-position
+    Orchestrator,
+)
 
 app = Flask(__name__, template_folder="templates", static_folder="static")
 app.config["SECRET_KEY"] = os.environ.get("FLASK_SECRET_KEY", os.urandom(32).hex())
@@ -946,7 +948,7 @@ def execute_task_async(
         )
 
     except Exception as e:
-        logger.error(f"Error executing task: {e}", exc_info=True)
+        logger.error("Error executing task: %s", e, exc_info=True)
         with session_lock:
             session = client_sessions.setdefault(normalized_client_id, _new_session_state())
             session["status"] = "error"
@@ -1149,5 +1151,6 @@ def handle_disconnect():
 if __name__ == "__main__":
     init_orchestrator()
     port = int(os.environ.get("UI_BACKEND_PORT") or os.environ.get("PORT", "5001"))
+    host = os.environ.get("UI_BACKEND_HOST", "127.0.0.1")
     debug = os.environ.get("FLASK_DEBUG", "false").lower() in ("true", "1", "yes")
-    socketio.run(app, host="0.0.0.0", port=port, debug=debug, allow_unsafe_werkzeug=True)
+    socketio.run(app, host=host, port=port, debug=debug, allow_unsafe_werkzeug=True)

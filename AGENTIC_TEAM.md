@@ -20,6 +20,7 @@
 - [Operational Commands](#operational-commands)
 - [Package Structure](#package-structure)
 - [MCP Integration (Optional)](#mcp-integration-optional)
+- [Context System](#context-system)
 
 ## Overview
 
@@ -550,6 +551,17 @@ flowchart LR
     E3 --> L[Runtime logs panel]
 ```
 
+## Code Quality
+
+| Metric | Value |
+|--------|-------|
+| **Pylint Score** | 10.00/10 (zero warnings) |
+| **Tests** | 386 passing (pytest) |
+| **Pre-commit Hooks** | 15 hooks passing (Black, isort, flake8, pylint, MyPy, etc.) |
+| **Formatting** | Black (120-char line length) |
+| **Logging** | Lazy `%s` formatting throughout; no stray `print()` in production code |
+| **I/O** | Explicit UTF-8 encoding on all file operations |
+
 ## Security and Safety
 
 - Config updates validate required top-level sections before write.
@@ -636,6 +648,14 @@ graph TD
             ACLI[cli_communicator.py]
         end
 
+        subgraph "context/"
+            CTX_MM[memory_manager.py]
+            CTX_STORE[store/graph_store.py]
+            CTX_MODELS[models/schemas.py]
+            CTX_SEARCH[search/ BM25 + FTS5]
+            CTX_OPS[ops/ analytics, export,\npruning, project_scanner]
+        end
+
         subgraph "config/"
             AYAML[agents.yaml]
         end
@@ -645,6 +665,7 @@ graph TD
         end
     end
 
+    ENGINE --> CTX_MM
     ENGINE --> ABASE
     ENGINE --> DPARSER
     ENGINE --> CFGUTIL
@@ -699,3 +720,59 @@ from agentic_team.mcp_client import AgenticTeamMCPClient
 client = AgenticTeamMCPClient()  # in-memory
 result = await client.execute_task("Design a microservice architecture")
 ```
+
+## Context System
+
+The Agentic Team maintains its own independent graph-based context database at `~/.agentic-team/context.db`. This is fully separate from the Orchestrator's context system — zero shared imports.
+
+### Node Types
+
+| Type | Purpose |
+|------|---------|
+| `CONVERSATION` | Past chat sessions with message history |
+| `TASK` | Completed tasks with outcomes and duration |
+| `MISTAKE` | Errors with corrections and prevention strategies |
+| `PATTERN` | Reusable code patterns and best practices |
+| `DECISION` | Architectural decisions with rationale |
+| `CODE_SNIPPET` | Useful code fragments |
+| `PREFERENCE` | Learned user preferences |
+| `FILE` | Source file metadata from project scans |
+| `PROJECT` | Registered project roots with detected tech stack |
+
+### Project-Scoped Operation
+
+When `PROJECT_PATH` is configured, the engine automatically registers the project at startup:
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Engine as AgenticTeamEngine
+    participant Scanner as ProjectScanner
+    participant Graph as GraphStore
+
+    User->>Engine: Set PROJECT_PATH
+    Engine->>Scanner: scan(project_path)
+    Scanner->>Graph: Add PROJECT node
+    Scanner->>Graph: Add FILE nodes
+    Scanner->>Graph: Add PATTERN nodes
+    Scanner->>Graph: Add edges
+
+    Note over Engine,Graph: All nodes tagged with project_id
+
+    User->>Engine: execute_task(task)
+    Engine->>Graph: Query project context
+    Graph-->>Engine: Relevant patterns, decisions, files
+    Engine->>Engine: Include context in prompts
+```
+
+### Search
+
+The Agentic Team context uses FTS5 (SQLite built-in) and BM25 for search — no external embedding dependency required. This keeps the system lightweight and fully self-contained.
+
+### Independence Guarantee
+
+The Agentic Team context system (`agentic_team/context/`) is a fully independent implementation:
+- Own `models/schemas.py` — mirrored but independent from orchestrator schemas
+- Own `store/graph_store.py` — independent SQLite graph store
+- Own `ops/project_scanner.py` — independent copy of the project scanner
+- **Zero imports from `orchestrator/`** — verified by CI

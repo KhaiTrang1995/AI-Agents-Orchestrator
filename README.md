@@ -28,17 +28,27 @@
 ![Prometheus](https://img.shields.io/badge/Prometheus-Metrics-E6522C?logo=prometheus&logoColor=white)
 ![Grafana](https://img.shields.io/badge/Grafana-Dashboards-F46800?logo=grafana&logoColor=white)
 ![Bandit](https://img.shields.io/badge/Bandit-Security_Scan-FFD43B?logo=python&logoColor=white)
-![Pytest](https://img.shields.io/badge/Pytest-314_Tests-0A9EDC?logo=pytest&logoColor=white)
+![Pylint](https://img.shields.io/badge/Pylint-10.00%2F10-brightgreen?logo=python&logoColor=white)
+![Pytest](https://img.shields.io/badge/Pytest-386_Tests-0A9EDC?logo=pytest&logoColor=white)
 ![MyPy](https://img.shields.io/badge/MyPy-Type_Checked-3776AB?logo=python&logoColor=white)
 ![Black](https://img.shields.io/badge/Code_Style-Black-000000?logo=python&logoColor=white)
 ![Flake8](https://img.shields.io/badge/Linter-Flake8-4B8BBE?logo=python&logoColor=white)
 ![isort](https://img.shields.io/badge/isort-Imports-EF8336?logo=python&logoColor=white)
-![Pre-commit](https://img.shields.io/badge/Pre--commit-Hooks-FAB040?logo=precommit&logoColor=white)
+![Pre-commit](https://img.shields.io/badge/Pre--commit-15_Hooks_Passing-FAB040?logo=precommit&logoColor=white)
+![Zero Warnings](https://img.shields.io/badge/Warnings-0-brightgreen?logo=python&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 ![Kubernetes](https://img.shields.io/badge/Kubernetes-Ready-326CE5?logo=kubernetes&logoColor=white)
+![SQLite](https://img.shields.io/badge/SQLite-Context_Graph-003B57?logo=sqlite&logoColor=white)
+![FTS5](https://img.shields.io/badge/FTS5-Full_Text_Search-003B57?logo=sqlite&logoColor=white)
+![BM25](https://img.shields.io/badge/BM25-Ranking-3776AB?logo=python&logoColor=white)
+![Sentence Transformers](https://img.shields.io/badge/Sentence_Transformers-Embeddings-FF6F00?logo=huggingface&logoColor=white)
+![psutil](https://img.shields.io/badge/psutil-System_Metrics-3776AB?logo=python&logoColor=white)
+![python-dotenv](https://img.shields.io/badge/python--dotenv-Env_Config-ECD53F?logo=dotenv&logocolor=white)
+![Colorama](https://img.shields.io/badge/Colorama-Terminal_Colors-3776AB?logo=python&logoColor=white)
+![pyupgrade](https://img.shields.io/badge/pyupgrade-Syntax_Modernizer-3776AB?logo=python&logoColor=white)
 ![Terraform](https://img.shields.io/badge/Terraform-IaC-844FBA?logo=terraform&logoColor=white)
 ![NGINX](https://img.shields.io/badge/NGINX-Reverse_Proxy-009639?logo=nginx&logoColor=white)
-![HAProxy](https://img.shields.io/badge/HAProxy-Load_Balancer-009639?logo=haproxy&logoColor=white)
+![HAProxy](https://img.shields.io/badge/HAProxy-Load_Balancer-009639?logo=task&logoColor=white)
 ![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-CI%2FCD-2088FF?logo=githubactions&logoColor=white)
 ![GitLab CI](https://img.shields.io/badge/GitLab_CI-Pipeline-FC6D26?logo=gitlab&logoColor=white)
 ![Jenkins](https://img.shields.io/badge/Jenkins-Pipeline-D24939?logo=jenkins&logoColor=white)
@@ -49,7 +59,7 @@
 
 <div align="center">
 
-**Two self-contained systems -- an AI Orchestrator and an Agentic Team runtime -- that coordinate cloud and local AI coding assistants (Claude, Codex, Gemini, Copilot, Ollama, llama.cpp) to collaborate on software development tasks. Includes enterprise-grade agentic infrastructure with specialized agents, skills library, 34+ MCP tools, and graph-based context memory.**
+**Two self-contained systems -- an AI Orchestrator and an Agentic Team runtime -- that coordinate cloud and local AI coding assistants (Claude, Codex, Gemini, Copilot, Ollama, llama.cpp) to collaborate on software development tasks. Includes enterprise-grade agentic infrastructure with specialized agents, skills library, 34+ MCP tools, and project-scoped graph-based context memory.**
 
 [Overview](#overview) | [Architecture](#architecture) | [Agentic Infrastructure](#agentic-infrastructure) | [System Comparison](#system-comparison) | [Features](#feature-highlights) | [Quick Start](#quick-start) | [Project Structure](#project-structure) | [Configuration](#configuration) | [Deployment](#deployment) | [Testing](#testing) | [MCP Server](#mcp-server-optional----model-context-protocol)
 
@@ -68,6 +78,9 @@ Beyond the core engines, we provide a complete **Agentic Infrastructure** that e
 - **34+ MCP Tools** for code analysis, security scanning, testing, DevOps, and context memory
 - **Graph Context System** with hybrid search (BM25 + semantic) for persistent memory and learning
 - **Domain Rules** encoding best practices for security, database, API design, performance, and AI/ML
+
+> [!TIP]
+> Quickstart with the Orchestrator for structured workflows, or the Agentic Team for open-ended collaboration. Both systems benefit from the shared agentic infrastructure and context memory. See [QUICKSTART.md](QUICKSTART.md) for quick setup instructions to get started in ~2 minutes. Or, see [#quick-start](#quick-start) below for a detailed walkthrough.
 
 ## Agentic Infrastructure
 
@@ -119,10 +132,11 @@ graph TB
 | **Specialized Agents** | 9 | Domain experts for web, backend, security, DevOps, AI/ML, database, mobile, performance, documentation |
 | **Skills** | 22 | Reusable task templates across 6 categories |
 | **MCP Tools** | 34+ | Code analysis, security scanning, testing, DevOps, context memory |
-| **Node Types** | 7 | Conversation, Task, Mistake, Pattern, Decision, CodeSnippet, Preference |
+| **Node Types** | 10 | Conversation, Task, Mistake, Pattern, Decision, CodeSnippet, Preference, File, Concept, Project |
 | **Edge Types** | 12 | RELATED_TO, CAUSED_BY, FIXED_BY, SIMILAR_TO, DEPENDS_ON, etc. |
 
-📚 **[Full Agentic Infrastructure Documentation →](AGENTIC_INFRA.md)**
+> [!IMPORTANT]
+> 📚 **[Click for Full Agentic Infrastructure Documentation](AGENTIC_INFRA.md)**
 
 ### Context System
 
@@ -161,7 +175,7 @@ graph TB
     style DASH fill:#2d3748,color:#fff
 ```
 
-**Node Types** — 7 types of knowledge stored in the graph:
+**Node Types** — 10 types of knowledge stored in the graph:
 
 | Node Type | Description |
 |-----------|-------------|
@@ -172,6 +186,9 @@ graph TB
 | **Decision** | Architectural decisions with rationale and trade-offs |
 | **CodeSnippet** | Useful code fragments with language and context |
 | **Preference** | Learned user preferences (tools, style, workflows) |
+| **File** | Source files with language, size, and framework metadata |
+| **Concept** | Abstract concepts and domain knowledge |
+| **Project** | Registered project roots with scan metadata |
 
 **Edge Types** — 12 relationship types connecting nodes:
 
@@ -196,8 +213,46 @@ graph TB
 2. **Semantic** — Embedding-based similarity using vector cosine distance
 3. **Hybrid** — Fused ranking of BM25 + semantic results using RRF for best-of-both-worlds retrieval
 
+### Project-Scoped Context Graphs
+
+Both systems support **project-scoped context graphs** for full portability. When a user points the system at their project directory, agents automatically scan and build a rich context graph of the codebase.
+
+```mermaid
+graph TB
+    subgraph "Project Context Scoping"
+        direction TB
+
+        USER[User configures PROJECT_PATH] --> SCAN[ProjectScanner]
+        SCAN --> PID["project_id = SHA-256[:16] of path"]
+
+        subgraph "Isolated Project Graphs"
+            P1["Project A<br/>pid=a1b2c3..."]
+            P2["Project B<br/>pid=d4e5f6..."]
+            P3["Global Scope<br/>pid='' (no project)"]
+        end
+
+        PID --> P1 & P2
+        SCAN --> FILES[File Nodes]
+        SCAN --> PATTERNS[Pattern Nodes]
+        SCAN --> DECISIONS[Decision Nodes]
+        SCAN --> EDGES[Relationship Edges]
+    end
+
+    style P1 fill:#2b6cb0,stroke:#2c5282,color:#fff
+    style P2 fill:#276749,stroke:#22543d,color:#fff
+    style P3 fill:#744210,stroke:#975a16,color:#fff
+```
+
+**Key features:**
+- **Deterministic IDs**: `project_id` is a SHA-256 prefix of the normalized absolute path — idempotent and reproducible
+- **Multi-project isolation**: Each project gets its own graph partition; queries filter by `project_id`
+- **Global scope**: Nodes with `project_id=""` are universal (patterns, reference knowledge) — shared across all projects
+- **Automatic scanning**: `ProjectScanner` detects languages, frameworks, file structure, and config patterns
+- **Portability**: Set `PROJECT_PATH` environment variable or `settings.project_path` in config YAML — the system handles the rest
+- **Incremental updates**: `rescan_project()` rebuilds the graph atomically; `delete_project_graph()` cleanly removes all project nodes
+
 > [!TIP]
-> **Auto-seeding:** Run `scripts/seed_context_graphs.py` to populate both context databases with sample nodes and edges on first use. This is done automatically during `make setup`.
+> **Auto-seeding:** Run `scripts/seed_context_graphs.py` to populate both context databases with generic reference knowledge (patterns, mistakes, decisions) on first use. Seed data contains no hallucination-prone fake tasks or conversations — only universally applicable best practices.
 
 > [!NOTE]
 > **Context Dashboard:** Launch with `python -m context_dashboard` (port 5003) to visualize both context graphs, inspect nodes/edges, and search across all stored knowledge. See [`context_dashboard/README.md`](context_dashboard/README.md) for details.
@@ -270,7 +325,7 @@ graph LR
 | Documentation Writer | `documentation-writer.toml` | Technical documentation |
 | Mobile Developer | `mobile-developer.toml` | Mobile application development |
 
-**Skills Library** — 23 reusable skill templates in `.claude/skills/` across 6 categories:
+**Skills Library** — 24 reusable skill templates in `.claude/skills/` across 7 categories:
 
 | Category | Count | Skills |
 |----------|-------|--------|
@@ -280,8 +335,9 @@ graph LR
 | **DevOps** | 3 | `docker-containerization`, `ci-cd-pipelines`, `kubernetes-deployment` |
 | **AI/ML** | 3 | `embeddings-retrieval`, `llm-integration`, `rag-pipeline` |
 | **Documentation** | 3 | `api-documentation`, `architecture-docs`, `code-documentation` |
+| **Context** | 1 | `context-graph-builder` |
 
-> Three additional standalone skills (`generate-reports`, `health-check`, `run-tests`) provide operational task automation.
+> Four additional standalone skills (`context-graph-builder`, `generate-reports`, `health-check`, `run-tests`) provide operational task automation.
 
 **Domain Rules** — 11 rule files in `.claude/rules/` encoding best practices:
 
@@ -641,7 +697,8 @@ AI-Coding-Tools/
 |   |   |-- documentation/           # 3 skills (API docs, arch docs, code docs)
 |   |   |-- generate-reports/        # Standalone: report generation
 |   |   |-- health-check/            # Standalone: system health checks
-|   |   +-- run-tests/               # Standalone: test suite execution
+|   |   |-- run-tests/               # Standalone: test suite execution
+|   |   +-- context-graph-builder/   # Standalone: context graph operations
 |   +-- rules/                       # 11 domain rule files
 |       |-- adapters.md
 |       |-- api-design.md
@@ -737,7 +794,8 @@ AI-Coding-Tools/
 |   |       |-- analytics.py         # Graph analytics
 |   |       |-- export.py            # Data export
 |   |       |-- pruning.py           # Node/edge pruning
-|   |       +-- versioning.py        # Version tracking
+|   |       |-- versioning.py        # Version tracking
+|   |       +-- project_scanner.py   # Project directory scanning
 |   |-- config/
 |   |   +-- agents.yaml              # Agents, workflows, settings
 |   |-- ui/                          # Web UI
@@ -769,8 +827,8 @@ AI-Coding-Tools/
 |   |   |-- memory_manager.py        # High-level memory API
 |   |   |-- models/                  # Node and edge schemas
 |   |   |-- store/                   # Graph persistence layer
-|   |   |-- search/                  # BM25 + semantic + hybrid search
-|   |   +-- ops/                     # Analytics, export, pruning, versioning
+|   |   |-- search/                  # BM25 + FTS5 hybrid search
+|   |   +-- ops/                     # Analytics, export, pruning, project scanning
 |   |-- config/
 |   |   +-- agents.yaml              # Agents, roles, team settings
 |   |-- ui/                          # Dedicated Web UI
@@ -951,7 +1009,7 @@ See [DEPLOYMENT.md](DEPLOYMENT.md) for systemd, Azure, load balancer, and produc
 
 ## Testing
 
-The unified test suite (314 tests across 56 modules) covers both systems independently.
+The unified test suite (386 tests across 60+ modules) covers both systems independently.
 
 ```mermaid
 flowchart LR
@@ -996,6 +1054,15 @@ make test-coverage
 ```
 
 ### Code Quality
+
+The codebase maintains a **perfect 10.00/10 pylint score** with zero warnings across the entire project, enforced by 15 pre-commit hooks (black, isort, flake8, mypy, bandit, pyupgrade, and more).
+
+| Metric | Value |
+|--------|-------|
+| **Pylint Score** | 10.00 / 10 |
+| **Warnings** | 0 |
+| **Tests Passing** | 386 |
+| **Pre-commit Hooks** | 15 / 15 passing |
 
 ```bash
 make lint              # Lint all Python source (flake8 + pylint)

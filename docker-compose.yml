@@ -27,6 +27,7 @@ services:
       - APP_ENV=${APP_ENV:-production}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - PORT=5001
+      - UI_BACKEND_HOST=0.0.0.0
       - ENABLE_METRICS=${ENABLE_METRICS:-true}
       - METRICS_PORT=9090
     volumes:
@@ -67,6 +68,7 @@ services:
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - PORT=5002
       - AGENTIC_UI_BACKEND_PORT=5002
+      - AGENTIC_UI_BACKEND_HOST=0.0.0.0
       - ENABLE_METRICS=${ENABLE_METRICS:-true}
       - METRICS_PORT=9091
     volumes:
@@ -124,6 +126,8 @@ services:
     environment:
       - PYTHONUNBUFFERED=1
       - LOG_LEVEL=INFO
+      - DASHBOARD_HOST=0.0.0.0
+      - DASHBOARD_PORT=5003
     volumes:
       - orchestrator-context:/home/appuser/.ai-orchestrator
       - agentic-team-context:/home/appuser/.agentic-team

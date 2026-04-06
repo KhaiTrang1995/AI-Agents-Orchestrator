@@ -76,13 +76,13 @@ class MemoryManager:
             try:
                 self.embedding_store.embed_node(node)
             except Exception as e:
-                self.logger.warning(f"Failed to embed node {node.id}: {e}")
+                self.logger.warning("Failed to embed node %s: %s", node.id, e)
 
         for callback in self._callbacks.get("on_node_added", []):
             try:
                 callback(node)
             except Exception as e:
-                self.logger.warning(f"Callback failed: {e}")
+                self.logger.warning("Callback failed: %s", e)
 
     def store_conversation(
         self,
@@ -123,62 +123,6 @@ class MemoryManager:
 
         self.graph_store.add_node(node)
         self._process_new_node(node)
-
-        return node.id
-
-    def store_task(
-        self,
-        task_description: str,
-        outcome: str,
-        success: bool,
-        duration_ms: int = 0,
-        workflow_used: str | None = None,
-        agents_involved: list[str] | None = None,
-        files_modified: list[str] | None = None,
-        tags: list[str] | None = None,
-        metadata: dict[str, Any] | None = None,
-    ) -> str:
-        """Store a completed task.
-
-        Args:
-            task_description: Description of the task
-            outcome: Task outcome/result
-            success: Whether task succeeded
-            duration_ms: Task duration in milliseconds
-            workflow_used: Workflow name used
-            agents_involved: List of agents that participated
-            files_modified: List of files modified
-            tags: Optional tags
-            metadata: Additional metadata
-
-        Returns:
-            Node ID
-        """
-        status = "success" if success else "failed"
-
-        node = TaskNode(
-            title=f"Task: {task_description[:100]}",
-            content=outcome,
-            task_description=task_description,
-            outcome=outcome,
-            success=success,
-            duration_ms=duration_ms,
-            workflow_used=workflow_used or "",
-            agents_involved=agents_involved or [],
-            files_modified=files_modified or [],
-            tags=tags or ["task", status],
-            metadata=metadata or {},
-            importance_score=1.5 if success else 2.0,
-        )
-
-        self.graph_store.add_node(node)
-        self._process_new_node(node)
-
-        for callback in self._callbacks.get("on_task_completed", []):
-            try:
-                callback(node)
-            except Exception as e:
-                self.logger.warning(f"Callback failed: {e}")
 
         return node.id
 
@@ -248,7 +192,7 @@ class MemoryManager:
             try:
                 callback(node)
             except Exception as e:
-                self.logger.warning(f"Callback failed: {e}")
+                self.logger.warning("Callback failed: %s", e)
 
         return node.id
 
@@ -575,6 +519,214 @@ class MemoryManager:
         """
         if event in self._callbacks:
             self._callbacks[event].append(callback)
+
+    # ------------------------------------------------------------------
+    # Project-scoped operations
+    # ------------------------------------------------------------------
+
+    def register_project(self, project_path: str) -> str:
+        """Register a project and perform an initial scan if needed.
+
+        Creates a PROJECT node and scans the directory for languages,
+        frameworks, structure, and config patterns.  Idempotent — if the
+        project was already registered, returns the existing project_id
+        without rescanning.
+
+        Args:
+            project_path: Absolute or relative path to the project root.
+
+        Returns:
+            Deterministic project_id (SHA-256 prefix of the path).
+        """
+        from orchestrator.context.ops.project_scanner import ProjectScanner, generate_project_id
+
+        pid = generate_project_id(project_path)
+
+        existing = self.graph_store.query_nodes(node_type=NodeType.PROJECT, project_id=pid, limit=1)
+        if existing:
+            self.logger.info("Project already registered: %s (id=%s)", project_path, pid)
+            return pid
+
+        scanner = ProjectScanner(project_path)
+        scan_result = scanner.scan()
+
+        self.graph_store.add_node(scan_result["project_node"])
+        self._process_new_node(scan_result["project_node"])
+
+        for node in scan_result["file_nodes"]:
+            self.graph_store.add_node(node)
+        for node in scan_result["pattern_nodes"]:
+            self.graph_store.add_node(node)
+            self._process_new_node(node)
+        for node in scan_result["decision_nodes"]:
+            self.graph_store.add_node(node)
+            self._process_new_node(node)
+        for edge in scan_result["edges"]:
+            self.graph_store.add_edge(edge)
+
+        self.logger.info(
+            "Project registered: %s — %d nodes, %d edges",
+            project_path,
+            (
+                1
+                + len(scan_result["file_nodes"])
+                + len(scan_result["pattern_nodes"])
+                + len(scan_result["decision_nodes"])
+            ),
+            len(scan_result["edges"]),
+        )
+        return pid
+
+    def rescan_project(self, project_path: str) -> str:
+        """Delete existing project graph and rebuild from scratch.
+
+        Args:
+            project_path: Project root directory.
+
+        Returns:
+            project_id
+        """
+        from orchestrator.context.ops.project_scanner import generate_project_id
+
+        pid = generate_project_id(project_path)
+        self.delete_project_graph(pid)
+        return self.register_project(project_path)
+
+    def delete_project_graph(self, project_id: str) -> int:
+        """Remove all nodes (and cascading edges) for a project.
+
+        Args:
+            project_id: The project identifier.
+
+        Returns:
+            Number of nodes deleted.
+        """
+        deleted = self.graph_store.delete_nodes_by_project(project_id)
+        self.logger.info("Deleted %d nodes for project %s", deleted, project_id)
+        return deleted
+
+    def get_project_context(
+        self,
+        project_id: str,
+        task: str = "",
+        limit: int = 20,
+    ) -> dict[str, Any]:
+        """Get context scoped to a specific project.
+
+        Searches for relevant nodes within the project, returning
+        categorised results suitable for agent prompts.
+
+        Args:
+            project_id: The project identifier.
+            task: Optional task description to focus the search.
+            limit: Maximum results per category.
+
+        Returns:
+            Categorised context dictionary.
+        """
+        context: dict[str, Any] = {
+            "project": None,
+            "patterns": [],
+            "decisions": [],
+            "tasks": [],
+            "mistakes": [],
+            "files": [],
+        }
+
+        project_nodes = self.graph_store.query_nodes(
+            node_type=NodeType.PROJECT, project_id=project_id, limit=1
+        )
+        if project_nodes:
+            context["project"] = project_nodes[0].to_dict()
+
+        if task:
+            results = self.search(task, limit=limit)
+            for r in results:
+                if r.node.project_id and r.node.project_id != project_id:
+                    continue
+                entry = r.to_dict()
+                nt = r.node.node_type
+                if nt == NodeType.PATTERN:
+                    context["patterns"].append(entry)
+                elif nt == NodeType.DECISION:
+                    context["decisions"].append(entry)
+                elif nt == NodeType.TASK:
+                    context["tasks"].append(entry)
+                elif nt == NodeType.MISTAKE:
+                    context["mistakes"].append(entry)
+                elif nt == NodeType.FILE:
+                    context["files"].append(entry)
+        else:
+            for nt_key, nt_val in [
+                ("patterns", NodeType.PATTERN),
+                ("decisions", NodeType.DECISION),
+                ("files", NodeType.FILE),
+            ]:
+                nodes = self.graph_store.query_nodes(
+                    node_type=nt_val, project_id=project_id, limit=limit
+                )
+                context[nt_key] = [n.to_dict() for n in nodes]
+
+        return context
+
+    def store_task(
+        self,
+        task_description: str,
+        outcome: str,
+        success: bool,
+        duration_ms: int = 0,
+        workflow_used: str | None = None,
+        agents_involved: list[str] | None = None,
+        files_modified: list[str] | None = None,
+        tags: list[str] | None = None,
+        metadata: dict[str, Any] | None = None,
+        project_id: str = "",
+    ) -> str:
+        """Store a completed task.
+
+        Args:
+            task_description: Description of the task
+            outcome: Task outcome/result
+            success: Whether task succeeded
+            duration_ms: Task duration in milliseconds
+            workflow_used: Workflow name used
+            agents_involved: List of agents that participated
+            files_modified: List of files modified
+            tags: Optional tags
+            metadata: Additional metadata
+            project_id: Optional project scope
+
+        Returns:
+            Node ID
+        """
+        status = "success" if success else "failed"
+
+        node = TaskNode(
+            title=f"Task: {task_description[:100]}",
+            content=outcome,
+            task_description=task_description,
+            outcome=outcome,
+            success=success,
+            duration_ms=duration_ms,
+            workflow_used=workflow_used or "",
+            agents_involved=agents_involved or [],
+            files_modified=files_modified or [],
+            tags=tags or ["task", status],
+            metadata=metadata or {},
+            importance_score=1.5 if success else 2.0,
+            project_id=project_id,
+        )
+
+        self.graph_store.add_node(node)
+        self._process_new_node(node)
+
+        for callback in self._callbacks.get("on_task_completed", []):
+            try:
+                callback(node)
+            except Exception as e:
+                self.logger.warning("Callback failed: %s", e)
+
+        return node.id
 
     def close(self) -> None:
         """Close the memory manager."""

@@ -26,7 +26,8 @@ class AgenticTeamMCPClient:
     """
 
     def __init__(self, server_url: str | None = None):
-        """
+        """Initialize the agentic team MCP client.
+
         Args:
             server_url: HTTP URL of the MCP server (e.g. http://localhost:8000/mcp).
                         If None, connects in-memory to the local server instance.

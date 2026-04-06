@@ -139,7 +139,7 @@ class CircuitBreaker:
                 wait_remaining = self.recovery_timeout - (
                     time.time() - (self.last_failure_time or 0)
                 )
-                raise Exception(
+                raise Exception(  # noqa: TRY002  # pylint: disable=broad-exception-raised
                     f"Circuit breaker is OPEN after {self.failure_count} failures. "
                     f"Retry in {max(0, wait_remaining):.1f}s "
                     f"(recovery timeout: {self.recovery_timeout}s)"
@@ -175,7 +175,7 @@ class CircuitBreaker:
         if self.failure_count >= self.failure_threshold:
             self.state = CircuitState.OPEN
             logger.error(
-                "Circuit breaker OPEN: %d/%d failures reached threshold. " "Recovery in %ss.",
+                "Circuit breaker OPEN: %d/%d failures reached threshold. Recovery in %ss.",
                 self.failure_count,
                 self.failure_threshold,
                 self.recovery_timeout,

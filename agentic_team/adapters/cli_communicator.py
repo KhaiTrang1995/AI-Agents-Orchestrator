@@ -55,12 +55,11 @@ class CLICommunicator:
 
         if method == "stdin":
             return self._execute_stdin(prompt, timeout, working_dir)
-        elif method == "file":
+        if method == "file":
             return self._execute_file_based(prompt, timeout, working_dir)
-        elif method == "arg":
+        if method == "arg":
             return self._execute_argument(prompt, timeout, working_dir)
-        else:
-            return self._execute_heredoc(prompt, timeout, working_dir)
+        return self._execute_heredoc(prompt, timeout, working_dir)
 
     def _execute_stdin(
         self, prompt: str, timeout: int, working_dir: Optional[str]
@@ -70,7 +69,8 @@ class CLICommunicator:
             return self._run_script_command(prompt, timeout, working_dir)
         except Exception as script_error:
             self.logger.debug(
-                f"Script method failed, falling back to argument method: {script_error}"
+                "Script method failed, falling back to argument method: %s",
+                script_error,
             )
             return self._execute_argument(prompt, timeout, working_dir)
 
@@ -90,7 +90,7 @@ class CLICommunicator:
                 f"cat {shlex.quote(input_file_path)} | "
                 f"script -q {shlex.quote(temp_file_path)} {self.command}"
             )
-            process = subprocess.Popen(
+            process = subprocess.Popen(  # pylint: disable=consider-using-with
                 ["bash", "-c", script_cmd],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -99,7 +99,7 @@ class CLICommunicator:
             )
             stdout, stderr = process.communicate(timeout=timeout)
 
-            with open(temp_file_path) as f:
+            with open(temp_file_path, encoding="utf-8") as f:
                 output_content = f.read()
 
             return process.returncode == 0, output_content or stdout, stderr
@@ -125,11 +125,11 @@ class CLICommunicator:
             # Write prompt to input file
             input_file.write_text(prompt)
 
-            self.logger.debug(f"Executing {self.command} with file I/O")
+            self.logger.debug("Executing %s with file I/O", self.command)
 
             # Execute command
             # Common patterns: cli --input input.txt --output output.txt
-            process = subprocess.Popen(
+            process = subprocess.Popen(  # pylint: disable=consider-using-with
                 [*self.command_parts, "--input", str(input_file), "--output", str(output_file)],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -154,7 +154,7 @@ class CLICommunicator:
             return False, "", f"Timeout after {timeout}s"
 
         except Exception as e:
-            self.logger.error(f"File-based execution failed: {e}")
+            self.logger.error("File-based execution failed: %s", e)
             return False, "", str(e)
 
         finally:
@@ -169,7 +169,7 @@ class CLICommunicator:
     ) -> Tuple[bool, str, str]:
         """Execute by passing prompt as command-line argument with live output streaming."""
         try:
-            self.logger.debug(f"Executing {self.command} with argument")
+            self.logger.debug("Executing %s with argument", self.command)
 
             env = os.environ.copy()
             if self.command_name in ["gemini", "gemini-cli"]:
@@ -177,7 +177,7 @@ class CLICommunicator:
 
             cmd = self._build_command_for_tool(prompt)
 
-            process = subprocess.Popen(
+            process = subprocess.Popen(  # pylint: disable=consider-using-with
                 cmd,
                 stdin=subprocess.DEVNULL,
                 stdout=subprocess.PIPE,
@@ -228,16 +228,16 @@ class CLICommunicator:
             success = process.returncode == 0
 
             if not success:
-                self.logger.error(f"Command failed with stderr: {stderr[:500]}")
+                self.logger.error("Command failed with stderr: %s", stderr[:500])
 
             return success, "".join(stdout_lines), stderr
         except subprocess.TimeoutExpired:
-            self.logger.error(f"Command timed out after {timeout}s")
+            self.logger.error("Command timed out after %ss", timeout)
             process.kill()
             process.wait(timeout=5)
             return False, "", f"Timeout after {timeout}s"
         except Exception as e:
-            self.logger.error(f"Execution failed: {e}")
+            self.logger.error("Execution failed: %s", e)
             return False, "", str(e)
 
     def _build_command_for_tool(self, prompt: str) -> List[str]:
@@ -282,7 +282,7 @@ class CLICommunicator:
 EOF
 """
 
-            process = subprocess.Popen(
+            process = subprocess.Popen(  # pylint: disable=consider-using-with
                 ["bash", "-c", script],
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE,
@@ -388,14 +388,16 @@ EOF
         for attempt in range(max_retries):
             if attempt > 0:
                 sleep_time = backoff * (2 ** (attempt - 1))
-                self.logger.info(f"Retry attempt {attempt + 1}/{max_retries} after {sleep_time}s")
+                self.logger.info(
+                    "Retry attempt %s/%s after %ss", attempt + 1, max_retries, sleep_time
+                )
                 time.sleep(sleep_time)
 
             # Try current method
             current_method = fallback_methods[min(attempt, len(fallback_methods) - 1)]
             kwargs["method"] = current_method
 
-            self.logger.debug(f"Trying method: {current_method}")
+            self.logger.debug("Trying method: %s", current_method)
             success, stdout, stderr = self.execute_with_prompt(prompt, **kwargs)
 
             if success:
@@ -403,7 +405,7 @@ EOF
 
             # Check if error is due to Node.js compatibility
             if "File is not defined" in stderr or "ReferenceError" in stderr:
-                self.logger.warning(f"Node.js compatibility issue detected with {self.command}")
+                self.logger.warning("Node.js compatibility issue detected with %s", self.command)
                 # Try to provide helpful error message
                 if attempt == max_retries - 1:
                     last_error = (

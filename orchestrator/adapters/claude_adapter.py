@@ -67,7 +67,8 @@ class ClaudeAdapter(BaseAdapter):
                 parts.append(context["implementation"])
 
             parts.append(
-                "\n\nPlease implement the suggested improvements while maintaining code functionality."
+                "\n\nPlease implement the suggested improvements"
+                " while maintaining code functionality."
             )
             parts.append("Focus on SOLID principles, clean code, and best practices.")
 

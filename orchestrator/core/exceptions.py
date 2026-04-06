@@ -24,7 +24,7 @@ def _make_serializable(obj: Any) -> Any:
 class OrchestratorError(Exception):
     """Base exception for all orchestrator errors."""
 
-    def __init__(
+    def __init__(  # noqa: B042
         self,
         message: str,
         error_code: Optional[str] = None,
@@ -49,7 +49,9 @@ class OrchestratorError(Exception):
 class ConfigurationError(OrchestratorError):
     """Raised when configuration is invalid or missing."""
 
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(  # noqa: B042
+        self, message: str, details: Optional[Dict[str, Any]] = None
+    ) -> None:
         """Initialize configuration error."""
         super().__init__(message, error_code="CONFIG_ERROR", details=details)
 
@@ -57,7 +59,9 @@ class ConfigurationError(OrchestratorError):
 class AgentNotFoundError(OrchestratorError):
     """Raised when a requested agent is not available."""
 
-    def __init__(self, agent_name: str, details: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(  # noqa: B042
+        self, agent_name: str, details: Optional[Dict[str, Any]] = None
+    ) -> None:
         """Initialize agent not found error."""
         message = f"Agent '{agent_name}' is not available"
         super().__init__(
@@ -70,7 +74,7 @@ class AgentNotFoundError(OrchestratorError):
 class AgentExecutionError(OrchestratorError):
     """Raised when agent execution fails."""
 
-    def __init__(
+    def __init__(  # noqa: B042
         self, agent_name: str, message: str, details: Optional[Dict[str, Any]] = None
     ) -> None:
         """Initialize agent execution error."""
@@ -85,7 +89,7 @@ class AgentExecutionError(OrchestratorError):
 class AgentTimeoutError(OrchestratorError):
     """Raised when agent execution times out."""
 
-    def __init__(
+    def __init__(  # noqa: B042
         self, agent_name: str, timeout: float, details: Optional[Dict[str, Any]] = None
     ) -> None:
         """Initialize agent timeout error."""
@@ -100,7 +104,7 @@ class AgentTimeoutError(OrchestratorError):
 class WorkflowError(OrchestratorError):
     """Raised when workflow execution fails."""
 
-    def __init__(
+    def __init__(  # noqa: B042
         self, workflow_name: str, message: str, details: Optional[Dict[str, Any]] = None
     ) -> None:
         """Initialize workflow error."""
@@ -115,7 +119,7 @@ class WorkflowError(OrchestratorError):
 class ValidationError(OrchestratorError):
     """Raised when input validation fails."""
 
-    def __init__(self, message: str, field: Optional[str] = None) -> None:
+    def __init__(self, message: str, field: Optional[str] = None) -> None:  # noqa: B042
         """Initialize validation error."""
         details = {"field": field} if field else {}
         super().__init__(message, error_code="VALIDATION_ERROR", details=details)
@@ -124,7 +128,9 @@ class ValidationError(OrchestratorError):
 class RateLimitError(OrchestratorError):
     """Raised when rate limit is exceeded."""
 
-    def __init__(self, limit: int, window: int, details: Optional[Dict[str, Any]] = None) -> None:
+    def __init__(  # noqa: B042
+        self, limit: int, window: int, details: Optional[Dict[str, Any]] = None
+    ) -> None:
         """Initialize rate limit error."""
         message = f"Rate limit exceeded: {limit} requests per {window} seconds"
         super().__init__(
@@ -137,7 +143,7 @@ class RateLimitError(OrchestratorError):
 class ResourceError(OrchestratorError):
     """Raised when resource operations fail."""
 
-    def __init__(
+    def __init__(  # noqa: B042
         self, resource_type: str, message: str, details: Optional[Dict[str, Any]] = None
     ) -> None:
         """Initialize resource error."""

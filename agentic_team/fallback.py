@@ -78,7 +78,7 @@ class FallbackManager:
         )
         return any(token in message for token in indicators)
 
-    def execute_with_fallback(
+    def execute_with_fallback(  # pylint: disable=too-many-return-statements
         self,
         *,
         primary_agent: str,

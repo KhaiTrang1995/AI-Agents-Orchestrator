@@ -79,7 +79,10 @@ class ContextExporter:
             json.dump(export_data, f, indent=2, default=str)
 
         self.logger.info(
-            f"Exported {len(nodes_data)} nodes and {len(edges_data)} edges to {output_path}"
+            "Exported %s nodes and %s edges to %s",
+            len(nodes_data),
+            len(edges_data),
+            output_path,
         )
 
         return {
@@ -124,9 +127,9 @@ class ContextExporter:
 
         for edge_data in data.get("edges", []):
             edge = Edge.from_dict(edge_data)
-            existing = self.graph_store.get_edge(edge.id)
+            existing_edge = self.graph_store.get_edge(edge.id)
 
-            if existing and merge:
+            if existing_edge and merge:
                 edges_skipped += 1
                 continue
 
@@ -134,11 +137,14 @@ class ContextExporter:
                 self.graph_store.add_edge(edge)
                 edges_imported += 1
             except Exception as e:
-                self.logger.warning(f"Failed to import edge {edge.id}: {e}")
+                self.logger.warning("Failed to import edge %s: %s", edge.id, e)
                 edges_skipped += 1
 
         self.logger.info(
-            f"Imported {nodes_imported} nodes and {edges_imported} edges from {input_path}"
+            "Imported %s nodes and %s edges from %s",
+            nodes_imported,
+            edges_imported,
+            input_path,
         )
 
         return {
@@ -237,7 +243,10 @@ class ContextExporter:
         tree.write(output_path, encoding="unicode", xml_declaration=True)
 
         self.logger.info(
-            f"Exported {node_count} nodes and {edge_count} edges to GraphML at {output_path}"
+            "Exported %s nodes and %s edges to GraphML at %s",
+            node_count,
+            edge_count,
+            output_path,
         )
 
         return {

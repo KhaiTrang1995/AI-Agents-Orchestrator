@@ -348,7 +348,7 @@ class BM25Index:
 
         self._update_stats()
 
-        self.logger.info(f"BM25 index built: {indexed} indexed, {skipped} skipped")
+        self.logger.info("BM25 index built: %s indexed, %s skipped", indexed, skipped)
 
         return {
             "indexed": indexed,

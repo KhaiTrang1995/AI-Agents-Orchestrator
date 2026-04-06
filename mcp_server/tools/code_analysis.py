@@ -2,10 +2,13 @@
 
 import ast
 import json
+import logging
 import re
 from typing import Any, Dict, List
 
 from mcp.server.fastmcp import Context
+
+logger = logging.getLogger(__name__)
 
 
 async def analyze_python_complexity(ctx: Context, file_path: str) -> Dict[str, Any]:
@@ -20,7 +23,7 @@ async def analyze_python_complexity(ctx: Context, file_path: str) -> Dict[str, A
         function count, and class count.
     """
     try:
-        with open(file_path) as f:
+        with open(file_path, encoding="utf-8") as f:
             source = f.read()
 
         tree = ast.parse(source)
@@ -141,7 +144,7 @@ async def find_code_patterns(
 
     for file_path in py_files:
         try:
-            with open(file_path) as f:
+            with open(file_path, encoding="utf-8") as f:
                 content = f.read()
                 lines = content.splitlines()
 
@@ -160,7 +163,7 @@ async def find_code_patterns(
                             )
         except Exception as e:  # noqa: B112
             # Skip files that cannot be parsed, log and continue
-            print(f"Warning: Could not parse {file_path}: {e}")
+            logger.warning("Could not parse %s: %s", file_path, e)
             continue
 
     # Summary by category
@@ -187,7 +190,7 @@ async def analyze_dependencies(
     issues: List[Dict[str, str]] = []
 
     try:
-        with open(requirements_file) as f:
+        with open(requirements_file, encoding="utf-8") as f:
             lines = f.readlines()
 
         for line in lines:
@@ -254,7 +257,7 @@ async def generate_code_summary(ctx: Context, file_path: str) -> Dict[str, Any]:
         Summary including structure, exports, and documentation status.
     """
     try:
-        with open(file_path) as f:
+        with open(file_path, encoding="utf-8") as f:
             source = f.read()
 
         tree = ast.parse(source)

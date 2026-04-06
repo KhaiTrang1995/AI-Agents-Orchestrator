@@ -3,8 +3,14 @@
 from __future__ import annotations
 
 import json
+import sys
 from datetime import datetime, timezone
-from typing import Annotated, Any
+from typing import Any
+
+if sys.version_info >= (3, 9):
+    from typing import Annotated
+else:
+    from typing_extensions import Annotated
 
 from fastmcp import Context
 from fastmcp.exceptions import ToolError

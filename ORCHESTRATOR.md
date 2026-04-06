@@ -97,6 +97,7 @@ sequenceDiagram
 | `resilience/` | Fault tolerance | `FallbackManager`, `CircuitBreaker`, `CircuitState`, `OfflineDetector`, `RateLimiter` |
 | `observability/` | Monitoring and logging | `MetricsCollector`, `HealthChecker`, `configure_logging`, `get_logger` |
 | `security_module/` | Input validation and security | `InputValidator`, `TokenBucketRateLimiter`, `SecretManager`, `AuditLogger` |
+| `context/` | Graph-based context memory | `MemoryManager`, `GraphStore`, `ProjectScanner`, `BM25Index`, `HybridSearch` |
 | `infra/` | Caching and config | `InMemoryCache`, `FileCache`, `AsyncExecutor`, `ConfigManager` |
 | `cli/` | Interactive shell | `InteractiveShell`, `ConversationHistory` |
 | `config/` | YAML configuration | `agents.yaml` |
@@ -119,6 +120,7 @@ graph TD
 
     RESILIENCE --> ADAPTERS
     CORE --> SECURITY[security_module/]
+    CORE --> CONTEXT[context/]
 
     CONFIG[config/] -.->|read by| CORE
     CONFIG -.->|read by| ADAPTERS
@@ -302,6 +304,51 @@ Inside the shell, you can submit tasks conversationally. The shell maintains con
 ./ai-orchestrator test-agent local-code "Explain quicksort"
 ```
 
+## Context System
+
+The orchestrator maintains a graph-based context database at `~/.ai-orchestrator/context.db` for persistent memory and cross-session learning.
+
+### Features
+
+| Feature | Description |
+|---------|-------------|
+| **Hybrid Search** | BM25 keyword + semantic embedding + Reciprocal Rank Fusion |
+| **10 Node Types** | Conversation, Task, Mistake, Pattern, Decision, CodeSnippet, Preference, File, Concept, Project |
+| **12 Edge Types** | RELATED_TO, CAUSED_BY, FIXED_BY, SIMILAR_TO, DEPENDS_ON, and more |
+| **Project Scanning** | Automatic codebase analysis detecting languages, frameworks, and structure |
+| **Multi-Project** | Isolated per-project graphs with deterministic SHA-256 project IDs |
+| **Atomic Operations** | UPSERT nodes (edge-preserving), single-transaction bulk delete |
+
+### Project-Scoped Operation
+
+Configure via `PROJECT_PATH` environment variable or `settings.project_path` in `orchestrator/config/agents.yaml`. On startup, the engine:
+
+1. Resolves the project path from env var or config
+2. Generates a deterministic `project_id` (SHA-256 prefix)
+3. Scans the directory with `ProjectScanner` if not already registered
+4. Tags all subsequent task outputs with the `project_id`
+5. Includes project context in agent prompts via `get_relevant_context()`
+
+### Key APIs
+
+```python
+from orchestrator.context import MemoryManager
+
+manager = MemoryManager()
+
+# Register and scan a project
+pid = manager.register_project("/path/to/project")
+
+# Store task results scoped to the project
+manager.store_task("Implement auth", "JWT auth added", success=True, project_id=pid)
+
+# Get project-scoped context
+context = manager.get_project_context(pid, task="Add user roles")
+
+# Search with hybrid BM25 + semantic
+results = manager.search("authentication patterns", limit=10)
+```
+
 ## MCP Integration (Optional)
 
 The orchestrator is optionally accessible via MCP (Model Context Protocol) through the shared MCP server at `mcp_server/`. The MCP server is not required to use the orchestrator; it provides an additional integration surface for LLM clients that support the MCP protocol.
@@ -440,6 +487,17 @@ client = OrchestratorMCPClient()
 
 result = await client.execute_task("Build a REST API", workflow="default")
 ```
+
+## Code Quality
+
+| Metric | Value |
+|--------|-------|
+| **Pylint Score** | 10.00/10 (zero warnings) |
+| **Tests** | 386 passing (pytest) |
+| **Pre-commit Hooks** | 15 hooks passing (Black, isort, flake8, pylint, MyPy, etc.) |
+| **Formatting** | Black (120-char line length) |
+| **Logging** | Lazy `%s` formatting throughout; no stray `print()` in production code |
+| **I/O** | Explicit UTF-8 encoding on all file operations |
 
 ## Configuration
 

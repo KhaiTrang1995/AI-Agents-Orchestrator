@@ -21,7 +21,7 @@ async def generate_test_cases(
         Suggested test cases with code templates.
     """
     try:
-        with open(file_path) as f:
+        with open(file_path, encoding="utf-8") as f:
             source = f.read()
 
         tree = ast.parse(source)
@@ -206,7 +206,7 @@ async def generate_mock_stubs(ctx: Context, file_path: str) -> Dict[str, Any]:
         Mock stubs for external dependencies.
     """
     try:
-        with open(file_path) as f:
+        with open(file_path, encoding="utf-8") as f:
             source = f.read()
 
         tree = ast.parse(source)
@@ -268,7 +268,7 @@ async def analyze_test_coverage(ctx: Context, coverage_file: str) -> Dict[str, A
     """
     try:
         if coverage_file.endswith(".json"):
-            with open(coverage_file) as f:
+            with open(coverage_file, encoding="utf-8") as f:
                 data = json.load(f)
 
             files_coverage: List[Dict[str, Any]] = []
@@ -357,7 +357,7 @@ async def parse_test_results(
     """
     try:
         if format == "json" or results_file.endswith(".json"):
-            with open(results_file) as f:
+            with open(results_file, encoding="utf-8") as f:
                 data = json.load(f)
             return {
                 "format": "json",

@@ -68,7 +68,8 @@ class ContextVersioning:
 
             cursor.execute(
                 """
-                INSERT INTO node_versions (id, node_id, version, content, metadata, changed_at, change_type)
+                INSERT INTO node_versions
+                    (id, node_id, version, content, metadata, changed_at, change_type)
                 VALUES (?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
@@ -82,7 +83,7 @@ class ContextVersioning:
                 ),
             )
 
-        self.logger.debug(f"Recorded version {new_version} for node {node_id} ({change_type})")
+        self.logger.debug("Recorded version %s for node %s (%s)", new_version, node_id, change_type)
         return new_version
 
     def get_versions(self, node_id: str) -> list[dict[str, Any]]:
@@ -163,12 +164,12 @@ class ContextVersioning:
         """
         ver = self.get_version(node_id, version)
         if ver is None:
-            self.logger.warning(f"Version {version} not found for node {node_id}")
+            self.logger.warning("Version %s not found for node %s", version, node_id)
             return False
 
         node = self.graph_store.get_node(node_id)
         if node is None:
-            self.logger.warning(f"Node {node_id} not found for rollback")
+            self.logger.warning("Node %s not found for rollback", node_id)
             return False
 
         # Record current state before rollback
@@ -181,7 +182,7 @@ class ContextVersioning:
         # Record the rollback itself
         self.record_version(node_id, change_type=f"rollback_to_v{version}")
 
-        self.logger.info(f"Rolled back node {node_id} to version {version}")
+        self.logger.info("Rolled back node %s to version %s", node_id, version)
         return True
 
     def get_change_log(self, limit: int = 50) -> list[dict[str, Any]]:
