@@ -288,6 +288,15 @@ function initCodeCopyButtons() {
     const wrapper = document.createElement("div");
     wrapper.className = "code-block-wrapper";
 
+    // macOS window title bar with traffic lights
+    const bar = document.createElement("div");
+    bar.className = "code-window-bar";
+    bar.innerHTML =
+      '<span class="code-window-dot code-window-dot--close"></span>' +
+      '<span class="code-window-dot code-window-dot--minimize"></span>' +
+      '<span class="code-window-dot code-window-dot--maximize"></span>' +
+      '<span class="code-window-title">' + detectLanguage(block.textContent) + '</span>';
+
     const button = document.createElement("button");
     button.type = "button";
     button.className = "copy-code-btn";
@@ -324,9 +333,23 @@ function initCodeCopyButtons() {
     });
 
     pre.parentNode.insertBefore(wrapper, pre);
+    wrapper.appendChild(bar);
     wrapper.appendChild(pre);
     wrapper.appendChild(button);
   });
+}
+
+function detectLanguage(text) {
+  const trimmed = text.trim();
+  if (trimmed.startsWith("$") || trimmed.startsWith("#") || trimmed.startsWith("./"))
+    return "Terminal";
+  if (trimmed.startsWith("git ")) return "Terminal";
+  if (trimmed.startsWith("pip ") || trimmed.startsWith("ollama ")) return "Terminal";
+  if (/^(agents|workflows):/.test(trimmed)) return "agents.yaml";
+  if (/^(orchestrator|Welcome to AI)/.test(trimmed)) return "Terminal";
+  if (/import |from |def |class /.test(trimmed)) return "Python";
+  if (/function |const |let |var |=>/.test(trimmed)) return "JavaScript";
+  return "Code";
 }
 
 // ===========================
