@@ -69,7 +69,13 @@
 
 ## Overview
 
-AI Coding Tools ships **five independent systems** in a single repository. The **Orchestrator** runs step-based workflows where AI agents execute tasks in sequence (implement, review, refine). The **Agentic Team** runs a free-communication runtime where role-based agents (Project Manager, Architect, Developer, QA, DevOps) discuss a task in turns until the team lead declares the work complete. **Graphify** turns any project directory into a queryable knowledge graph — classes, functions, imports, call graphs, and design rationale stored in a local SQLite database with FTS5 search. The **MCP Server** bridges both engines to IDE-based AI assistants. The **Context Dashboard** visualizes the graph memory. Each system carries its own adapters, configuration, UI, and CLI — they share zero code and zero imports.
+AI Coding Tools ships **five independent systems** in a single repository:
+
+1. The **Orchestrator** runs step-based workflows where AI agents execute tasks in sequence (implement, review, refine).
+2. The **Agentic Team** runs a free-communication runtime where role-based agents (Project Manager, Architect, Developer, QA, DevOps) discuss a task in turns until the team lead declares the work complete.
+3. **Graphify** turns any project directory into a queryable knowledge graph — classes, functions, imports, call graphs, and design rationale stored in a local SQLite database with FTS5 search.
+4. The **MCP Server** bridges both engines to IDE-based AI assistants.
+5. The **Context Dashboard** visualizes the graph memory. Each system carries its own adapters, configuration, UI, and CLI — they share zero code and zero imports.
 
 Beyond the core engines, we provide a complete **Agentic Infrastructure** that empowers AI agents:
 

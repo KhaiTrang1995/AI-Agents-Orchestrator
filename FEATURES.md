@@ -15,6 +15,7 @@
 - [Security Features](#security-features)
 - [Monitoring & Metrics](#monitoring--metrics)
 - [Project-Scoped Context Graphs](#project-scoped-context-graphs)
+- [Graphify — Code Knowledge Graph Engine](#graphify--code-knowledge-graph-engine)
 - [Advanced Features](#advanced-features)
 - [Production Readiness](#production-readiness)
 
@@ -1165,7 +1166,7 @@ A dedicated skill (`.claude/skills/context-graph-builder/SKILL.md`) guides agent
 
 The seed script (`scripts/seed_context_graphs.py`) populates both context databases with generic reference knowledge only — patterns, common mistakes, and architectural decisions that are universally applicable regardless of the user's project. No fake tasks or conversations are seeded, preventing agent hallucination about non-existent prior work.
 
-### Graphify — Code Knowledge Graph Engine
+## Graphify — Code Knowledge Graph Engine
 
 The `graphify/` system turns any project directory into a deep, queryable knowledge graph:
 
@@ -1194,6 +1195,8 @@ graph LR
     GRAPH --> VIZ[Interactive HTML]
     GRAPH --> EXPORT[JSON / DOT / GraphML]
 ```
+
+With `graphify`, agents can query deep structural information about the user's codebase, enabling informed decision-making, pattern recognition, and context-aware modifications.
 
 ## Advanced Features
 

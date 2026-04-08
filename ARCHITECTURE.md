@@ -17,6 +17,7 @@
 - [Graph Context System](#graph-context-system)
   - [Project-Scoped Graphs](#project-scoped-graphs)
   - [Project Scanner](#project-scanner)
+  - [Graphify — Code Knowledge Graph Engine](#graphify--code-knowledge-graph-engine)
 - [Agentic Infrastructure](#agentic-infrastructure)
 - [Performance Considerations](#performance-considerations)
 - [Scalability](#scalability)
