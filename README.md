@@ -69,7 +69,7 @@
 
 ## Overview
 
-AI Coding Tools ships two completely independent systems in a single repository. The **Orchestrator** runs step-based workflows where AI agents execute tasks in sequence (implement, review, refine). The **Agentic Team** runs a free-communication runtime where role-based agents (Project Manager, Architect, Developer, QA, DevOps) discuss a task in turns until the team lead declares the work complete. Each system carries its own adapters, configuration, UI, and CLI -- they share zero code and zero imports.
+AI Coding Tools ships **five independent systems** in a single repository. The **Orchestrator** runs step-based workflows where AI agents execute tasks in sequence (implement, review, refine). The **Agentic Team** runs a free-communication runtime where role-based agents (Project Manager, Architect, Developer, QA, DevOps) discuss a task in turns until the team lead declares the work complete. **Graphify** turns any project directory into a queryable knowledge graph — classes, functions, imports, call graphs, and design rationale stored in a local SQLite database with FTS5 search. The **MCP Server** bridges both engines to IDE-based AI assistants. The **Context Dashboard** visualizes the graph memory. Each system carries its own adapters, configuration, UI, and CLI — they share zero code and zero imports.
 
 Beyond the core engines, we provide a complete **Agentic Infrastructure** that empowers AI agents:
 
@@ -600,6 +600,19 @@ The two systems serve different collaboration models. Choose based on your use c
 | **Web UI** | Dedicated Nuxt 3 + Flask UI with Config Studio, real-time turn streaming, team communication view |
 | **Fallback** | Independent fallback manager and offline detector |
 | **Configuration** | Separate `agents.yaml` with `agentic_team.roles` section for role-to-agent mapping |
+
+### Graphify (`graphify/`)
+
+| Category | Features |
+|---|---|
+| **Analysis** | Python AST (classes, functions, imports, calls, decorators, docstrings), JS/TS, Go, Rust, Java, C++, Markdown, YAML/JSON/TOML |
+| **Graph** | SQLite + FTS5, WAL mode, schema migrations (v1→v2→v3), thread-local connections, context manager |
+| **Search** | Full-text search, node explanation, path finding (BFS), community detection, god node analysis, complexity hotspots |
+| **Cache** | SHA-256 content-addressable cache, incremental scans (only changed files) |
+| **Export** | JSON, DOT (Graphviz), Markdown, GraphML, interactive HTML (vis.js) |
+| **API** | Flask REST API with CORS, structured error handling, metrics/snapshot/diff endpoints |
+| **Operations** | File watching (watchdog + polling), graph snapshots & diffing, scan metrics collection |
+| **Security** | Path traversal protection, input sanitization, bounded parameters, no debug mode |
 
 ## Quick Start
 

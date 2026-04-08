@@ -1165,6 +1165,36 @@ A dedicated skill (`.claude/skills/context-graph-builder/SKILL.md`) guides agent
 
 The seed script (`scripts/seed_context_graphs.py`) populates both context databases with generic reference knowledge only — patterns, common mistakes, and architectural decisions that are universally applicable regardless of the user's project. No fake tasks or conversations are seeded, preventing agent hallucination about non-existent prior work.
 
+### Graphify — Code Knowledge Graph Engine
+
+The `graphify/` system turns any project directory into a deep, queryable knowledge graph:
+
+| Feature | Description |
+|---------|-------------|
+| **6 Language Analyzers** | Python (AST), JS/TS, Markdown, YAML/JSON/TOML, Go/Rust/Java/C++ |
+| **16 Node Types** | FILE, CLASS, FUNCTION, METHOD, IMPORT, VARIABLE, MODULE, PACKAGE, TEST, DECORATOR, etc. |
+| **14 Edge Types** | CONTAINS, IMPORTS, CALLS, INHERITS, IMPLEMENTS, DEPENDS_ON, TESTS, etc. |
+| **FTS5 Search** | Fast full-text search across all node metadata |
+| **Intelligence** | God node analysis, community detection, BFS path finding, complexity hotspots |
+| **SHA-256 Cache** | Content-addressable cache for incremental scans |
+| **File Watching** | watchdog + polling fallback with debounced change aggregation |
+| **Snapshots & Diffs** | Track graph evolution over time |
+| **Scan Metrics** | Duration, cache rates, per-analyzer timing, historical trends |
+| **REST API** | 25+ endpoints with CORS, structured errors, metrics/diff support |
+| **Export** | JSON, DOT (Graphviz), Markdown, GraphML, interactive HTML (vis.js) |
+| **Schema Migrations** | v1 → v2 (confidence) → v3 (metrics/snapshots), decorator-based registry |
+| **Security** | Path traversal protection, input sanitization, bounded parameters |
+
+```mermaid
+graph LR
+    PROJECT[Your Project] --> GRAPHIFY[Graphify Scanner]
+    GRAPHIFY --> GRAPH[(SQLite + FTS5)]
+    GRAPH --> CLI[CLI: 10 commands]
+    GRAPH --> API[REST API: 25+ endpoints]
+    GRAPH --> VIZ[Interactive HTML]
+    GRAPH --> EXPORT[JSON / DOT / GraphML]
+```
+
 ## Advanced Features
 
 ### Caching System

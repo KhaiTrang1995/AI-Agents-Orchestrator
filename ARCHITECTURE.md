@@ -1284,6 +1284,41 @@ flowchart TD
 - Safety limit of 5,000 files per scan to prevent runaway on monorepos
 - Produces `ProjectNode`, `FileNode`, `PatternNode`, and `DecisionNode` objects with relationship edges
 
+### Graphify — Code Knowledge Graph Engine
+
+`graphify/` is a standalone system (zero imports from orchestrator or agentic_team) that builds deep, queryable knowledge graphs from any project directory using AST parsing and pattern analysis.
+
+```mermaid
+graph TB
+    subgraph "Graphify Pipeline"
+        DIR[Project Directory] --> SCAN[Scanner]
+        SCAN --> CACHE[SHA-256 Cache]
+        SCAN --> PY[Python AST Analyzer]
+        SCAN --> JS[JavaScript Analyzer]
+        SCAN --> DOC[Doc Analyzer]
+        SCAN --> CFG[Config Analyzer]
+        SCAN --> GEN[Generic Analyzer<br/>Go/Rust/Java/C++]
+
+        PY & JS & DOC & CFG & GEN --> STORE[GraphStore<br/>SQLite + FTS5]
+        STORE --> SEARCH[FTS Search + Query Engine]
+        STORE --> API[REST API]
+        STORE --> EXPORT[JSON / DOT / GraphML / HTML]
+        STORE --> METRICS[Scan Metrics]
+        STORE --> SNAP[Snapshots & Diffs]
+    end
+```
+
+**Key capabilities:**
+- **6 analyzers**: Python (AST-based), JavaScript/TypeScript, Markdown/RST, YAML/JSON/TOML, Go/Rust/Java/C++ (regex)
+- **16 node types**: FILE, CLASS, FUNCTION, METHOD, IMPORT, VARIABLE, MODULE, PACKAGE, TEST, DECORATOR, INTERFACE, CONFIG_KEY, DOCUMENT, SECTION, RATIONALE, PROJECT
+- **14 edge types**: CONTAINS, IMPORTS, CALLS, INHERITS, IMPLEMENTS, DEPENDS_ON, TESTS, DECORATES, REFERENCES, DOCUMENTS, HAS_CONFIG, SEMANTICALLY_SIMILAR, HAS_RATIONALE, BELONGS_TO_PROJECT
+- **Edge provenance**: EXTRACTED (1.0 confidence), INFERRED, AMBIGUOUS
+- **Schema migrations**: v1 → v2 (confidence/provenance) → v3 (metrics/snapshots tables)
+- **Intelligence**: God node analysis, community detection, BFS path finding, complexity hotspots
+- **Operations**: File watching (watchdog + polling), graph snapshots & diffing, scan metrics
+
+See [graphify/ARCHITECTURE.md](graphify/ARCHITECTURE.md) for detailed internal architecture.
+
 ## Agentic Infrastructure
 
 The platform provides comprehensive infrastructure to empower AI agents through specialized agents, a skills library, domain rules, and MCP tools. Configuration lives in `.claude/`, `.codex/`, and the project root (`AGENTS.md`).
