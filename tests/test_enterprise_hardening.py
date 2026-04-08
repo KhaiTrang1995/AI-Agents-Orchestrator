@@ -225,10 +225,10 @@ class TestOfflineDetectorImprovements:
         mock_response = MagicMock()
         mock_response.status_code = 301  # Redirect - not 2xx
         with patch("httpx.head", return_value=mock_response):
-            # follow_redirects=True may change this, but the status of final response matters
-            assert (
-                detector._check_connectivity() is True or True
-            )  # Either way is valid with follow_redirects
+            # With follow_redirects, 301 may resolve to 200 or remain 301.
+            # Just verify it returns a boolean.
+            result = detector._check_connectivity()
+            assert isinstance(result, bool)
 
         mock_response.status_code = 200
         with patch("httpx.head", return_value=mock_response):
@@ -409,13 +409,14 @@ class TestLoggingConfig:
     def test_file_handler_level_uses_parameter(self):
         """The file handler created by configure_logging should use the given log_level."""
         import logging
+        import os
 
         # Directly test the code path: create a FileHandler and set level per our fix
-        handler = logging.FileHandler("/dev/null")
+        handler = logging.FileHandler(os.devnull)
         log_level = "WARNING"
         handler.setLevel(getattr(logging, log_level.upper(), logging.DEBUG))
         assert handler.level == logging.WARNING
 
-        handler2 = logging.FileHandler("/dev/null")
+        handler2 = logging.FileHandler(os.devnull)
         handler2.setLevel(getattr(logging, "ERROR", logging.DEBUG))
         assert handler2.level == logging.ERROR

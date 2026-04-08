@@ -1309,15 +1309,15 @@ graph TB
 ```
 
 **Key capabilities:**
-- **6 analyzers**: Python (AST-based), JavaScript/TypeScript, Markdown/RST, YAML/JSON/TOML, Go/Rust/Java/C++ (regex)
-- **16 node types**: FILE, CLASS, FUNCTION, METHOD, IMPORT, VARIABLE, MODULE, PACKAGE, TEST, DECORATOR, INTERFACE, CONFIG_KEY, DOCUMENT, SECTION, RATIONALE, PROJECT
-- **14 edge types**: CONTAINS, IMPORTS, CALLS, INHERITS, IMPLEMENTS, DEPENDS_ON, TESTS, DECORATES, REFERENCES, DOCUMENTS, HAS_CONFIG, SEMANTICALLY_SIMILAR, HAS_RATIONALE, BELONGS_TO_PROJECT
-- **Edge provenance**: EXTRACTED (1.0 confidence), INFERRED, AMBIGUOUS
+- **6 analyzers**: Python (AST-based), JavaScript/TypeScript, Markdown/RST, YAML/JSON/TOML/Dockerfile, Go/Rust/Java/C++/etc. (generic)
+- **15 node types**: PROJECT, DIRECTORY, FILE, MODULE, CLASS, FUNCTION, IMPORT, DEPENDENCY, CONFIG, DOCUMENTATION, TEST, PATTERN, VARIABLE, RATIONALE, COMMUNITY
+- **11 edge types**: CONTAINS, IMPORTS, INHERITS, CALLS, DEPENDS_ON, TESTS, DOCUMENTS, CONFIGURED_BY, EXPORTS, SIBLING, MEMBER_OF
+- **23 languages**: Python, JS, TS, Java, Go, Rust, Ruby, C++, C, C#, Swift, Kotlin, PHP, Shell, SQL, HTML, CSS, YAML, JSON, TOML, Markdown, Dockerfile
 - **Schema migrations**: v1 → v2 (confidence/provenance) → v3 (metrics/snapshots tables)
 - **Intelligence**: God node analysis, community detection, BFS path finding, complexity hotspots
-- **Operations**: File watching (watchdog + polling), graph snapshots & diffing, scan metrics
+- **Operations**: File watching (watchdog + polling), graph snapshots & diffing, scan metrics, SHA-256 content cache
 
-See [graphify/ARCHITECTURE.md](graphify/ARCHITECTURE.md) for detailed internal architecture.
+See [GRAPHIFY.md](GRAPHIFY.md) for comprehensive documentation with Mermaid diagrams.
 
 ## Agentic Infrastructure
 

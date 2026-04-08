@@ -11,7 +11,9 @@ from __future__ import annotations
 
 import json
 import logging
+import sqlite3
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 logger = logging.getLogger(__name__)
@@ -71,7 +73,7 @@ class GraphDiff:
 class GraphDiffer:
     """Compare two snapshots of a project graph."""
 
-    def __init__(self, get_conn_fn) -> None:
+    def __init__(self, get_conn_fn: Callable[[], sqlite3.Connection]) -> None:
         self._get_conn = get_conn_fn
 
     # ------------------------------------------------------------------

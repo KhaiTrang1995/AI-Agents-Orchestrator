@@ -1,12 +1,11 @@
 """
-Graphify REST API — production-ready Flask server for querying project graphs.
+Graphify REST API — production-ready Flask server.
 
 Features:
-  - CORS support for cross-origin frontend access
-  - Global error handling with structured JSON responses
-  - Request parameter validation
-  - Metrics endpoint for scan history
-  - Diff/snapshot management endpoints
+  - Configurable CORS (defaults to ``*`` for development)
+  - Global error handling with structured JSON (no internal details leaked)
+  - Per-app state via ``app.extensions`` (no module-level globals)
+  - Metrics, snapshot, and diff endpoints
 
 Start with: ``python -m graphify serve --db /path/to/.graphify.db``
 """
@@ -25,13 +24,6 @@ from graphify.search.query_engine import QueryEngine
 
 logger = logging.getLogger(__name__)
 
-_store: GraphStore | None = None
-_fts: FTSEngine | None = None
-_query: QueryEngine | None = None
-_exporter: GraphExporter | None = None
-_metrics: MetricsStore | None = None
-_differ: GraphDiffer | None = None
-
 
 def _safe_int(value: str | None, default: int, lo: int = 1, hi: int = 500) -> int:
     """Parse an integer query param within bounds."""
@@ -44,19 +36,34 @@ def _safe_int(value: str | None, default: int, lo: int = 1, hi: int = 500) -> in
     return max(lo, min(n, hi))
 
 
-def create_app(db_path: str = ":memory:") -> Flask:  # type: ignore[name-defined]  # noqa: C901,F821  # pylint: disable=undefined-variable
+def _ext(key: str):
+    """Retrieve extension from the current Flask app."""
+    from flask import current_app  # pylint: disable=C0415
+
+    return current_app.extensions[key]
+
+
+def create_app(  # noqa: C901  # pylint: disable=undefined-variable
+    db_path: str = ":memory:",
+    allowed_origins: str = "*",
+) -> Flask:  # type: ignore[name-defined]  # noqa: F821
     """Create and configure the Flask application."""
     from flask import Flask, jsonify, request  # pylint: disable=C0415
 
-    global _store, _fts, _query, _exporter, _metrics, _differ  # noqa: PLW0603
-
     app = Flask(__name__)
-    _store = GraphStore(db_path)
-    _fts = FTSEngine(_store)
-    _query = QueryEngine(_store)
-    _exporter = GraphExporter(_store)
-    _metrics = MetricsStore(_store._get_conn)  # noqa: SLF001
-    _differ = GraphDiffer(_store._get_conn)  # noqa: SLF001
+
+    store = GraphStore(db_path)
+    app.extensions["gfx_store"] = store
+    app.extensions["gfx_fts"] = FTSEngine(store)
+    app.extensions["gfx_query"] = QueryEngine(store)
+    app.extensions["gfx_exporter"] = GraphExporter(store)
+    app.extensions["gfx_metrics"] = MetricsStore(store.get_connection_factory())
+    app.extensions["gfx_differ"] = GraphDiffer(store.get_connection_factory())
+    app.extensions["gfx_db_path"] = db_path
+
+    import atexit  # pylint: disable=C0415
+
+    atexit.register(store.close)
 
     # ------------------------------------------------------------------
     # CORS
@@ -64,7 +71,7 @@ def create_app(db_path: str = ":memory:") -> Flask:  # type: ignore[name-defined
 
     @app.after_request
     def _add_cors(response):
-        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Origin"] = allowed_origins
         response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
         response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
         response.headers["X-Content-Type-Options"] = "nosniff"
@@ -89,7 +96,7 @@ def create_app(db_path: str = ":memory:") -> Flask:  # type: ignore[name-defined
     @app.errorhandler(Exception)
     def _handle_generic(exc):
         logger.exception("Unhandled error: %s", exc)
-        return jsonify({"error": "Internal server error", "detail": str(exc)}), 500
+        return jsonify({"error": "Internal server error"}), 500
 
     # ------------------------------------------------------------------
     # Health
@@ -97,8 +104,15 @@ def create_app(db_path: str = ":memory:") -> Flask:  # type: ignore[name-defined
 
     @app.route("/api/health")
     def health():
-        stats = _store.stats("")
-        return jsonify({"status": "ok", "db": db_path, "total_nodes": stats.get("nodes", 0)})
+        store = _ext("gfx_store")
+        stats = store.stats("")
+        return jsonify(
+            {
+                "status": "ok",
+                "db": _ext("gfx_db_path"),
+                "total_nodes": stats.get("nodes", 0),
+            }
+        )
 
     # ------------------------------------------------------------------
     # Projects
@@ -106,7 +120,7 @@ def create_app(db_path: str = ":memory:") -> Flask:  # type: ignore[name-defined
 
     @app.route("/api/projects")
     def list_projects():
-        projects = _store.list_projects()
+        projects = _ext("gfx_store").list_projects()
         return jsonify(
             [
                 {
@@ -124,11 +138,11 @@ def create_app(db_path: str = ":memory:") -> Flask:  # type: ignore[name-defined
 
     @app.route("/api/projects/<project_id>")
     def get_project(project_id):
-        return jsonify(_query.summary(project_id))
+        return jsonify(_ext("gfx_query").summary(project_id))
 
     @app.route("/api/projects/<project_id>/stats")
     def project_stats(project_id):
-        return jsonify(_store.stats(project_id))
+        return jsonify(_ext("gfx_store").stats(project_id))
 
     # ------------------------------------------------------------------
     # Search
@@ -141,7 +155,7 @@ def create_app(db_path: str = ":memory:") -> Flask:  # type: ignore[name-defined
         limit = _safe_int(request.args.get("limit"), 50, hi=500)
         if not q:
             return jsonify({"error": "Missing 'q' parameter"}), 400
-        results = _fts.search(q, project_id=project_id, limit=limit)
+        results = _ext("gfx_fts").search(q, project_id=project_id, limit=limit)
         return jsonify(
             [
                 {
@@ -161,7 +175,7 @@ def create_app(db_path: str = ":memory:") -> Flask:  # type: ignore[name-defined
         project_id = request.args.get("project_id", "")
         if not name:
             return jsonify({"error": "Missing 'name' parameter"}), 400
-        nodes = _fts.search_by_name(name, project_id=project_id)
+        nodes = _ext("gfx_fts").search_by_name(name, project_id=project_id)
         return jsonify(
             [
                 {"id": n.id, "name": n.name, "type": n.node_type.value, "file": n.file_path}
@@ -176,38 +190,38 @@ def create_app(db_path: str = ":memory:") -> Flask:  # type: ignore[name-defined
     @app.route("/api/files/<path:file_path>")
     def file_structure(file_path):
         project_id = request.args.get("project_id", "")
-        return jsonify(_query.get_file_structure(file_path, project_id))
+        return jsonify(_ext("gfx_query").get_file_structure(file_path, project_id))
 
     @app.route("/api/classes")
     def class_hierarchy():
         project_id = request.args.get("project_id", "")
-        return jsonify(_query.get_class_hierarchy(project_id))
+        return jsonify(_ext("gfx_query").get_class_hierarchy(project_id))
 
     @app.route("/api/dependencies")
     def dependencies():
         project_id = request.args.get("project_id", "")
-        return jsonify(_query.get_dependencies(project_id))
+        return jsonify(_ext("gfx_query").get_dependencies(project_id))
 
     @app.route("/api/tests")
     def tests():
         project_id = request.args.get("project_id", "")
-        return jsonify(_query.get_tests(project_id))
+        return jsonify(_ext("gfx_query").get_tests(project_id))
 
     @app.route("/api/hotspots")
     def hotspots():
         project_id = request.args.get("project_id", "")
         top_n = _safe_int(request.args.get("top"), 20, hi=100)
-        return jsonify(_query.complexity_hotspots(project_id, top_n))
+        return jsonify(_ext("gfx_query").complexity_hotspots(project_id, top_n))
 
     @app.route("/api/languages")
     def languages():
         project_id = request.args.get("project_id", "")
-        return jsonify(_query.language_breakdown(project_id))
+        return jsonify(_ext("gfx_query").language_breakdown(project_id))
 
     @app.route("/api/subgraph/<node_id>")
     def subgraph(node_id):
         depth = _safe_int(request.args.get("depth"), 3, hi=5)
-        return jsonify(_query.get_subgraph(node_id, max_depth=depth))
+        return jsonify(_ext("gfx_query").get_subgraph(node_id, max_depth=depth))
 
     # ------------------------------------------------------------------
     # Intelligence
@@ -217,7 +231,7 @@ def create_app(db_path: str = ":memory:") -> Flask:  # type: ignore[name-defined
     def api_god_nodes():
         project_id = request.args.get("project_id", "")
         top_n = _safe_int(request.args.get("top"), 20, hi=100)
-        gods = _store.god_nodes(project_id, top_n=top_n)
+        gods = _ext("gfx_store").god_nodes(project_id, top_n=top_n)
         return jsonify(
             [
                 {
@@ -233,17 +247,17 @@ def create_app(db_path: str = ":memory:") -> Flask:  # type: ignore[name-defined
     @app.route("/api/explain/<name>")
     def api_explain(name):
         project_id = request.args.get("project_id", "")
-        return jsonify(_query.explain_node(name, project_id=project_id))
+        return jsonify(_ext("gfx_query").explain_node(name, project_id=project_id))
 
     @app.route("/api/path/<start>/<end>")
     def api_path(start, end):
         project_id = request.args.get("project_id", "")
-        return jsonify(_query.find_path(start, end, project_id=project_id))
+        return jsonify(_ext("gfx_query").find_path(start, end, project_id=project_id))
 
     @app.route("/api/communities")
     def api_communities():
         project_id = request.args.get("project_id", "")
-        communities = _query.detect_communities(project_id=project_id)
+        communities = _ext("gfx_query").detect_communities(project_id=project_id)
         return jsonify(
             {
                 "count": len(communities),
@@ -267,8 +281,8 @@ def create_app(db_path: str = ":memory:") -> Flask:  # type: ignore[name-defined
         limit = _safe_int(request.args.get("limit"), 20, hi=100)
         return jsonify(
             {
-                "history": _metrics.history(project_id, limit=limit),
-                "averages": _metrics.averages(project_id),
+                "history": _ext("gfx_metrics").history(project_id, limit=limit),
+                "averages": _ext("gfx_metrics").averages(project_id),
             }
         )
 
@@ -278,17 +292,17 @@ def create_app(db_path: str = ":memory:") -> Flask:  # type: ignore[name-defined
 
     @app.route("/api/snapshots/<project_id>")
     def api_snapshots(project_id):
-        return jsonify(_differ.list_snapshots(project_id))
+        return jsonify(_ext("gfx_differ").list_snapshots(project_id))
 
     @app.route("/api/snapshots/<project_id>/take", methods=["POST"])
     def api_take_snapshot(project_id):
         label = request.args.get("label", "")
-        snap_id = _differ.take_snapshot(project_id, label=label)
-        return jsonify({"snapshot_id": snap_id})
+        snap_id = _ext("gfx_differ").take_snapshot(project_id, label=label)
+        return jsonify({"snapshot_id": snap_id}), 201
 
     @app.route("/api/diff/<int:snap_a>/<int:snap_b>")
     def api_diff(snap_a, snap_b):
-        diff = _differ.diff_snapshots(snap_a, snap_b)
+        diff = _ext("gfx_differ").diff_snapshots(snap_a, snap_b)
         return jsonify(diff.to_dict())
 
     # ------------------------------------------------------------------
@@ -298,28 +312,45 @@ def create_app(db_path: str = ":memory:") -> Flask:  # type: ignore[name-defined
     @app.route("/api/export/json")
     def export_json():
         project_id = request.args.get("project_id", "")
-        return app.response_class(_exporter.to_json(project_id), mimetype="application/json")
+        return app.response_class(
+            _ext("gfx_exporter").to_json(project_id),
+            mimetype="application/json",
+        )
 
     @app.route("/api/export/dot")
     def export_dot():
         project_id = request.args.get("project_id", "")
-        return app.response_class(_exporter.to_dot(project_id), mimetype="text/plain")
+        return app.response_class(
+            _ext("gfx_exporter").to_dot(project_id),
+            mimetype="text/plain",
+        )
 
     @app.route("/api/export/markdown")
     def export_markdown():
         project_id = request.args.get("project_id", "")
-        return app.response_class(_exporter.to_markdown(project_id), mimetype="text/markdown")
+        return app.response_class(
+            _ext("gfx_exporter").to_markdown(project_id),
+            mimetype="text/markdown",
+        )
 
     @app.route("/api/export/graphml")
     def export_graphml():
         project_id = request.args.get("project_id", "")
-        return app.response_class(_exporter.to_graphml(project_id), mimetype="application/xml")
+        return app.response_class(
+            _ext("gfx_exporter").to_graphml(project_id),
+            mimetype="application/xml",
+        )
 
     return app
 
 
-def run_server(db_path: str, host: str = "127.0.0.1", port: int = 5004) -> None:
+def run_server(
+    db_path: str,
+    host: str = "127.0.0.1",
+    port: int = 5004,
+    allowed_origins: str = "*",
+) -> None:
     """Start the API server."""
-    app = create_app(db_path)
+    app = create_app(db_path, allowed_origins=allowed_origins)
     logger.info("Graphify API server starting on %s:%d", host, port)
     app.run(host=host, port=port)

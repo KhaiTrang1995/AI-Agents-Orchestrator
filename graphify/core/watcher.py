@@ -15,7 +15,7 @@ from collections.abc import Callable
 
 from graphify.core.config import GraphifyConfig
 from graphify.core.exceptions import WatchError
-from graphify.core.schema import classify_language
+from graphify.core.schema import Language, classify_language
 
 logger = logging.getLogger(__name__)
 
@@ -179,4 +179,4 @@ class FileWatcher:
             return False
         # Only source files
         lang = classify_language(rel)
-        return lang is not None
+        return lang != Language.UNKNOWN

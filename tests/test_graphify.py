@@ -39,7 +39,9 @@ from graphify.search.query_engine import QueryEngine
 @pytest.fixture
 def store():
     """In-memory graph store."""
-    return GraphStore(":memory:")
+    s = GraphStore(":memory:")
+    yield s
+    s.close()
 
 
 @pytest.fixture
@@ -148,7 +150,8 @@ def scanned_store(sample_project):
     config = GraphifyConfig()
     scanner = Scanner(str(sample_project), store, config)
     scanner.scan()
-    return store, generate_project_id(str(sample_project))
+    yield store, generate_project_id(str(sample_project))
+    store.close()
 
 
 # ---------------------------------------------------------------------------

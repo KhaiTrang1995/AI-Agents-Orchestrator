@@ -29,7 +29,7 @@
 ![Grafana](https://img.shields.io/badge/Grafana-Dashboards-F46800?logo=grafana&logoColor=white)
 ![Bandit](https://img.shields.io/badge/Bandit-Security_Scan-FFD43B?logo=python&logoColor=white)
 ![Pylint](https://img.shields.io/badge/Pylint-10.00%2F10-brightgreen?logo=python&logoColor=white)
-![Pytest](https://img.shields.io/badge/Pytest-386_Tests-0A9EDC?logo=pytest&logoColor=white)
+![Pytest](https://img.shields.io/badge/Pytest-562_Tests-0A9EDC?logo=pytest&logoColor=white)
 ![MyPy](https://img.shields.io/badge/MyPy-Type_Checked-3776AB?logo=python&logoColor=white)
 ![Black](https://img.shields.io/badge/Code_Style-Black-000000?logo=python&logoColor=white)
 ![Flake8](https://img.shields.io/badge/Linter-Flake8-4B8BBE?logo=python&logoColor=white)

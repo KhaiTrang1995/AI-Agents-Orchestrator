@@ -12,7 +12,7 @@ from __future__ import annotations
 class GraphifyError(Exception):
     """Base exception for all Graphify errors."""
 
-    def __init__(self, message: str = "", *, code: str = "GRAPHIFY_ERROR") -> None:
+    def __init__(self, message: str = "", *, code: str = "GRAPHIFY_ERROR") -> None:  # noqa: B042
         self.code = code
         super().__init__(message)
 
@@ -25,7 +25,7 @@ class GraphifyError(Exception):
 class ScanError(GraphifyError):
     """Raised when a directory scan fails."""
 
-    def __init__(self, message: str = "", *, path: str = "") -> None:
+    def __init__(self, message: str = "", *, path: str = "") -> None:  # noqa: B042
         self.path = path
         super().__init__(message, code="SCAN_ERROR")
 
@@ -33,7 +33,7 @@ class ScanError(GraphifyError):
 class AnalysisError(GraphifyError):
     """Raised when a file analysis fails."""
 
-    def __init__(
+    def __init__(  # noqa: B042
         self,
         message: str = "",
         *,
@@ -60,7 +60,7 @@ class GraphError(GraphifyError):
 class SchemaVersionError(GraphError):
     """Database schema version mismatch."""
 
-    def __init__(self, expected: int, actual: int) -> None:
+    def __init__(self, expected: int, actual: int) -> None:  # noqa: B042
         self.expected = expected
         self.actual = actual
         super().__init__(
@@ -97,7 +97,7 @@ class ConfigError(GraphifyError):
 class ExportError(GraphifyError):
     """Raised when graph export fails."""
 
-    def __init__(self, message: str = "", *, fmt: str = "") -> None:
+    def __init__(self, message: str = "", *, fmt: str = "") -> None:  # noqa: B042
         self.format = fmt
         super().__init__(message, code="EXPORT_ERROR")
 
@@ -117,7 +117,7 @@ class RenderError(GraphifyError):
 class ValidationError(GraphifyError):
     """Input data fails validation."""
 
-    def __init__(self, message: str = "", *, field: str = "") -> None:
+    def __init__(self, message: str = "", *, field: str = "") -> None:  # noqa: B042
         self.field = field
         super().__init__(message, code="VALIDATION_ERROR")
 
@@ -125,7 +125,7 @@ class ValidationError(GraphifyError):
 class PathTraversalError(ValidationError):
     """Attempt to access a path outside the allowed scope."""
 
-    def __init__(self, path: str, root: str) -> None:
+    def __init__(self, path: str, root: str) -> None:  # noqa: B042
         self.path = path
         self.root = root
         super().__init__(

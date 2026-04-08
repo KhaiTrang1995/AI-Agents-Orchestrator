@@ -317,7 +317,8 @@ class TestShellImprovements:
         history = ConversationHistory()
         history.add_message("user", "test")
 
-        tmpfile = tempfile.mktemp(suffix=".json")
+        fd, tmpfile = tempfile.mkstemp(suffix=".json")
+        os.close(fd)
         try:
             history.save(tmpfile)
             assert os.path.exists(tmpfile)
@@ -333,7 +334,8 @@ class TestShellImprovements:
         from orchestrator.cli.shell import ConversationHistory
 
         history = ConversationHistory()
-        tmpfile = tempfile.mktemp(suffix=".json")
+        fd, tmpfile = tempfile.mkstemp(suffix=".json")
+        os.close(fd)
         try:
             with open(tmpfile, "w") as f:
                 f.write("not json")
@@ -350,7 +352,8 @@ class TestShellImprovements:
         history = AgenticConversationHistory()
         history.add_message("user", "test task")
 
-        tmpfile = tempfile.mktemp(suffix=".json")
+        fd, tmpfile = tempfile.mkstemp(suffix=".json")
+        os.close(fd)
         try:
             history.save(tmpfile)
             mode = oct(os.stat(tmpfile).st_mode)[-3:]
@@ -364,7 +367,8 @@ class TestShellImprovements:
         from agentic_team.shell import AgenticConversationHistory
 
         history = AgenticConversationHistory()
-        tmpfile = tempfile.mktemp(suffix=".json")
+        fd, tmpfile = tempfile.mkstemp(suffix=".json")
+        os.close(fd)
         try:
             with open(tmpfile, "w") as f:
                 json.dump([1, 2, 3], f)

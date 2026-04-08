@@ -11,9 +11,11 @@ import json
 import logging
 import sqlite3
 import threading
+from collections.abc import Callable
 from contextlib import contextmanager
 from typing import Any, Generator
 
+from graphify.core.exceptions import GraphError
 from graphify.core.schema import Edge, EdgeType, Node, NodeType, ProjectSummary
 
 logger = logging.getLogger(__name__)
@@ -27,6 +29,8 @@ class GraphStore:
     def __init__(self, db_path: str = ":memory:") -> None:
         self._db_path = db_path
         self._local = threading.local()
+        self._all_conns: list[sqlite3.Connection] = []
+        self._conn_lock = threading.Lock()
         self._closed = False
         self._init_schema()
         self._run_migrations()
@@ -40,7 +44,12 @@ class GraphStore:
         """Enter the context manager."""
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: Any,
+    ) -> None:
         """Exit the context manager and close connections."""
         self.close()
 
@@ -50,6 +59,8 @@ class GraphStore:
 
     def _get_conn(self) -> sqlite3.Connection:
         """Thread-local connection with WAL mode."""
+        if self._closed:
+            raise GraphError("GraphStore is closed")
         conn: sqlite3.Connection | None = getattr(self._local, "conn", None)
         if conn is None:
             conn = sqlite3.connect(self._db_path, timeout=30)
@@ -58,7 +69,13 @@ class GraphStore:
             conn.execute("PRAGMA busy_timeout=5000")
             conn.row_factory = sqlite3.Row
             self._local.conn = conn
+            with self._conn_lock:
+                self._all_conns.append(conn)
         return conn
+
+    def get_connection_factory(self) -> Callable[[], sqlite3.Connection]:
+        """Return a callable that produces thread-local connections."""
+        return self._get_conn
 
     @contextmanager
     def _transaction(self) -> Generator[sqlite3.Connection, None, None]:
@@ -482,11 +499,12 @@ class GraphStore:
             .execute("SELECT * FROM project_meta ORDER BY scanned_at DESC")
             .fetchall()
         )
-        return [
-            self.get_project_meta(r["project_id"])
-            for r in rows
-            if self.get_project_meta(r["project_id"])
-        ]
+        result = []
+        for r in rows:
+            proj = self.get_project_meta(r["project_id"])
+            if proj:
+                result.append(proj)
+        return result
 
     def delete_project(self, project_id: str) -> int:
         """Atomically delete all data for a project. Returns deleted node count."""
@@ -568,11 +586,15 @@ class GraphStore:
         )
 
     def close(self) -> None:
-        """Close the thread-local connection."""
-        conn: sqlite3.Connection | None = getattr(self._local, "conn", None)
-        if conn is not None:
-            conn.close()
-            self._local.conn = None
+        """Close all tracked connections across threads."""
+        with self._conn_lock:
+            for conn in self._all_conns:
+                try:
+                    conn.close()
+                except Exception:  # pylint: disable=broad-except
+                    pass
+            self._all_conns.clear()
+        self._local.conn = None
         self._closed = True
 
     # ------------------------------------------------------------------

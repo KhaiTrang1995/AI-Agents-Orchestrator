@@ -57,7 +57,9 @@ from graphify.core.watcher import FileWatcher
 @pytest.fixture
 def store():
     """In-memory graph store."""
-    return GraphStore(":memory:")
+    s = GraphStore(":memory:")
+    yield s
+    s.close()
 
 
 @pytest.fixture

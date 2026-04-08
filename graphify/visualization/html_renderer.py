@@ -153,8 +153,8 @@ class HTMLRenderer:
         vis_edges: list,
         stats: dict,
     ) -> str:
-        nodes_json = json.dumps(vis_nodes)
-        edges_json = json.dumps(vis_edges)
+        nodes_json = json.dumps(vis_nodes).replace("</", "<\\/")
+        edges_json = json.dumps(vis_edges).replace("</", "<\\/")
         escaped_name = html_lib.escape(project_name)
 
         return f"""<!DOCTYPE html>
@@ -209,6 +209,7 @@ class HTMLRenderer:
   <div id="det-body"></div>
 </div>
 <script>
+function esc(s) {{ var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }}
 var allNodes = {nodes_json};
 var allEdges = {edges_json};
 var nodesDS = new vis.DataSet(allNodes);
@@ -229,11 +230,11 @@ network.on('click', function(params) {{
     var node = nodesDS.get(nid);
     document.getElementById('det-name').textContent = node.label;
     var neighbors = network.getConnectedNodes(nid);
-    var html = '<p>Type: ' + node.group + '</p>';
+    var html = '<p>Type: ' + esc(node.group) + '</p>';
     html += '<p>Connections: ' + neighbors.length + '</p><hr>';
     neighbors.forEach(function(nb) {{
       var n = nodesDS.get(nb);
-      if (n) html += '<div style="margin:2px 0">' + n.group + ': <b>' + n.label + '</b></div>';
+      if (n) html += '<div style="margin:2px 0">' + esc(n.group) + ': <b>' + esc(n.label) + '</b></div>';
     }});
     document.getElementById('det-body').innerHTML = html;
     document.getElementById('detail').style.display = 'block';

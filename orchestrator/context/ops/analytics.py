@@ -296,7 +296,7 @@ class ContextAnalytics:
             cursor.execute("""
                 SELECT
                     COUNT(*) as total_embedded,
-                    COUNT(DISTINCT model_version) as model_versions
+                    COUNT(DISTINCT model_name) as model_versions
                 FROM embeddings
             """)
             row = cursor.fetchone()

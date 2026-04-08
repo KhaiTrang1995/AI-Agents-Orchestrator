@@ -193,6 +193,22 @@ class QueryEngine:
     # Path finding
     # ------------------------------------------------------------------
 
+    def _resolve_name(self, name: str, project_id: str = "") -> Node | None:
+        """Resolve a human-readable name to a node via direct SQL lookup."""
+        conn = self._store._get_conn()  # noqa: SLF001
+        clause = "WHERE (name = ? OR qualified_name = ?)"
+        params: list[Any] = [name, name]
+        if project_id:
+            clause += " AND project_id = ?"
+            params.append(project_id)
+        row = conn.execute(
+            f"SELECT * FROM nodes {clause} LIMIT 1",
+            params,
+        ).fetchone()
+        if row:
+            return self._store._row_to_node(row)  # noqa: SLF001
+        return None
+
     def find_path(
         self,
         start_name: str,
@@ -200,29 +216,21 @@ class QueryEngine:
         project_id: str = "",
     ) -> list[dict[str, Any]]:
         """Find shortest path between two named nodes."""
-        # Resolve names to IDs
-        start_nodes = self._store.get_nodes(project_id=project_id, limit=10_000)
-        start_id = end_id = None
-        for n in start_nodes:
-            if start_name in (n.name, n.qualified_name):
-                start_id = n.id
-            if end_name in (n.name, n.qualified_name):
-                end_id = n.id
-            if start_id and end_id:
-                break
-
-        if not start_id or not end_id:
+        start = self._resolve_name(start_name, project_id)
+        end = self._resolve_name(end_name, project_id)
+        if not start or not end:
             return []
 
-        path_ids = self._store.shortest_path(start_id, end_id)
+        path_ids = self._store.shortest_path(start.id, end.id)
         if not path_ids:
             return []
 
-        return [
-            self._node_to_dict(self._store.get_node(nid))
-            for nid in path_ids
-            if self._store.get_node(nid)
-        ]
+        result = []
+        for nid in path_ids:
+            node = self._store.get_node(nid)
+            if node:
+                result.append(self._node_to_dict(node))
+        return result
 
     # ------------------------------------------------------------------
     # Node explanation
@@ -230,13 +238,7 @@ class QueryEngine:
 
     def explain_node(self, name: str, project_id: str = "") -> dict[str, Any]:
         """Explain a node: what it is, what it connects to, and why it matters."""
-        nodes = self._store.get_nodes(project_id=project_id, limit=10_000)
-        target = None
-        for n in nodes:
-            if name in (n.name, n.qualified_name):
-                target = n
-                break
-
+        target = self._resolve_name(name, project_id)
         if not target:
             return {"error": f"Node '{name}' not found"}
 

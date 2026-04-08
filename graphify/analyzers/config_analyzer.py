@@ -68,7 +68,7 @@ class ConfigAnalyzer(BaseAnalyzer):
             import yaml  # pylint: disable=C0415
 
             data = yaml.safe_load(source)
-        except Exception:
+        except (ImportError, yaml.YAMLError, ValueError):
             return AnalysisResult()
 
         if isinstance(data, dict):
@@ -195,7 +195,7 @@ class ConfigAnalyzer(BaseAnalyzer):
                 data = tomllib.loads(source)
             except ImportError:
                 return AnalysisResult()
-        except Exception:
+        except (ValueError, KeyError):
             return AnalysisResult()
 
         # Extract dependencies from pyproject.toml

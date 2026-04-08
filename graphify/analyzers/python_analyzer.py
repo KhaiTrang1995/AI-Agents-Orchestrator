@@ -127,7 +127,7 @@ class PythonAnalyzer(BaseAnalyzer):
         project_id: str,
         module_name: str,
         is_test: bool,
-    ) -> tuple:
+    ) -> tuple[list[Node], list[Edge]]:
         """Extract a class definition and its methods."""
         nodes: list[Node] = []
         edges: list[Edge] = []
@@ -213,7 +213,7 @@ class PythonAnalyzer(BaseAnalyzer):
         project_id: str,
         parent_name: str,
         is_test: bool,
-    ) -> tuple:
+    ) -> tuple[list[Node], list[Edge]]:
         """Extract a function or method definition."""
         qualified = f"{parent_name}.{node.name}" if parent_name else node.name
         fn_id = self._make_id(project_id, "fn", qualified)
@@ -269,7 +269,7 @@ class PythonAnalyzer(BaseAnalyzer):
         file_path: str,
         file_node_id: str,
         project_id: str,
-    ) -> tuple:
+    ) -> tuple[list[Node], list[Edge]]:
         """Extract import statements as IMPORT nodes."""
         nodes: list[Node] = []
         edges: list[Edge] = []
@@ -304,6 +304,11 @@ class PythonAnalyzer(BaseAnalyzer):
             for alias in node.names or []:
                 imp_name = f"{module}.{alias.name}" if module else alias.name
                 imp_id = self._make_id(project_id, "imp", f"{file_path}:{imp_name}")
+                level_dots = "." * (node.level or 1)
+                if module:
+                    content = f"from {module} import {alias.name}"
+                else:
+                    content = f"from {level_dots} import {alias.name}"
                 nodes.append(
                     Node(
                         id=imp_id,
@@ -313,7 +318,7 @@ class PythonAnalyzer(BaseAnalyzer):
                         file_path=file_path,
                         language="python",
                         line_start=node.lineno,
-                        content=f"from {module} import {alias.name}",
+                        content=content,
                         project_id=project_id,
                     )
                 )
@@ -541,12 +546,21 @@ class PythonAnalyzer(BaseAnalyzer):
         file_path: str,
         file_node_id: str,
         project_id: str,
-    ) -> tuple:
+        *,
+        max_per_file: int = 500,
+    ) -> tuple[list[Node], list[Edge]]:
         """Extract WHY/TODO/HACK/NOTE/FIXME comments as RATIONALE nodes."""
         nodes: list[Node] = []
         edges: list[Edge] = []
 
-        for match in _RATIONALE_RE.finditer(source):
+        for i, match in enumerate(_RATIONALE_RE.finditer(source)):
+            if i >= max_per_file:
+                logger.warning(
+                    "Rationale limit (%d) reached for %s; skipping remaining",
+                    max_per_file,
+                    file_path,
+                )
+                break
             tag = match.group(1).upper()
             text = match.group(2).strip()
             line = source[: match.start()].count("\n") + 1

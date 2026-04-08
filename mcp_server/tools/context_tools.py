@@ -1,6 +1,8 @@
 """Context memory MCP tools for storing and retrieving context."""
 
-from typing import Any, Dict, List, Optional
+from __future__ import annotations
+
+from typing import Any
 
 from mcp.server.fastmcp import Context
 
@@ -10,7 +12,7 @@ _memory_manager = None
 
 def _get_memory_manager() -> Any:
     """Get or create memory manager instance."""
-    global _memory_manager
+    global _memory_manager  # noqa: PLW0603
     if _memory_manager is None:
         try:
             from orchestrator.context.memory_manager import MemoryManager
@@ -24,8 +26,8 @@ def _get_memory_manager() -> Any:
 async def store_conversation(
     ctx: Context,
     content: str,
-    metadata: Optional[Dict[str, Any]] = None,
-) -> Dict[str, Any]:
+    metadata: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """Store a conversation in context memory.
 
     Args:
@@ -41,7 +43,10 @@ async def store_conversation(
         return {"error": "Context system not available"}
 
     try:
-        node_id = manager.store_conversation(content, metadata or {})
+        node_id = manager.store_conversation(
+            messages=[{"role": "user", "content": content}],
+            metadata=metadata,
+        )
         return {
             "success": True,
             "node_id": node_id,
@@ -56,8 +61,8 @@ async def store_task(
     description: str,
     result: str,
     success: bool = True,
-    metadata: Optional[Dict[str, Any]] = None,
-) -> Dict[str, Any]:
+    metadata: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """Store a task execution in context memory.
 
     Args:
@@ -76,10 +81,10 @@ async def store_task(
 
     try:
         node_id = manager.store_task(
-            description=description,
-            result=result,
+            task_description=description,
+            outcome=result,
             success=success,
-            metadata=metadata or {},
+            metadata=metadata,
         )
         return {
             "success": True,
@@ -94,9 +99,9 @@ async def log_mistake(
     ctx: Context,
     description: str,
     correction: str,
-    context: Optional[str] = None,
-    metadata: Optional[Dict[str, Any]] = None,
-) -> Dict[str, Any]:
+    context: str | None = None,
+    metadata: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """Log a mistake for learning.
 
     Args:
@@ -115,10 +120,10 @@ async def log_mistake(
 
     try:
         node_id = manager.log_mistake(
-            description=description,
+            error_type="general",
+            error_message=description,
+            context_description=context or "",
             correction=correction,
-            context=context or "",
-            metadata=metadata or {},
         )
         return {
             "success": True,
@@ -133,8 +138,8 @@ async def search_context(
     ctx: Context,
     query: str,
     limit: int = 10,
-    node_types: Optional[List[str]] = None,
-) -> Dict[str, Any]:
+    node_types: list[str] | None = None,
+) -> dict[str, Any]:
     """Search context memory using hybrid search.
 
     Args:
@@ -156,11 +161,11 @@ async def search_context(
             "query": query,
             "results": [
                 {
-                    "node_id": r.get("node_id", ""),
-                    "content": r.get("content", "")[:500],
-                    "node_type": r.get("node_type", ""),
-                    "score": r.get("score", 0),
-                    "metadata": r.get("metadata", {}),
+                    "node_id": r.node.id,
+                    "content": r.node.content[:500],
+                    "node_type": r.node.node_type.value,
+                    "score": r.score,
+                    "metadata": r.node.metadata,
                 }
                 for r in results
             ],
@@ -174,7 +179,7 @@ async def get_relevant_context(
     ctx: Context,
     task_description: str,
     limit: int = 5,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Get relevant context for a task.
 
     Args:
@@ -190,28 +195,23 @@ async def get_relevant_context(
         return {"error": "Context system not available"}
 
     try:
-        context = manager.get_relevant_context(task_description, limit=limit)
+        raw = manager.get_relevant_context(task_description, limit=limit)
 
-        result: Dict[str, Any] = {
+        result: dict[str, Any] = {
             "task": task_description,
-            "related_tasks": [],
-            "relevant_mistakes": [],
-            "patterns": [],
+            "related_tasks": [
+                {"content": t["node"]["content"][:300], "score": t["score"]}
+                for t in raw.get("tasks", [])
+            ],
+            "relevant_mistakes": [
+                {"content": m["node"]["content"][:300], "score": m["score"]}
+                for m in raw.get("mistakes", [])
+            ],
+            "patterns": [
+                {"content": p["node"]["content"][:300], "score": p["score"]}
+                for p in raw.get("patterns", [])
+            ],
         }
-
-        for item in context:
-            node_type = item.get("node_type", "")
-            entry = {
-                "content": item.get("content", "")[:300],
-                "score": item.get("score", 0),
-            }
-
-            if node_type == "task":
-                result["related_tasks"].append(entry)
-            elif node_type == "mistake":
-                result["relevant_mistakes"].append(entry)
-            elif node_type == "pattern":
-                result["patterns"].append(entry)
 
         return result
     except Exception as e:
@@ -222,9 +222,9 @@ async def store_pattern(
     ctx: Context,
     name: str,
     description: str,
-    example: Optional[str] = None,
-    metadata: Optional[Dict[str, Any]] = None,
-) -> Dict[str, Any]:
+    example: str | None = None,
+    metadata: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """Store a learned pattern.
 
     Args:
@@ -242,17 +242,12 @@ async def store_pattern(
         return {"error": "Context system not available"}
 
     try:
-        from orchestrator.context.schemas import PatternNode
-
-        node = PatternNode(
-            content=f"{name}: {description}",
-            metadata={
-                "name": name,
-                "example": example or "",
-                **(metadata or {}),
-            },
+        node_id = manager.store_pattern(
+            pattern_name=name,
+            pattern_type="general",
+            description=description,
+            examples=[example] if example else [],
         )
-        node_id = manager.graph_store.add_node(node)
         return {
             "success": True,
             "node_id": node_id,
@@ -262,7 +257,7 @@ async def store_pattern(
         return {"error": str(e)}
 
 
-async def get_context_stats(ctx: Context) -> Dict[str, Any]:
+async def get_context_stats(ctx: Context) -> dict[str, Any]:
     """Get statistics about the context memory.
 
     Args:

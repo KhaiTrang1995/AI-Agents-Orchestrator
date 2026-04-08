@@ -69,6 +69,7 @@ class Scanner:
         self._frameworks: list[str] = []
         self._file_count = 0
         self._cached_count = 0
+        self._failed_files: list[str] = []
 
     # ------------------------------------------------------------------
     # Public API
@@ -88,8 +89,9 @@ class Scanner:
         logger.info("Found %d eligible files", len(file_paths))
 
         # Phase 2: filter for changed files (incremental mode)
+        pending_hashes: dict[str, str] = {}
         if incremental and self._cache:
-            file_paths, removed = self._filter_changed(file_paths)
+            file_paths, removed, pending_hashes = self._filter_changed(file_paths)
             self._handle_removals(removed)
             logger.info(
                 "%d files changed, %d cached, %d removed",
@@ -133,13 +135,16 @@ class Scanner:
 
         elapsed = time.time() - start
         logger.info(
-            "Scan complete: %d files (%d cached), %d nodes, %d edges in %.2fs",
+            "Scan complete: %d files (%d cached, %d failed), %d nodes, %d edges in %.2fs",
             self._file_count,
             self._cached_count,
+            len(self._failed_files),
             len(self._nodes),
             len(self._edges),
             elapsed,
         )
+        if self._failed_files:
+            logger.warning("Failed files: %s", ", ".join(self._failed_files))
         return summary
 
     @property
@@ -213,10 +218,10 @@ class Scanner:
     # Phase 2: incremental change detection
     # ------------------------------------------------------------------
 
-    def _filter_changed(self, file_paths: list[str]) -> tuple[list[str], set[str]]:
-        """Compare current files against cache; return (changed, removed) paths."""
+    def _filter_changed(self, file_paths: list[str]) -> tuple[list[str], set[str], dict[str, str]]:
+        """Compare current files against cache; return (changed, removed, pending_hashes)."""
         if not self._cache:
-            return file_paths, set()
+            return file_paths, set(), {}
 
         cached_hashes = self._cache.get_all_hashes(self._project_id)
         current_rel_paths = set()
@@ -243,15 +248,15 @@ class Scanner:
         # Detect removed files
         removed = set(cached_hashes.keys()) - current_rel_paths
 
-        # Update cache for changed files
-        if new_hashes:
-            self._cache.set_hashes_bulk(new_hashes, self._project_id)
+        # NOTE: Do NOT write new_hashes to cache here — that happens
+        # in _analyze_files after each file is successfully analyzed.
+        # Writing early would mark failed files as "cached" permanently.
 
         # Clean cache for removed files
         if removed:
             self._cache.remove_paths(removed, self._project_id)
 
-        return changed, removed
+        return changed, removed, new_hashes
 
     def _handle_removals(self, removed: set[str]) -> None:
         """Delete graph nodes for files that no longer exist."""
@@ -355,7 +360,8 @@ class Scanner:
                         if content_hash:
                             new_hashes[rel] = content_hash
                 except Exception:
-                    logger.warning("Failed to analyze %s", fpath, exc_info=True)
+                    self._failed_files.append(fpath)
+                    logger.error("Failed to analyze %s", fpath, exc_info=True)
 
         # Bulk update cache
         if self._cache and new_hashes:

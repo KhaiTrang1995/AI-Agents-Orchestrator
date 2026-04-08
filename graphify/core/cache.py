@@ -9,6 +9,8 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import sqlite3
+from collections.abc import Callable
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +18,7 @@ logger = logging.getLogger(__name__)
 class ContentCache:
     """SHA-256 content cache backed by the graph's SQLite DB."""
 
-    def __init__(self, conn_factory) -> None:
+    def __init__(self, conn_factory: Callable[[], sqlite3.Connection]) -> None:
         """Accept a callable that returns the thread-local sqlite3.Connection."""
         self._conn = conn_factory
         self._ensure_table()
@@ -137,9 +139,20 @@ class ContentCache:
 
     @staticmethod
     def hash_file(file_path: str) -> str:
-        """Read a file and return its SHA-256 hex digest."""
-        h = hashlib.sha256()
-        with open(file_path, "rb") as fh:
-            for chunk in iter(lambda: fh.read(65536), b""):
-                h.update(chunk)
-        return h.hexdigest()
+        """Read a file as text and return its SHA-256 hex digest.
+
+        Uses the same text-mode read (utf-8, errors=replace) as
+        :meth:`hash_content` so that hashes are consistent between
+        the diff-cache comparison and the analysis phase.
+        """
+        try:
+            with open(file_path, encoding="utf-8", errors="replace") as fh:
+                content = fh.read()
+        except OSError:
+            # Fall back to binary for unreadable-as-text files
+            h = hashlib.sha256()
+            with open(file_path, "rb") as fh:
+                for chunk in iter(lambda: fh.read(65536), b""):
+                    h.update(chunk)
+            return h.hexdigest()
+        return hashlib.sha256(content.encode("utf-8", errors="replace")).hexdigest()

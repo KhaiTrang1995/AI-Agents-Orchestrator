@@ -39,7 +39,9 @@ from graphify.visualization.html_renderer import HTMLRenderer
 @pytest.fixture
 def store():
     """In-memory graph store."""
-    return GraphStore(":memory:")
+    s = GraphStore(":memory:")
+    yield s
+    s.close()
 
 
 @pytest.fixture
