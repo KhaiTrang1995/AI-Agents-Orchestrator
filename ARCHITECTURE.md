@@ -17,6 +17,7 @@
 - [Graph Context System](#graph-context-system)
   - [Project-Scoped Graphs](#project-scoped-graphs)
   - [Project Scanner](#project-scanner)
+  - [Graphify — Code Knowledge Graph Engine](#graphify--code-knowledge-graph-engine)
 - [Agentic Infrastructure](#agentic-infrastructure)
 - [Performance Considerations](#performance-considerations)
 - [Scalability](#scalability)
@@ -1283,6 +1284,41 @@ flowchart TD
 - Respects `.gitignore`-style skip patterns (node_modules, __pycache__, .git, etc.)
 - Safety limit of 5,000 files per scan to prevent runaway on monorepos
 - Produces `ProjectNode`, `FileNode`, `PatternNode`, and `DecisionNode` objects with relationship edges
+
+### Graphify — Code Knowledge Graph Engine
+
+`graphify/` is a standalone system (zero imports from orchestrator or agentic_team) that builds deep, queryable knowledge graphs from any project directory using AST parsing and pattern analysis.
+
+```mermaid
+graph TB
+    subgraph "Graphify Pipeline"
+        DIR[Project Directory] --> SCAN[Scanner]
+        SCAN --> CACHE[SHA-256 Cache]
+        SCAN --> PY[Python AST Analyzer]
+        SCAN --> JS[JavaScript Analyzer]
+        SCAN --> DOC[Doc Analyzer]
+        SCAN --> CFG[Config Analyzer]
+        SCAN --> GEN[Generic Analyzer<br/>Go/Rust/Java/C++]
+
+        PY & JS & DOC & CFG & GEN --> STORE[GraphStore<br/>SQLite + FTS5]
+        STORE --> SEARCH[FTS Search + Query Engine]
+        STORE --> API[REST API]
+        STORE --> EXPORT[JSON / DOT / GraphML / HTML]
+        STORE --> METRICS[Scan Metrics]
+        STORE --> SNAP[Snapshots & Diffs]
+    end
+```
+
+**Key capabilities:**
+- **6 analyzers**: Python (AST-based), JavaScript/TypeScript, Markdown/RST, YAML/JSON/TOML/Dockerfile, Go/Rust/Java/C++/etc. (generic)
+- **15 node types**: PROJECT, DIRECTORY, FILE, MODULE, CLASS, FUNCTION, IMPORT, DEPENDENCY, CONFIG, DOCUMENTATION, TEST, PATTERN, VARIABLE, RATIONALE, COMMUNITY
+- **11 edge types**: CONTAINS, IMPORTS, INHERITS, CALLS, DEPENDS_ON, TESTS, DOCUMENTS, CONFIGURED_BY, EXPORTS, SIBLING, MEMBER_OF
+- **23 languages**: Python, JS, TS, Java, Go, Rust, Ruby, C++, C, C#, Swift, Kotlin, PHP, Shell, SQL, HTML, CSS, YAML, JSON, TOML, Markdown, Dockerfile
+- **Schema migrations**: v1 → v2 (confidence/provenance) → v3 (metrics/snapshots tables)
+- **Intelligence**: God node analysis, community detection, BFS path finding, complexity hotspots
+- **Operations**: File watching (watchdog + polling), graph snapshots & diffing, scan metrics, SHA-256 content cache
+
+See [GRAPHIFY.md](GRAPHIFY.md) for comprehensive documentation with Mermaid diagrams.
 
 ## Agentic Infrastructure
 

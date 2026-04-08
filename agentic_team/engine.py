@@ -668,7 +668,7 @@ class AgenticTeamEngine:
             return [
                 {
                     "node_id": r.node.id,
-                    "type": r.node.type,
+                    "type": r.node.node_type.value,
                     "content": r.node.content,
                     "score": r.score,
                     "metadata": r.node.metadata,

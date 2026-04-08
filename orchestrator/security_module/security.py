@@ -158,11 +158,13 @@ class InputValidator:
 
         if allowed_root is not None:
             allowed_root_resolved = allowed_root.resolve()
-            if not str(resolved_path).startswith(str(allowed_root_resolved)):
+            try:
+                resolved_path.relative_to(allowed_root_resolved)
+            except ValueError:
                 raise ValidationError(
                     "Path traversal detected: path is outside allowed directory",
                     field="path",
-                )
+                ) from None
 
         if must_exist and not resolved_path.exists():
             raise ValidationError(f"File does not exist: {path}", field="path")

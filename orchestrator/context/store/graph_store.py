@@ -14,6 +14,7 @@ import json
 import logging
 import sqlite3
 import threading
+from collections import deque
 from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
@@ -571,10 +572,10 @@ class GraphStore:
         """
         visited_nodes: dict[str, Node] = {}
         discovered_edges: list[Edge] = []
-        queue: list[tuple[str, int]] = [(start_node_id, 0)]
+        queue: deque[tuple[str, int]] = deque([(start_node_id, 0)])
 
         while queue:
-            node_id, depth = queue.pop(0)
+            node_id, depth = queue.popleft()
 
             if node_id in visited_nodes or depth > max_depth:
                 continue

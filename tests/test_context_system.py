@@ -321,8 +321,8 @@ class TestMemoryManager:
         )
 
         assert isinstance(context, str)
-        # Should contain some relevant info
-        assert len(context) > 0 or context == ""  # May be empty if no matches
+        # Context may be empty if no matches; that's valid
+        assert context is not None
 
     def test_link_nodes(self, memory_manager):
         """Should link related nodes."""

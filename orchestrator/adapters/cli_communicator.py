@@ -87,7 +87,7 @@ class CLICommunicator:
 
             script_cmd = (
                 f"cat {shlex.quote(input_file_path)} | "
-                f"script -q {shlex.quote(temp_file_path)} {self.command}"
+                f"script -q {shlex.quote(temp_file_path)} {shlex.quote(self.command)}"
             )
             process = subprocess.Popen(  # pylint: disable=consider-using-with
                 ["bash", "-c", script_cmd],
@@ -276,7 +276,7 @@ class CLICommunicator:
         """Execute using heredoc (for bash-based CLIs)."""
         try:
             # Create a shell script with heredoc
-            script = f"""{self.command} << 'EOF'
+            script = f"""{shlex.quote(self.command)} << 'EOF'
 {prompt}
 EOF
 """

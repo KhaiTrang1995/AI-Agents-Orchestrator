@@ -1196,7 +1196,11 @@ pre code {
    =========================== */
 
 :not(pre) > code {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(139, 92, 246, 0.08) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.1) 0%,
+    rgba(139, 92, 246, 0.08) 100%
+  );
   color: #93c5fd;
   padding: 0.15em 0.55em;
   border-radius: var(--radius-sm);
@@ -1208,7 +1212,11 @@ pre code {
 }
 
 :not(pre) > code:hover {
-  background: linear-gradient(135deg, rgba(59, 130, 246, 0.16) 0%, rgba(139, 92, 246, 0.12) 100%);
+  background: linear-gradient(
+    135deg,
+    rgba(59, 130, 246, 0.16) 0%,
+    rgba(139, 92, 246, 0.12) 100%
+  );
   border-color: rgba(59, 130, 246, 0.3);
 }
 

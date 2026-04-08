@@ -69,3 +69,9 @@ node_modules/
 output/*
 !output/.gitkeep
 !output/README.md
+
+# Graphify
+.graphify.db
+.graphify.db-shm
+.graphify.db-wal
+graphify-out/

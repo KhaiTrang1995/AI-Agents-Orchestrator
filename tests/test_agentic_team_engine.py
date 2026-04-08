@@ -21,7 +21,10 @@ def _write_config(tmp_path, payload: dict[str, Any]):
 
 def test_agentic_team_routes_between_roles_and_lead_finalizes(tmp_path, monkeypatch):
     class ScriptedAdapter(BaseAdapter):
-        role_calls: dict[str, int] = {}
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            if not hasattr(ScriptedAdapter, "_role_calls"):
+                ScriptedAdapter._role_calls = {}
 
         def get_capabilities(self):
             return []
@@ -31,8 +34,8 @@ def test_agentic_team_routes_between_roles_and_lead_finalizes(tmp_path, monkeypa
 
         def execute_task(self, task: str, context: dict[str, Any]) -> AgentResponse:
             role = str(context.get("team_role", ""))
-            ScriptedAdapter.role_calls[role] = ScriptedAdapter.role_calls.get(role, 0) + 1
-            count = ScriptedAdapter.role_calls[role]
+            ScriptedAdapter._role_calls[role] = ScriptedAdapter._role_calls.get(role, 0) + 1
+            count = ScriptedAdapter._role_calls[role]
 
             if role == "project_manager" and count == 1:
                 payload = {
@@ -380,7 +383,10 @@ def test_execute_task_includes_production_metadata(tmp_path, monkeypatch):
 
 def test_agentic_team_detects_repeated_route_and_escalates_to_lead(tmp_path, monkeypatch):
     class LoopSafeAdapter(BaseAdapter):
-        role_calls: dict[str, int] = {}
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            if not hasattr(LoopSafeAdapter, "_role_calls"):
+                LoopSafeAdapter._role_calls = {}
 
         def get_capabilities(self):
             return []
@@ -390,8 +396,8 @@ def test_agentic_team_detects_repeated_route_and_escalates_to_lead(tmp_path, mon
 
         def execute_task(self, task: str, context: dict[str, Any]) -> AgentResponse:
             role = str(context.get("team_role", ""))
-            LoopSafeAdapter.role_calls[role] = LoopSafeAdapter.role_calls.get(role, 0) + 1
-            if role == "project_manager" and LoopSafeAdapter.role_calls[role] == 1:
+            LoopSafeAdapter._role_calls[role] = LoopSafeAdapter._role_calls.get(role, 0) + 1
+            if role == "project_manager" and LoopSafeAdapter._role_calls[role] == 1:
                 return AgentResponse(
                     success=True,
                     output=json.dumps(

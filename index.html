@@ -39,6 +39,7 @@
           <li><a href="#agentic-infra" class="nav-link">Agentic Infra</a></li>
           <li><a href="#architecture" class="nav-link">Architecture</a></li>
           <li><a href="#agentic-team" class="nav-link">Agentic Team</a></li>
+          <li><a href="#graphify" class="nav-link">Graphify</a></li>
           <li><a href="#screenshots" class="nav-link">Screenshots</a></li>
           <li><a href="#quick-start" class="nav-link">Quick Start</a></li>
           <li><a href="#workflows" class="nav-link">Workflows</a></li>
@@ -63,8 +64,9 @@
         <div class="badge">Production Ready</div>
         <h1 class="hero-title">AI Coding Tools Orchestrator</h1>
         <p class="hero-subtitle">
-          Coordinate multiple AI coding assistants with enterprise-grade agentic infrastructure:
-          specialized agents, skills library, 34+ MCP tools, and project-scoped context memory
+          Five independent systems coordinating AI coding assistants with enterprise-grade
+          agentic infrastructure: specialized agents, skills library, 34+ MCP tools,
+          project-scoped context memory, and Graphify codebase knowledge graphs
         </p>
         <div class="hero-buttons">
           <a href="#quick-start" class="btn btn-primary">Get Started</a>
@@ -222,14 +224,27 @@
               lets agents learn from past tasks and avoid repeating mistakes.
             </p>
           </div>
+          <div class="overview-card">
+            <div class="card-icon">
+              <i class="fa-solid fa-share-nodes"></i>
+            </div>
+            <h3>Graphify — Codebase Knowledge Graphs</h3>
+            <p>
+              Turn any directory into a queryable knowledge graph. AST-based code
+              analysis for 19 languages, REST API, interactive HTML visualization,
+              and multi-format export (JSON, GraphML, DOT, Markdown).
+            </p>
+          </div>
         </div>
 
         <div class="architecture-description" style="margin-top: 1.25rem">
           <p>
-            Latest implementation supports type-based adapter resolution
-            (dynamic agent names), local/offline backends (Ollama +
-            OpenAI-compatible), cloud-to-local fallback on recoverable failures,
-            and live local model status probing in the Web UI.
+            Latest implementation includes five standalone systems (Orchestrator,
+            Agentic Team, MCP Server, Context Dashboard, Graphify), type-based
+            adapter resolution (dynamic agent names), local/offline backends
+            (Ollama + OpenAI-compatible), cloud-to-local fallback on recoverable
+            failures, and Graphify codebase knowledge graphs with 19-language
+            AST analysis.
           </p>
         </div>
 
@@ -283,7 +298,7 @@ graph LR
             <div class="stat-label">Workflows</div>
           </div>
           <div class="stat-item">
-            <div class="stat-number">2</div>
+            <div class="stat-number">5</div>
             <div class="stat-label">Independent Systems</div>
           </div>
           <div class="stat-item">
@@ -472,6 +487,23 @@ graph LR
               <li>10 domain-specific rules per platform</li>
               <li>Web, API, Security, DevOps, AI/ML, DB</li>
               <li>Extensible YAML/TOML configuration</li>
+            </ul>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fa-solid fa-share-nodes"></i>
+            </div>
+            <h3>Graphify — Codebase Knowledge Graphs</h3>
+            <ul class="feature-list">
+              <li>AST analysis for 19 languages via tree-sitter grammars</li>
+              <li>SQLite + FTS5 graph store with WAL mode</li>
+              <li>REST API (34+ endpoints) with Flask</li>
+              <li>Interactive HTML visualization (vis.js)</li>
+              <li>Multi-format export: JSON, GraphML, DOT, Markdown</li>
+              <li>File watcher for live incremental rebuilds</li>
+              <li>God-node detection &amp; hotspot analysis</li>
+              <li>Thread-safe, project-scoped, enterprise-grade</li>
             </ul>
           </div>
         </div>
@@ -672,13 +704,14 @@ graph TB
         <div class="architecture-description">
           <p>
             The AI Orchestrator follows a modular, layered architecture with
-            clear separation of concerns. It's designed for extensibility,
-            reliability, and production-grade performance.
+            clear separation of concerns. Five independent systems — Orchestrator,
+            Agentic Team, MCP Server, Context Dashboard, and Graphify — each have
+            their own CLI, config, and adapters with zero cross-imports.
           </p>
           <p>
-            Runtime controls now include offline detection, fallback management,
-            and local model endpoint probing. This allows hybrid and offline
-            execution without changing core orchestration flow.
+            Runtime controls include offline detection, fallback management,
+            local model endpoint probing, and Graphify codebase knowledge graphs
+            for deep project understanding.
           </p>
         </div>
 
@@ -1035,6 +1068,193 @@ sequenceDiagram
 
 # Full docs (protocol, examples, failure handling)
 open AGENTIC_TEAM.md</code></pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- Graphify Section -->
+    <section id="graphify" class="section">
+      <div class="container">
+        <h2 class="section-title">Graphify — Codebase Knowledge Graphs</h2>
+
+        <div class="architecture-description">
+          <p>
+            The fifth standalone system in the project. Graphify turns any
+            directory into a queryable knowledge graph using deterministic AST
+            analysis — no LLM required for code. It supports 19 programming
+            languages via tree-sitter grammars, provides a full REST API with
+            34+ endpoints, interactive HTML visualization, and multi-format
+            export. Built for enterprise-grade production use with thread-safe
+            SQLite + FTS5 storage, file watching for incremental rebuilds, and
+            project-scoped isolation.
+          </p>
+        </div>
+
+        <!-- Architecture Diagram -->
+        <div class="diagram-container">
+          <h3 class="diagram-title">Graphify Architecture</h3>
+          <pre class="mermaid">
+graph TB
+    subgraph Input["Input Layer"]
+        CLI["CLI (Click)"]
+        API["REST API (Flask)"]
+        Watch["File Watcher"]
+    end
+
+    subgraph Core["Core Engine"]
+        Scanner["Scanner"]
+        Cache["SHA-256 Cache"]
+        Graph["GraphStore (SQLite + FTS5)"]
+    end
+
+    subgraph Analyzers["Language Analyzers (19 languages)"]
+        PY["Python"]
+        JS["JavaScript"]
+        TS["TypeScript"]
+        GO["Go"]
+        RS["Rust"]
+        JV["Java"]
+        MORE["C, C++, Ruby, C#, Kotlin, Scala, PHP, Swift, Lua, Zig, Elixir, ObjC"]
+    end
+
+    subgraph Output["Output Layer"]
+        HTML["HTML Visualization (vis.js)"]
+        JSON["JSON Export"]
+        GML["GraphML Export"]
+        DOT["DOT / Graphviz"]
+        MD["Markdown Report"]
+    end
+
+    CLI --> Scanner
+    API --> Graph
+    Watch --> Scanner
+    Scanner --> Cache
+    Scanner --> Analyzers
+    Analyzers --> Graph
+    Graph --> Output
+          </pre>
+        </div>
+
+        <div class="overview-grid">
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fa-solid fa-code"></i>
+            </div>
+            <h3>19-Language AST Analysis</h3>
+            <ul class="feature-list">
+              <li>Tree-sitter grammars for deterministic parsing</li>
+              <li>Extracts classes, functions, imports, call graphs</li>
+              <li>Rationale comments (WHY, HACK, NOTE, TODO)</li>
+              <li>Docstrings, decorators, and type annotations</li>
+              <li>Zero LLM cost — fully local analysis</li>
+            </ul>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fa-solid fa-database"></i>
+            </div>
+            <h3>Enterprise Graph Store</h3>
+            <ul class="feature-list">
+              <li>SQLite with WAL mode for concurrent reads</li>
+              <li>FTS5 full-text search on all node content</li>
+              <li>Thread-local connections for safety</li>
+              <li>SHA-256 file caching — only re-analyze changed files</li>
+              <li>Project-scoped isolation with deterministic IDs</li>
+            </ul>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fa-solid fa-globe"></i>
+            </div>
+            <h3>REST API (34+ Endpoints)</h3>
+            <ul class="feature-list">
+              <li>Full CRUD for nodes, edges, and projects</li>
+              <li>Search, query, and graph traversal endpoints</li>
+              <li>Analytics: god nodes, hotspots, communities</li>
+              <li>Snapshot management and health checks</li>
+              <li>CORS support with configurable origins</li>
+            </ul>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fa-solid fa-chart-network" style="font-size: inherit"></i>
+              <i class="fa-solid fa-eye"></i>
+            </div>
+            <h3>Visualization &amp; Export</h3>
+            <ul class="feature-list">
+              <li>Interactive HTML graph with vis.js — click, search, filter</li>
+              <li>JSON export for downstream tooling</li>
+              <li>GraphML for Gephi / yEd</li>
+              <li>DOT format for Graphviz rendering</li>
+              <li>Markdown report with god nodes and statistics</li>
+            </ul>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fa-solid fa-rotate"></i>
+            </div>
+            <h3>Incremental &amp; Watch Mode</h3>
+            <ul class="feature-list">
+              <li>File watcher detects changes and triggers rebuilds</li>
+              <li>SHA-256 cache skips unchanged files on re-scans</li>
+              <li>Configurable ignore patterns (.graphifyignore)</li>
+              <li>Debounced batch processing for rapid edits</li>
+              <li>Background-safe with proper signal handling</li>
+            </ul>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fa-solid fa-magnifying-glass-chart"></i>
+            </div>
+            <h3>Graph Intelligence</h3>
+            <ul class="feature-list">
+              <li>God-node detection — highest-degree concepts</li>
+              <li>Hotspot analysis — files with most connections</li>
+              <li>Shortest-path queries between any two nodes</li>
+              <li>Subgraph extraction for focused analysis</li>
+              <li>Comprehensive project statistics and reports</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="example-usage">
+          <h3>Graphify Usage</h3>
+          <pre><code># Scan a project directory
+graphify scan /path/to/project
+
+# Search the knowledge graph
+graphify search "authentication" --limit 20
+
+# Query connections between concepts
+graphify query "What connects UserAuth to Database?"
+
+# Find shortest path between nodes
+graphify find-path "AuthController" "DatabasePool"
+
+# Generate a full report
+graphify report /path/to/project
+
+# Export to multiple formats
+graphify export --format json --output graph.json
+graphify export --format html --output graph.html
+graphify export --format graphml --output graph.graphml
+
+# Start the REST API server
+graphify serve --port 5000
+
+# Watch for file changes and rebuild incrementally
+graphify watch /path/to/project
+
+# Detect god nodes (highest connectivity)
+graphify god-nodes --limit 10
+
+# Analyze hotspots (most-connected files)
+graphify hotspots --limit 10</code></pre>
         </div>
       </div>
     </section>
@@ -1463,6 +1683,14 @@ workflows:
             <p>Specialized agents, skills, MCP tools, context system</p>
           </a>
 
+          <a href="GRAPHIFY.md" class="doc-card">
+            <div class="doc-icon">
+              <i class="fa-solid fa-share-nodes"></i>
+            </div>
+            <h3>Graphify</h3>
+            <p>Codebase knowledge graph system — architecture, API, and CLI</p>
+          </a>
+
           <a href="mcp_server/server.py" class="doc-card">
             <div class="doc-icon"><i class="fa-solid fa-server"></i></div>
             <h3>MCP Server</h3>
@@ -1880,6 +2108,7 @@ orchestrator (default) &gt; add authentication
               <li><a href="README.md">README</a></li>
               <li><a href="ARCHITECTURE.md">Architecture</a></li>
               <li><a href="FEATURES.md">Features</a></li>
+              <li><a href="GRAPHIFY.md">Graphify</a></li>
               <li><a href="SETUP.md">Setup Guide</a></li>
             </ul>
           </div>
