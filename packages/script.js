@@ -99,27 +99,12 @@ function initMobileMenu() {
     hamburger.classList.toggle("active");
   });
 
-  // Close menu when clicking on a link (skip dropdown toggles)
+  // Close menu when clicking on a link
   const navLinks = navMenu.querySelectorAll(".nav-link");
   navLinks.forEach((link) => {
-    link.addEventListener("click", (e) => {
-      // If this is a dropdown toggle on mobile, toggle submenu instead
-      const parentDropdown = link.closest(".nav-dropdown");
-      if (
-        parentDropdown &&
-        link.classList.contains("nav-dropdown-toggle") &&
-        window.innerWidth <= 1240
-      ) {
-        e.preventDefault();
-        parentDropdown.classList.toggle("mobile-open");
-        return;
-      }
+    link.addEventListener("click", () => {
       navMenu.classList.remove("active");
       hamburger.classList.remove("active");
-      // Close any open mobile dropdowns
-      navMenu
-        .querySelectorAll(".nav-dropdown.mobile-open")
-        .forEach((d) => d.classList.remove("mobile-open"));
     });
   });
 

@@ -59,7 +59,7 @@
 
 <div align="center">
 
-**Two self-contained systems -- an AI Orchestrator and an Agentic Team runtime -- that coordinate cloud and local AI coding assistants (Claude, Codex, Gemini, Copilot, Ollama, llama.cpp) to collaborate on software development tasks. Includes enterprise-grade agentic infrastructure with specialized agents, skills library, 34+ MCP tools, and project-scoped graph-based context memory.**
+**Five independent systems — an AI Orchestrator, an Agentic Team runtime, an MCP Server, a Context Dashboard, and Graphify (project-to-graph intelligence engine) — that coordinate cloud and local AI coding assistants (Claude, Codex, Gemini, Copilot, Ollama, llama.cpp) to collaborate on software development tasks. Includes enterprise-grade agentic infrastructure with specialized agents, skills library, 34+ MCP tools, project-scoped graph-based context memory, and Graphify's 22-language code analysis with persistent queryable knowledge graphs, interactive visualization, and REST API.**
 
 [Overview](#overview) | [Architecture](#architecture) | [Agentic Infrastructure](#agentic-infrastructure) | [System Comparison](#system-comparison) | [Features](#feature-highlights) | [Quick Start](#quick-start) | [Project Structure](#project-structure) | [Configuration](#configuration) | [Deployment](#deployment) | [Testing](#testing) | [MCP Server](#mcp-server-optional----model-context-protocol)
 
