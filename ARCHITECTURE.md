@@ -17,6 +17,7 @@
 - [Graph Context System](#graph-context-system)
   - [Project-Scoped Graphs](#project-scoped-graphs)
   - [Project Scanner](#project-scanner)
+  - [Obsidian Vault Export](#obsidian-vault-export)
   - [Graphify — Code Knowledge Graph Engine](#graphify--code-knowledge-graph-engine)
 - [Agentic Infrastructure](#agentic-infrastructure)
 - [Performance Considerations](#performance-considerations)
@@ -1131,6 +1132,7 @@ Each context system provides operational tooling via its `ops/` sub-package:
 - `export_json(output_path, node_types)` — Export graph to JSON (optional type filter)
 - `import_json(input_path)` — Import graph from JSON
 - `export_graphml(output_path)` — Export to GraphML for external graph tools
+- `export_obsidian(output_path, node_types)` — Export as [Obsidian](https://obsidian.md) vault with `[[wikilinks]]` and graph-view colors
 - `get_export_summary()` — Preview of export contents
 
 **Versioning** (`ops/versioning.py`, Orchestrator only) — Node history tracking:
@@ -1172,7 +1174,7 @@ The dashboard aggregates both context databases and provides:
 - **Interactive graph explorer** — vis-network powered node/edge visualization with click-to-inspect
 - **Analytics charts** — Node distribution, temporal growth, agent activity heatmaps via Chart.js
 - **Search interface** — Query across both context systems
-- **Export controls** — Download graph data as JSON or GraphML
+- **Export controls** — Download graph data as JSON, GraphML, or **Obsidian vault**
 
 ### Integration
 
@@ -1285,6 +1287,79 @@ flowchart TD
 - Safety limit of 5,000 files per scan to prevent runaway on monorepos
 - Produces `ProjectNode`, `FileNode`, `PatternNode`, and `DecisionNode` objects with relationship edges
 
+### Obsidian Vault Export
+
+All three graph systems support exporting to [Obsidian](https://obsidian.md)-compatible vaults, enabling interactive visual exploration of code structure, context memory, and team interactions through Obsidian's native graph view.
+
+```mermaid
+flowchart TD
+    subgraph Sources["Graph Data Sources"]
+        GS[Graphify GraphStore<br/>Code structure: classes, functions, imports]
+        OS[Orchestrator GraphStore<br/>Context memory: tasks, decisions, patterns]
+        AS[Agentic Team GraphStore<br/>Team context: tasks, decisions, agent outputs]
+    end
+
+    subgraph Export["Export Pipeline"]
+        GS --> GE["GraphExporter.to_obsidian()"]
+        OS --> OE["ContextExporter.export_obsidian()"]
+        AS --> AE["ContextExporter.export_obsidian()"]
+    end
+
+    subgraph Vault["Obsidian Vault Structure"]
+        direction TB
+        GE & OE & AE --> NOTES["Per-Node Markdown Notes<br/>YAML frontmatter + body + [[wikilinks]]"]
+        GE & OE & AE --> FOLDERS["Typed Folders<br/>Classes/ Tasks/ Decisions/ ..."]
+        GE & OE & AE --> INDEX["_Index.md<br/>Map of Content with stats"]
+        GE & OE & AE --> CONFIG[".obsidian/ Config<br/>graph.json · appearance.json · core-plugins.json"]
+    end
+
+    subgraph Obsidian["Obsidian App"]
+        CONFIG --> GRAPH["Graph View (Ctrl/Cmd+G)<br/>Color-coded node types<br/>Interactive exploration"]
+        NOTES --> LINKS["Backlink Navigation<br/>Click [[wikilinks]] to traverse"]
+        INDEX --> MOC["Map of Content<br/>Browse by category"]
+    end
+
+    style GS fill:#4CAF50,color:#fff
+    style OS fill:#2196F3,color:#fff
+    style AS fill:#FF9800,color:#fff
+    style CONFIG fill:#7C3AED,color:#fff
+    style GRAPH fill:#7C3AED,color:#fff
+```
+
+**Note format (per node):**
+
+```markdown
+---
+type: "task"
+tags: ["task", "auth", "security"]
+importance: 0.85
+created: "2025-06-15T10:30:00Z"
+project_id: "a1b2c3d4"
+---
+
+# ✅ Implement JWT Authentication
+
+Task content and description...
+
+## Relationships
+
+### → Related To
+- [[Decisions/Use SQLite for storage|Use SQLite for storage]]
+
+### ← Used In
+- [[Patterns/Adapter pattern|Adapter pattern]]
+```
+
+**`.obsidian/graph.json` color configuration:**
+
+Each exporter generates a `graph.json` with `colorGroups` that assign distinct colors to each node type using tag-based queries (`tag:#task`, `tag:#class`, etc.). This means the graph view immediately renders a color-coded relationship web with no manual configuration required.
+
+| Component | Graphify Colors | Context System Colors |
+|-----------|----------------|----------------------|
+| Core nodes | 🟢 Classes, 🔵 Functions, 📄 Files | ✅ Tasks, ⚖️ Decisions, 🔁 Patterns |
+| Structural | 📦 Modules, 📂 Directories | 💬 Conversations, ❌ Mistakes |
+| References | 📥 Imports, 🧪 Tests | 💻 Code Snippets, 💡 Concepts |
+
 ### Graphify — Code Knowledge Graph Engine
 
 `graphify/` is a standalone system (zero imports from orchestrator or agentic_team) that builds deep, queryable knowledge graphs from any project directory using AST parsing and pattern analysis.
@@ -1303,7 +1378,7 @@ graph TB
         PY & JS & DOC & CFG & GEN --> STORE[GraphStore<br/>SQLite + FTS5]
         STORE --> SEARCH[FTS Search + Query Engine]
         STORE --> API[REST API]
-        STORE --> EXPORT[JSON / DOT / GraphML / HTML]
+        STORE --> EXPORT[JSON / DOT / GraphML / HTML / Obsidian]
         STORE --> METRICS[Scan Metrics]
         STORE --> SNAP[Snapshots & Diffs]
     end

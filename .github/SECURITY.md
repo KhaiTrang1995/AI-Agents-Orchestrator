@@ -20,7 +20,7 @@ We take the security of AI Orchestrator seriously. If you believe you have found
 
 ### Please Do
 
-1. **Email us** at security@example.com with:
+1. **Email us** at hoangson091104@gmail.com with:
    - Description of the vulnerability
    - Steps to reproduce
    - Potential impact
@@ -170,7 +170,7 @@ This project follows:
 
 ## Contact
 
-- **Security Email**: security@example.com
+- **Security Email**: hoangson091104@gmail.com
 - **General Issues**: GitHub Issues
 - **PGP Key**: Available on request
 
