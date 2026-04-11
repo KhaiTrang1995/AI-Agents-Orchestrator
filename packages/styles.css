@@ -912,6 +912,22 @@ pre.mermaid {
   top: 0.38rem;
 }
 
+.feature-list a,
+.feature-card a,
+.overview-card a {
+  color: var(--accent-light);
+  text-decoration: none;
+  border-bottom: 1px solid var(--accent-muted);
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.feature-list a:hover,
+.feature-card a:hover,
+.overview-card a:hover {
+  color: #fff;
+  border-bottom-color: var(--accent-light);
+}
+
 /* ===========================
    Architecture Section
    =========================== */

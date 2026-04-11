@@ -171,14 +171,21 @@ graph TB
             APP[app.py — Flask aggregator]
             VIZ[templates/ — Interactive visualization]
         end
+
+        subgraph OBS_OUT["Obsidian Export"]
+            OBS_V["Obsidian Vault<br/>[[wikilinks]] + graph.json"]
+        end
     end
 
     ORCH_CTX --> DASH
     TEAM_CTX --> DASH
+    ORCH_CTX --> OBS_OUT
+    TEAM_CTX --> OBS_OUT
 
     style ORCH_CTX fill:#1a365d,color:#fff
     style TEAM_CTX fill:#1a365d,color:#fff
     style DASH fill:#2d3748,color:#fff
+    style OBS_OUT fill:#7C3AED,color:#fff
 ```
 
 **Node Types** — 10 types of knowledge stored in the graph:
@@ -262,6 +269,9 @@ graph TB
 
 > [!NOTE]
 > **Context Dashboard:** Launch with `python -m context_dashboard` (port 5003) to visualize both context graphs, inspect nodes/edges, and search across all stored knowledge. See [`context_dashboard/README.md`](context_dashboard/README.md) for details.
+
+> [!TIP]
+> **Obsidian Export:** Export any graph as an [Obsidian](https://obsidian.md) vault for offline interactive exploration. Graphify: `graphify export obsidian <path>`. Context systems: `ContextExporter.export_obsidian()`. Each vault includes `[[wikilinks]]`, typed folders, YAML frontmatter, and pre-configured `.obsidian/graph.json` color groups. See [GRAPHIFY.md](GRAPHIFY.md#obsidian-vault-export), [ORCHESTRATOR.md](ORCHESTRATOR.md#obsidian-vault-export), and [AGENTIC_TEAM.md](AGENTIC_TEAM.md#obsidian-vault-export).
 
 ### Skills Library & Agent Definitions
 
@@ -615,7 +625,7 @@ The two systems serve different collaboration models. Choose based on your use c
 | **Graph** | SQLite + FTS5, WAL mode, schema migrations (v1→v2→v3), thread-local connections, context manager |
 | **Search** | Full-text search, node explanation, path finding (BFS), community detection, god node analysis, complexity hotspots |
 | **Cache** | SHA-256 content-addressable cache, incremental scans (only changed files) |
-| **Export** | JSON, DOT (Graphviz), Markdown, GraphML, interactive HTML (vis.js) |
+| **Export** | JSON, DOT (Graphviz), Markdown, GraphML, interactive HTML (vis.js), **Obsidian vault** |
 | **API** | Flask REST API with CORS, structured error handling, metrics/snapshot/diff endpoints |
 | **Operations** | File watching (watchdog + polling), graph snapshots & diffing, scan metrics collection |
 | **Security** | Path traversal protection, input sanitization, bounded parameters, no debug mode |

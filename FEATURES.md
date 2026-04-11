@@ -16,6 +16,7 @@
 - [Monitoring & Metrics](#monitoring--metrics)
 - [Project-Scoped Context Graphs](#project-scoped-context-graphs)
 - [Graphify — Code Knowledge Graph Engine](#graphify--code-knowledge-graph-engine)
+  - [Obsidian Vault Export](#obsidian-vault-export)
 - [Advanced Features](#advanced-features)
 - [Production Readiness](#production-readiness)
 
@@ -219,6 +220,7 @@ graph TB
 - Hybrid search combining BM25 + semantic embeddings
 - Automatic storage of completed tasks
 - Mistake logging for learning
+- **Obsidian vault export** — visualize context graphs in [Obsidian](https://obsidian.md)'s graph view with color-coded node types
 
 **Usage:**
 ```python
@@ -1182,7 +1184,7 @@ The `graphify/` system turns any project directory into a deep, queryable knowle
 | **Snapshots & Diffs** | Track graph evolution over time |
 | **Scan Metrics** | Duration, cache rates, per-analyzer timing, historical trends |
 | **REST API** | 25+ endpoints with CORS, structured errors, metrics/diff support |
-| **Export** | JSON, DOT (Graphviz), Markdown, GraphML, interactive HTML (vis.js) |
+| **Export** | JSON, DOT (Graphviz), Markdown, GraphML, interactive HTML (vis.js), **Obsidian vault** |
 | **Schema Migrations** | v1 → v2 (confidence) → v3 (metrics/snapshots), decorator-based registry |
 | **Security** | Path traversal protection, input sanitization, bounded parameters |
 
@@ -1193,10 +1195,49 @@ graph LR
     GRAPH --> CLI[CLI: 10 commands]
     GRAPH --> API[REST API: 25+ endpoints]
     GRAPH --> VIZ[Interactive HTML]
-    GRAPH --> EXPORT[JSON / DOT / GraphML]
+    GRAPH --> EXPORT[JSON / DOT / GraphML / Obsidian]
 ```
 
 With `graphify`, agents can query deep structural information about the user's codebase, enabling informed decision-making, pattern recognition, and context-aware modifications.
+
+### Obsidian Vault Export
+
+All three graph systems — **Graphify**, **Orchestrator Context**, and **Agentic Team Context** — can export their data as [Obsidian](https://obsidian.md)-compatible vaults. Open the generated directory in Obsidian and use the built-in graph view (**Ctrl/Cmd + G**) to explore relationships visually.
+
+```mermaid
+graph TB
+    subgraph "Three Graph Systems → Obsidian"
+        G[Graphify<br/>Code Structure] --> GV[Code Vault]
+        O[Orchestrator<br/>Context Memory] --> OV[Context Vault]
+        A[Agentic Team<br/>Context Memory] --> AV[Team Vault]
+    end
+
+    subgraph "Obsidian Vault Contents"
+        GV & OV & AV --> FM[YAML Frontmatter<br/>type, tags, metadata]
+        GV & OV & AV --> WL["[[Wikilinks]]<br/>→ outgoing / ← incoming"]
+        GV & OV & AV --> IDX[_Index.md<br/>Map of Content]
+        GV & OV & AV --> CFG[.obsidian/<br/>graph.json colors]
+    end
+
+    style GV fill:#4CAF50,color:#fff
+    style OV fill:#2196F3,color:#fff
+    style AV fill:#FF9800,color:#fff
+    style CFG fill:#7C3AED,color:#fff
+```
+
+| System | Exporter | Node Types Visualized | CLI |
+|--------|----------|-----------------------|-----|
+| **Graphify** | `GraphExporter.to_obsidian()` | Classes, Functions, Files, Tests, Imports, Dependencies | `graphify export obsidian` |
+| **Orchestrator** | `ContextExporter.export_obsidian()` | Tasks, Decisions, Patterns, Mistakes, Conversations | Python API |
+| **Agentic Team** | `ContextExporter.export_obsidian()` | Tasks, Decisions, Patterns, Agent Outputs, Conversations | Python API |
+
+**Each vault includes:**
+- **Folder-per-type layout** — `Classes/`, `Tasks/`, `Decisions/`, etc.
+- **YAML frontmatter** — type, tags, importance, timestamps, language, project_id
+- **`[[Wikilinks]]`** — relationships grouped by edge type (Contains, Calls, Caused By, etc.)
+- **`_Index.md`** — Map of Content with stats table and category links
+- **`.obsidian/graph.json`** — Color groups per node type, pre-configured for graph view
+- **Dark theme** — `.obsidian/appearance.json` with Obsidian dark mode
 
 ## Advanced Features
 

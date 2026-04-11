@@ -235,11 +235,34 @@
             <div class="card-icon">
               <i class="fa-solid fa-share-nodes"></i>
             </div>
-            <h3>Graphify — Codebase Knowledge Graphs</h3>
+            <h3>Graphify</h3>
             <p>
               Turn any directory into a queryable knowledge graph. AST-based code
               analysis for 19 languages, REST API, interactive HTML visualization,
-              and multi-format export (JSON, GraphML, DOT, Markdown).
+              and multi-format export (JSON, GraphML, DOT, Markdown, Obsidian vault).
+            </p>
+          </div>
+          <div class="overview-card">
+            <div class="card-icon">
+              <i class="fa-solid fa-gem"></i>
+            </div>
+            <h3>Obsidian Vault Export</h3>
+            <p>
+              Export code graphs and context memory as
+              <a href="https://obsidian.md" target="_blank">Obsidian</a> vaults.
+              Pre-configured graph view with color-coded node types, [[wikilinks]],
+              and YAML frontmatter - across all three graph systems.
+            </p>
+          </div>
+          <div class="overview-card">
+            <div class="card-icon">
+              <i class="fa-solid fa-people-group"></i>
+            </div>
+            <h3>Agentic Team Runtime</h3>
+            <p>
+              Multi-role team collaboration with free inter-agent communication,
+              lead-gated responses, configurable turn limits, and live
+              communication graphs.
             </p>
           </div>
         </div>
@@ -465,7 +488,7 @@ graph LR
             <div class="feature-icon"><i class="fa-solid fa-plug"></i></div>
             <h3>MCP Server (Model Context Protocol)</h3>
             <ul class="feature-list">
-              <li>FastMCP 3.x — 34+ tools, 2 resources</li>
+              <li>FastMCP 3.x - 34+ tools, 2 resources</li>
               <li>Claude Desktop integration (stdio)</li>
               <li>Remote access via HTTP transport</li>
               <li>Both engines accessible from any MCP client</li>
@@ -482,6 +505,7 @@ graph LR
               <li>Hybrid search (BM25 + semantic)</li>
               <li>Sentence transformer embeddings</li>
               <li>Auto-storage of tasks &amp; mistakes</li>
+              <li>Obsidian vault export with graph view</li>
             </ul>
           </div>
 
@@ -501,16 +525,42 @@ graph LR
             <div class="feature-icon">
               <i class="fa-solid fa-share-nodes"></i>
             </div>
-            <h3>Graphify — Codebase Knowledge Graphs</h3>
+            <h3>Graphify</h3>
             <ul class="feature-list">
               <li>AST analysis for 19 languages via tree-sitter grammars</li>
               <li>SQLite + FTS5 graph store with WAL mode</li>
               <li>REST API (34+ endpoints) with Flask</li>
               <li>Interactive HTML visualization (vis.js)</li>
-              <li>Multi-format export: JSON, GraphML, DOT, Markdown</li>
+              <li>Multi-format export: JSON, GraphML, DOT, Markdown, Obsidian</li>
               <li>File watcher for live incremental rebuilds</li>
               <li>God-node detection &amp; hotspot analysis</li>
               <li>Thread-safe, project-scoped, enterprise-grade</li>
+            </ul>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon"><i class="fa-solid fa-gem"></i></div>
+            <h3>Obsidian Integration</h3>
+            <ul class="feature-list">
+              <li>Export all 3 graph systems as <a href="https://obsidian.md" target="_blank">Obsidian</a> vaults</li>
+              <li>[[Wikilinks]] between nodes - classes, tasks, decisions</li>
+              <li>YAML frontmatter with type, tags, importance, timestamps</li>
+              <li>Pre-configured <code>.obsidian/graph.json</code> color groups</li>
+              <li>_Index.md Map of Content with stats &amp; category links</li>
+              <li>Dark theme &amp; core plugins auto-enabled</li>
+            </ul>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon"><i class="fa-solid fa-people-group"></i></div>
+            <h3>Agentic Team Runtime</h3>
+            <ul class="feature-list">
+              <li>5 specialist roles with free inter-role communication</li>
+              <li>Team Lead gatekeeping for final responses</li>
+              <li>Configurable turn limits &amp; escalation safety</li>
+              <li>Live communication graph &amp; timeline UI</li>
+              <li>Independent context memory &amp; fallback routing</li>
+              <li>Dedicated REPL &amp; web studio interface</li>
             </ul>
           </div>
         </div>
@@ -632,6 +682,7 @@ graph TB
               <li><strong>Auto-storage:</strong> Tasks stored automatically</li>
               <li><strong>Learning:</strong> Agents learn from mistakes</li>
               <li><strong>Project Scoping:</strong> Project-scoped context graphs with multi-project isolation, automatic codebase scanning, and portable configuration via PROJECT_PATH</li>
+              <li><strong>Obsidian Export:</strong> Export context graphs as Obsidian vaults with [[wikilinks]], color-coded graph view, and YAML frontmatter</li>
             </ul>
           </div>
 
@@ -686,12 +737,19 @@ graph TB
             EMBED[Embeddings]
             RRF[RRF Fusion]
         end
+
+        subgraph "Export"
+            JSONX[JSON]
+            GMLX[GraphML]
+            OBSX["Obsidian Vault<br/>[[wikilinks]] + graph.json"]
+        end
     end
 
     CONV & TASK & MISTAKE --> SQLITE
     SQLITE --> FTS5
     EMBED --> VEC
     BM25 & EMBED --> RRF
+    SQLITE --> JSONX & GMLX & OBSX
           </pre>
         </div>
 
@@ -711,8 +769,8 @@ graph TB
         <div class="architecture-description">
           <p>
             The AI Orchestrator follows a modular, layered architecture with
-            clear separation of concerns. Five independent systems — Orchestrator,
-            Agentic Team, MCP Server, Context Dashboard, and Graphify — each have
+            clear separation of concerns. Five independent systems - Orchestrator,
+            Agentic Team, MCP Server, Context Dashboard, and Graphify - each have
             their own CLI, config, and adapters with zero cross-imports.
           </p>
           <p>
@@ -1082,18 +1140,19 @@ open AGENTIC_TEAM.md</code></pre>
     <!-- Graphify Section -->
     <section id="graphify" class="section">
       <div class="container">
-        <h2 class="section-title">Graphify — Codebase Knowledge Graphs</h2>
+        <h2 class="section-title">Graphify - Codebase Knowledge Graphs</h2>
 
         <div class="architecture-description">
           <p>
             The fifth standalone system in the project. Graphify turns any
             directory into a queryable knowledge graph using deterministic AST
-            analysis — no LLM required for code. It supports 19 programming
+            analysis - no LLM required for code. It supports 19 programming
             languages via tree-sitter grammars, provides a full REST API with
-            34+ endpoints, interactive HTML visualization, and multi-format
-            export. Built for enterprise-grade production use with thread-safe
-            SQLite + FTS5 storage, file watching for incremental rebuilds, and
-            project-scoped isolation.
+            34+ endpoints, interactive HTML visualization, Obsidian vault
+            export with color-coded graph view, and multi-format export. Built
+            for enterprise-grade production use with thread-safe SQLite + FTS5
+            storage, file watching for incremental rebuilds, and project-scoped
+            isolation.
           </p>
         </div>
 
@@ -1130,6 +1189,7 @@ graph TB
         GML["GraphML Export"]
         DOT["DOT / Graphviz"]
         MD["Markdown Report"]
+        OBS["Obsidian Vault"]
     end
 
     CLI --> Scanner
@@ -1153,7 +1213,7 @@ graph TB
               <li>Extracts classes, functions, imports, call graphs</li>
               <li>Rationale comments (WHY, HACK, NOTE, TODO)</li>
               <li>Docstrings, decorators, and type annotations</li>
-              <li>Zero LLM cost — fully local analysis</li>
+              <li>Zero LLM cost - fully local analysis</li>
             </ul>
           </div>
 
@@ -1166,7 +1226,7 @@ graph TB
               <li>SQLite with WAL mode for concurrent reads</li>
               <li>FTS5 full-text search on all node content</li>
               <li>Thread-local connections for safety</li>
-              <li>SHA-256 file caching — only re-analyze changed files</li>
+              <li>SHA-256 file caching - only re-analyze changed files</li>
               <li>Project-scoped isolation with deterministic IDs</li>
             </ul>
           </div>
@@ -1192,7 +1252,8 @@ graph TB
             </div>
             <h3>Visualization &amp; Export</h3>
             <ul class="feature-list">
-              <li>Interactive HTML graph with vis.js — click, search, filter</li>
+              <li>Interactive HTML graph with vis.js - click, search, filter</li>
+              <li><strong>Obsidian vault export</strong> with [[wikilinks]], typed folders, and graph-view color groups</li>
               <li>JSON export for downstream tooling</li>
               <li>GraphML for Gephi / yEd</li>
               <li>DOT format for Graphviz rendering</li>
@@ -1220,11 +1281,58 @@ graph TB
             </div>
             <h3>Graph Intelligence</h3>
             <ul class="feature-list">
-              <li>God-node detection — highest-degree concepts</li>
-              <li>Hotspot analysis — files with most connections</li>
+              <li>God-node detection - highest-degree concepts</li>
+              <li>Hotspot analysis - files with most connections</li>
               <li>Shortest-path queries between any two nodes</li>
               <li>Subgraph extraction for focused analysis</li>
               <li>Comprehensive project statistics and reports</li>
+            </ul>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fa-solid fa-gem"></i>
+            </div>
+            <h3>Obsidian Vault Export</h3>
+            <ul class="feature-list">
+              <li>Export code graphs as <a href="https://obsidian.md" target="_blank">Obsidian</a> vaults</li>
+              <li>[[Wikilinks]] between nodes - classes, functions, files, tests</li>
+              <li>YAML frontmatter with type, language, tags, line ranges</li>
+              <li>Pre-configured <code>.obsidian/graph.json</code> with color-coded node types</li>
+              <li>_Index.md Map of Content with stats and category links</li>
+              <li>Dark theme &amp; core plugins auto-enabled out of the box</li>
+              <li>Also available on Orchestrator &amp; Agentic Team context graphs</li>
+            </ul>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fa-solid fa-shield-check"></i>
+              <i class="fa-solid fa-shield-halved"></i>
+            </div>
+            <h3>Production Hardening</h3>
+            <ul class="feature-list">
+              <li>Schema migrations (v1→v2→v3) - automatic upgrades on open</li>
+              <li>Thread-local SQLite connections for concurrency safety</li>
+              <li>Input validation with bounded parameters (max 10,000 nodes)</li>
+              <li>Path traversal protection on all file operations</li>
+              <li>Structured exception hierarchy - 12 typed error classes</li>
+              <li>WAL mode for non-blocking reads during writes</li>
+            </ul>
+          </div>
+
+          <div class="feature-card">
+            <div class="feature-icon">
+              <i class="fa-solid fa-chart-pie"></i>
+            </div>
+            <h3>Analytics &amp; Reporting</h3>
+            <ul class="feature-list">
+              <li>Scan metrics - duration, cache rates, per-analyzer timing</li>
+              <li>Graph snapshots &amp; diffing - track evolution over time</li>
+              <li>Community detection for module clustering</li>
+              <li>Complexity hotspot scoring across files</li>
+              <li>Comprehensive project statistics dashboard</li>
+              <li>Historical trend tracking for graph growth</li>
             </ul>
           </div>
         </div>
@@ -1250,6 +1358,10 @@ graphify report /path/to/project
 graphify export --format json --output graph.json
 graphify export --format html --output graph.html
 graphify export --format graphml --output graph.graphml
+
+# Export as Obsidian vault for interactive graph exploration
+graphify export obsidian /path/to/project --output ./code-vault
+# → Open ./code-vault in Obsidian, press Ctrl/Cmd+G for graph view
 
 # Start the REST API server
 graphify serve --port 5000
@@ -1695,13 +1807,13 @@ workflows:
               <i class="fa-solid fa-share-nodes"></i>
             </div>
             <h3>Graphify</h3>
-            <p>Codebase knowledge graph system — architecture, API, and CLI</p>
+            <p>Codebase knowledge graph system - architecture, API, and CLI</p>
           </a>
 
           <a href="mcp_server/server.py" class="doc-card">
             <div class="doc-icon"><i class="fa-solid fa-server"></i></div>
             <h3>MCP Server</h3>
-            <p>FastMCP server — 34+ tools for both engines</p>
+            <p>FastMCP server - 34+ tools for both engines</p>
           </a>
 
           <a href="docs/context-system.md" class="doc-card">

@@ -407,17 +407,26 @@ def find_path(start: str, end: str, project_path: str, db: str | None) -> None:
 
 
 @main.command()
-@click.argument("fmt", type=click.Choice(["json", "dot", "markdown", "graphml"]))
+@click.argument("fmt", type=click.Choice(["json", "dot", "markdown", "graphml", "obsidian"]))
 @click.argument("path", default=".")
 @click.option("--db", default=None, help="Database path.")
 @click.option("--output", "-o", default=None, help="Output file (default: stdout).")
 def export(fmt: str, path: str, db: str | None, output: str | None) -> None:
-    """Export the project graph to JSON, DOT, Markdown, or GraphML."""
+    """Export the project graph to JSON, DOT, Markdown, GraphML, or Obsidian vault."""
     resolved = _resolve_path(path)
     pid = _get_project_id(resolved)
 
     with _get_store(resolved, db) as store:
         exporter = GraphExporter(store)
+
+        # Obsidian produces a directory, not a single file.
+        if fmt == "obsidian":
+            out_dir = output or os.path.join(resolved, "obsidian-vault")
+            result = exporter.to_obsidian(pid, output_dir=out_dir)
+            console.print(
+                f"[green]🟣 Obsidian vault:[/green] {result['notes_written']} notes → {out_dir}"
+            )
+            return
 
         if fmt == "json":
             content = exporter.to_json(pid)

@@ -349,6 +349,59 @@ context = manager.get_project_context(pid, task="Add user roles")
 results = manager.search("authentication patterns", limit=10)
 ```
 
+### Obsidian Vault Export
+
+Export the orchestrator's context graph as an [Obsidian](https://obsidian.md) vault for interactive exploration. Each node (task, decision, pattern, mistake, conversation) becomes a markdown note with YAML frontmatter and `[[wikilinks]]` to related nodes.
+
+```python
+from orchestrator.context.ops.export import ContextExporter
+from orchestrator.context.graph_store import GraphStore
+
+store = GraphStore("~/.ai-orchestrator/context.db")
+exporter = ContextExporter(store)
+
+# Export full graph
+result = exporter.export_obsidian("./orchestrator-vault")
+# → { notes_written: 142, edges_linked: 387, folders: [...] }
+
+# Export only decisions and patterns
+result = exporter.export_obsidian("./vault", node_types=["decision", "pattern"])
+```
+
+Open the vault in Obsidian and press **Ctrl/Cmd + G** to visualize task dependencies, decision chains, and learned patterns as an interactive color-coded graph.
+
+```mermaid
+graph LR
+    subgraph "Orchestrator Context → Obsidian"
+        DB[(context.db)] --> EXP[ContextExporter]
+        EXP --> VAULT[Obsidian Vault]
+        VAULT --> IDX[_Index.md<br/>Map of Content]
+        VAULT --> TASKS[Tasks/]
+        VAULT --> DECS[Decisions/]
+        VAULT --> PATS[Patterns/]
+        VAULT --> MIST[Mistakes/]
+        VAULT --> CONVS[Conversations/]
+        VAULT --> OBS[.obsidian/<br/>graph.json]
+    end
+
+    style VAULT fill:#7C3AED,color:#fff
+    style OBS fill:#4FC3F7,color:#000
+    style IDX fill:#FFC107,color:#000
+```
+
+**Generated vault structure:**
+
+| Folder | Contents | Color in Graph View |
+|--------|----------|-------------------|
+| `Tasks/` | Completed tasks with outcomes | 🟢 Green |
+| `Decisions/` | Architectural decisions with rationale | 🟣 Purple |
+| `Patterns/` | Reusable code patterns | 🟠 Orange |
+| `Mistakes/` | Errors with corrections and prevention | 🔴 Red |
+| `Conversations/` | Past chat sessions | 🔵 Light Blue |
+| `Code Snippets/` | Useful code fragments | ⚫ Grey |
+| `Concepts/` | Domain knowledge | 🟡 Lime |
+| `Projects/` | Registered project roots | 🟡 Amber |
+
 ## MCP Integration (Optional)
 
 The orchestrator is optionally accessible via MCP (Model Context Protocol) through the shared MCP server at `mcp_server/`. The MCP server is not required to use the orchestrator; it provides an additional integration surface for LLM clients that support the MCP protocol.

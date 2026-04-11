@@ -21,6 +21,7 @@
 - [Package Structure](#package-structure)
 - [MCP Integration (Optional)](#mcp-integration-optional)
 - [Context System](#context-system)
+  - [Obsidian Vault Export](#obsidian-vault-export)
 
 ## Overview
 
@@ -776,3 +777,53 @@ The Agentic Team context system (`agentic_team/context/`) is a fully independent
 - Own `store/graph_store.py` — independent SQLite graph store
 - Own `ops/project_scanner.py` — independent copy of the project scanner
 - **Zero imports from `orchestrator/`** — verified by CI
+
+### Obsidian Vault Export
+
+Export the Agentic Team's communication and context graph as an [Obsidian](https://obsidian.md) vault. Each node becomes a markdown note with YAML frontmatter, typed folder organization, and `[[wikilinks]]` connecting related nodes.
+
+```python
+from agentic_team.context.ops.export import ContextExporter
+from agentic_team.context.graph_store import GraphStore
+
+store = GraphStore("~/.agentic-team/context.db")
+exporter = ContextExporter(store)
+
+# Export full context graph
+result = exporter.export_obsidian("./team-vault")
+# → { notes_written: 89, edges_linked: 214, folders: [...] }
+
+# Export only tasks and decisions
+result = exporter.export_obsidian("./vault", node_types=["task", "decision"])
+```
+
+Open the generated vault in Obsidian and press **Ctrl/Cmd + G** to explore team interactions, role handoffs, and decisions as a visual graph.
+
+```mermaid
+graph LR
+    subgraph "Agentic Team Context → Obsidian"
+        DB[(context.db)] --> EXP[ContextExporter]
+        EXP --> VAULT[Obsidian Vault]
+        VAULT --> IDX[_Index.md<br/>Map of Content]
+        VAULT --> TASKS[Tasks/]
+        VAULT --> DECS[Decisions/]
+        VAULT --> PATS[Patterns/]
+        VAULT --> MIST[Mistakes/]
+        VAULT --> AGENTS[Agent Outputs/]
+        VAULT --> OBS[.obsidian/<br/>graph.json]
+    end
+
+    style VAULT fill:#7C3AED,color:#fff
+    style OBS fill:#4FC3F7,color:#000
+    style IDX fill:#FFC107,color:#000
+```
+
+**Vault features:**
+- **Typed folders** — Tasks/, Decisions/, Patterns/, Mistakes/, Conversations/, Agent Outputs/, etc.
+- **YAML frontmatter** — type, tags, importance score, timestamps, project_id, metadata
+- **`[[Wikilinks]]`** — Relationships grouped by edge type with → outgoing and ← incoming sections
+- **`_Index.md`** — Map of Content with stats table and links to every category
+- **`.obsidian/graph.json`** — Color groups per node type for the built-in graph view
+- **Dark theme** — `.obsidian/appearance.json` pre-configured with Obsidian dark mode
+
+> **Note:** This is a fully independent implementation from the orchestrator's Obsidian exporter — zero shared imports, consistent with the Agentic Team's independence guarantee.
