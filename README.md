@@ -1269,7 +1269,7 @@ Contributions are welcome. Please see [CONTRIBUTING.md](.github/CONTRIBUTING.md)
 
 ## Security
 
-For security issues, please email security@example.com. Do not open public issues for security vulnerabilities. See [SECURITY.md](SECURITY.md) for the full security policy.
+For security issues, please email hoangson091104@gmail.com. Do not open public issues for security vulnerabilities. See [SECURITY.md](SECURITY.md) for the full security policy.
 
 ## License
 
