@@ -3,6 +3,7 @@
 ## Table of Contents
 
 - [Core Features](#core-features)
+- [Local LLM Support and Limits](#local-llm-support-and-limits)
 - [Agentic Infrastructure](#agentic-infrastructure)
 - [Agentic Team Features](#agentic-team-features)
 - [CLI Features](#cli-features)
@@ -72,6 +73,33 @@ workflows:
       - agent: "claude"
         task: "refine"
 ```
+
+### Local LLM Support and Limits
+
+The platform supports local model adapters alongside Claude, Codex, Gemini, and Copilot. Local adapters participate in workflow routing, offline execution, and cloud-to-local fallback.
+
+**Supported local adapter types:**
+- `ollama`
+- `llamacpp`
+- `localai`
+- `text-generation-webui`
+
+| Adapter Family | Execution Path | Direct Workspace File Edits |
+|----------|----------|----------|
+| CLI adapters (`claude`, `codex`, `gemini`, `copilot`) | CLI process with workspace execution | ✅ Yes |
+| Local adapters (`ollama`, `llamacpp`, `localai`, `text-generation-webui`) | HTTP completion APIs (`/api/generate`, `/v1/completions`) | ❌ No (text output only) |
+
+**Best use for local models:**
+- Offline drafting and analysis
+- Review/support roles in hybrid workflows
+- Continuity fallback when cloud agents are unavailable
+
+**Operational support:**
+- `./ai-orchestrator shell --offline`
+- `./ai-orchestrator models status|list|pull|remove`
+
+> [!IMPORTANT]
+> While it is possible to make local LLMs directly edit files (e.g., via a `file-editor` tool), this approach is currently disabled to prevent unintended destructive changes. Local adapters are advisory — they provide text output that the Orchestrator can use to inform the next steps, but they do not have direct write access to the workspace. This design choice prioritizes safety and predictability while still leveraging local models for their strengths in drafting and feedback. The hard part is not feasibility, it’s safety and reliability: permissions, diff constraints, validation/tests before write, rollback, and preventing bad edits.
 
 ## Agentic Infrastructure
 
@@ -823,6 +851,12 @@ graph TD
 - Multiple implementation options
 - Pattern-based recommendations
 - Best for: Ideation, alternatives
+
+**Local adapters (Ollama/OpenAI-compatible):**
+- Execute through local HTTP completion endpoints
+- Work in offline and fallback routing paths
+- Best for: Offline drafting, review, and continuity support
+- **Limitation**: return text responses and do not directly edit workspace files
 
 ## Session Management
 

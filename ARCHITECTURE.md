@@ -9,6 +9,7 @@
 - [Component Design](#component-design)
 - [Data Flow](#data-flow)
 - [Adapter Pattern](#adapter-pattern)
+- [Local Model Integration and Limitations](#local-model-integration-and-limitations)
 - [Workflow Engine](#workflow-engine)
 - [Security Architecture](#security-architecture)
 - [Monitoring & Observability](#monitoring--observability)
@@ -610,6 +611,32 @@ class OllamaAdapter(BaseAdapter):
             data = resp.json()
             return AgentResponse(success=True, output=data.get("response", ""))
 ```
+
+## Local Model Integration and Limitations
+
+Local backends (Ollama, llama.cpp, LocalAI, and other OpenAI-compatible servers) are integrated as standard adapters and participate in:
+- workflow step execution,
+- offline-only filtering,
+- cloud-to-local fallback routing,
+- local model health/model discovery endpoints.
+
+Execution semantics differ from CLI adapters:
+
+| Adapter family | Transport | Workspace edit path |
+|---|---|---|
+| CLI adapters (`codex`, `claude`, `gemini`, `copilot`) | Local CLI process | Can modify files when workspace execution is used |
+| Local model adapters (`ollama`, `llamacpp`, `localai`, `openai-compatible`) | HTTP completion endpoints | Text output only; no direct file writes |
+
+Design implication:
+- Assigning a local model to an "implement" role is supported, but that step behaves as advisory text generation unless another editing-capable agent applies changes.
+
+Best use:
+- local drafting, critique/review, and resilience fallback in hybrid workflows.
+
+> [!CAUTION]
+> The local model itself doesn’t edit files, but you can  make it do so by adding an agent/tool layer around it (same idea as Claude/Codex/Copilot CLIs): give it tools like read_file, write_file, apply_patch, run_tests, then let an orchestrator execute those tool calls.
+>
+> In this project, that would mean extending local adapters from “text completion only” to a workspace-execution loop (or routing local models through an MCP/tool-calling  bridge). The hard part is not feasibility, it’s safety and reliability: permissions, diff constraints, validation/tests before write, rollback, and preventing bad edits.
 
 ## Workflow Engine
 

@@ -241,6 +241,8 @@ Standalone REPL for the true agentic team engine.
 - Team lead gates final response.
 - Roles can hand off freely between each other.
 - Use `/team` to inspect current role-to-model mappings.
+- Local model adapters (Ollama/llama.cpp) return text output only in this REPL.
+- Best use for local models: offline drafting, review, and fallback routing.
         """
         self.console.print(Panel(Markdown(welcome), border_style="cyan", title="Agentic Team"))
         self.cmd_agents("")
@@ -414,6 +416,10 @@ Standalone REPL for the true agentic team engine.
         table.add_row("/info", "Show shell summary")
         table.add_row("/exit", "Exit shell")
         self.console.print(table)
+        self.console.print(
+            "\n[dim]Local model adapters in agentic-team are advisory (text output). "
+            "Direct file edits come from CLI-backed agents.[/dim]"
+        )
 
     def cmd_exit(self, _args: str):
         """Exit the interactive shell loop."""
@@ -539,7 +545,8 @@ Standalone REPL for the true agentic team engine.
             f"Max turns: {self.history.max_turns}\n"
             f"Validation: {'ok' if validation.get('valid') else 'invalid'}\n"
             f"Messages: {len(self.history.messages)}\n"
-            f"Session dir: {self.session_dir}"
+            f"Session dir: {self.session_dir}\n"
+            "Local models: text output only (best for offline draft/review/fallback)"
         )
         self.console.print(Panel(info, title="Agentic Team Info", border_style="cyan"))
 

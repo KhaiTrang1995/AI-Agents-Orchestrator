@@ -2,6 +2,23 @@
 
 This guide explains how to run the orchestrator with local models, how fallback works, and how to operate cloud/hybrid/offline profiles safely in development and production.
 
+## Table of Contents
+- [1. What Offline Mode Provides](#1-what-offline-mode-provides)
+- [2. Runtime Decision Model](#2-runtime-decision-model)
+- [3. Supported Backends](#3-supported-backends)
+- [4. Dynamic Agent Naming](#4-dynamic-agent-naming)
+- [5. Configuration Patterns](#5-configuration-patterns)
+- [6. Workflow Format Support](#6-workflow-format-support)
+- [7. Fallback Behavior](#7-fallback-behavior)
+- [8. Local Model Lifecycle](#8-local-model-lifecycle)
+- [9. CLI Operations](#9-cli-operations)
+- [10. Health Checks and Availability](#10-health-checks-and-availability)
+- [11. Kubernetes / Container Topology](#11-kubernetes--container-topology)
+- [12. Performance and Capacity Guidance](#12-performance-and-capacity-guidance)
+- [13. Security and Compliance Notes](#13-security-and-compliance-notes)
+- [14. Troubleshooting](#14-troubleshooting)
+- [15. Related Docs](#15-related-docs)
+
 ## 1. What Offline Mode Provides
 
 - Run workflows without cloud API access (`--offline` or config-driven offline mode)
@@ -36,6 +53,27 @@ flowchart TD
 | LocalAI | `localai` | `POST /v1/completions` | Routed through `LlamaCppAdapter` |
 | text-generation-webui | `text-generation-webui` | `POST /v1/completions` | Routed through `LlamaCppAdapter` |
 | Generic OpenAI-compatible local endpoint | `openai-compatible` | `POST /v1/completions` | Routed through `LlamaCppAdapter` |
+
+### Local model implementation details and limits
+
+Local adapters are integrated as first-class workflow agents, but their transport differs from cloud CLI agents:
+
+| Agent class | Transport | Can directly edit files? | Typical output |
+| --- | --- | --- | --- |
+| CLI adapters (`codex`, `claude`, `gemini`, `copilot`) | Local CLI process + workspace execution path | Yes (tool-dependent) | File edits + text |
+| `OllamaAdapter` | `POST /api/generate` | No | Text response + eval metadata |
+| `LlamaCppAdapter` (and `localai` / `openai-compatible`) | `POST /v1/completions` | No | Text completion |
+
+Practical implication:
+- A local model can be assigned to an implementer/editor step, but it behaves as an implementation advisor (text plan/draft), not a direct filesystem editor.
+- `files_modified` is typically empty for local-adapter steps unless another agent actually writes files.
+
+Best-use pattern:
+- Use local models for offline drafting, review, and fallback continuity.
+- Use CLI-backed agents when you need autonomous file edits in the workspace.
+
+> [!IMPORTANT]
+> While it is possible to make local LLMs directly edit files (e.g., via a `file-editor` tool), this approach is currently disabled to prevent unintended destructive changes. Local adapters are advisory — they provide text output that the Orchestrator can use to inform the next steps, but they do not have direct write access to the workspace. This design choice prioritizes safety and predictability while still leveraging local models for their strengths in drafting and feedback. The hard part is not feasibility, it’s safety and reliability: permissions, diff constraints, validation/tests before write, rollback, and preventing bad edits.
 
 ## 4. Dynamic Agent Naming
 
@@ -409,7 +447,8 @@ Quick checks:
 
 ## 15. Related Docs
 
-- `README.md`
-- `ARCHITECTURE.md`
-- `DEPLOYMENT.md`
-- `orchestrator/config/agents.yaml`
+- [README.md](README.md)
+- [ARCHITECTURE.md](ARCHITECTURE.md)
+- [DEPLOYMENT.md](DEPLOYMENT.md)
+- [`orchestrator/config/agents.yaml`](orchestrator/config/agents.yaml)
+- [`agentic_team/config/agents.yaml`](agentic_team/config/agents.yaml)

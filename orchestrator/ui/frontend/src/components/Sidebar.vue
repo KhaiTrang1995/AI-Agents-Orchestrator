@@ -165,6 +165,12 @@
             Refresh
           </button>
         </div>
+        <p class="text-xs text-amber-300/90">
+          Limitation: local adapters return text output only and do not directly edit files.
+        </p>
+        <p class="text-xs text-slate-500 mt-1.5">
+          Best use: offline drafting, review feedback, and cloud-to-local fallback.
+        </p>
 
         <div v-if="store.hasLocalModelStatus" class="space-y-2.5">
           <div

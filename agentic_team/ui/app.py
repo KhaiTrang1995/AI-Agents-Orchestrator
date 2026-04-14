@@ -14,6 +14,7 @@ from pathlib import Path
 from threading import Lock
 from typing import Any, Dict, Optional
 
+import httpx
 import yaml
 from flask import Flask, jsonify, render_template, request, send_from_directory
 from flask_cors import CORS
@@ -44,6 +45,10 @@ DEFAULT_CLIENT_ID = "default"
 client_sessions: Dict[str, Dict[str, Any]] = {}
 sid_to_client: Dict[str, str] = {}
 MAX_SESSION_LOGS = 500
+LOCAL_BACKEND_DEFAULT_ENDPOINTS = {
+    "ollama": "http://localhost:11434",
+    "openai-compatible": "http://localhost:8080",
+}
 
 
 def _normalize_client_id(raw: Optional[str]) -> str:
@@ -214,6 +219,109 @@ def _dump_config_yaml(config_obj: Dict[str, Any]) -> str:
         default_flow_style=False,
         allow_unicode=False,
     )
+
+
+def _canonical_local_backend_type(agent_type: Any) -> Optional[str]:
+    """Map configured agent type to a local backend family."""
+    normalized = str(agent_type or "").strip().lower()
+    if normalized == "ollama":
+        return "ollama"
+    if normalized in {"llamacpp", "localai", "text-generation-webui", "openai-compatible"}:
+        return "openai-compatible"
+    return None
+
+
+def _probe_ollama_backend(endpoint: str) -> Dict[str, Any]:
+    """Probe Ollama endpoint and return model metadata."""
+    try:
+        response = httpx.get(f"{endpoint}/api/tags", timeout=3)
+        response.raise_for_status()
+        raw_models = response.json().get("models", [])
+        models = []
+        models_detailed = []
+        for item in raw_models:
+            name = str(item.get("name", "")).strip()
+            if not name:
+                continue
+            models.append(name)
+            models_detailed.append(
+                {
+                    "name": name,
+                    "size_bytes": item.get("size"),
+                    "modified_at": item.get("modified_at"),
+                    "digest": item.get("digest"),
+                }
+            )
+        return {
+            "online": True,
+            "models": models,
+            "models_detailed": models_detailed,
+            "error": None,
+        }
+    except Exception as exc:  # nosec B112 - backend probe should fail closed
+        return {"online": False, "models": [], "models_detailed": [], "error": str(exc)}
+
+
+def _probe_openai_compatible_backend(endpoint: str) -> Dict[str, Any]:
+    """Probe OpenAI-compatible endpoint (llama.cpp/LocalAI/text-generation-webui)."""
+    online = False
+    health_error: Optional[str] = None
+
+    for url in [f"{endpoint}/health", f"{endpoint}/v1/models", endpoint]:
+        try:
+            resp = httpx.get(url, timeout=2)
+            if resp.status_code < 500:
+                online = True
+                break
+        except Exception as exc:  # nosec B112 - backend probe should fail closed
+            health_error = str(exc)
+
+    if not online:
+        return {
+            "online": False,
+            "models": [],
+            "models_detailed": [],
+            "error": health_error or "Endpoint is unreachable",
+        }
+
+    try:
+        resp = httpx.get(f"{endpoint}/v1/models", timeout=3)
+        resp.raise_for_status()
+        data = resp.json().get("data", [])
+        models = []
+        models_detailed = []
+        for item in data:
+            model_id = str(item.get("id", "")).strip()
+            if not model_id:
+                continue
+            models.append(model_id)
+            models_detailed.append(
+                {
+                    "id": model_id,
+                    "owned_by": item.get("owned_by"),
+                    "created": item.get("created"),
+                }
+            )
+        return {
+            "online": True,
+            "models": models,
+            "models_detailed": models_detailed,
+            "error": None,
+        }
+    except Exception as exc:  # nosec B112 - model listing may be optional
+        return {
+            "online": True,
+            "models": [],
+            "models_detailed": [],
+            "error": f"Model listing unavailable: {exc}",
+        }
+
+
+def _probe_local_backend(backend_type: str, endpoint: str) -> Dict[str, Any]:
+    """Probe a local backend and return normalized status payload."""
+    if backend_type == "ollama":
+        return _probe_ollama_backend(endpoint)
+    return _probe_openai_compatible_backend(endpoint)
 
 
 def _team_validation_payload() -> Dict[str, Any]:
@@ -736,8 +844,94 @@ def get_workflows():
 
 @app.route("/api/models/status", methods=["GET"])
 def get_models_status():
-    """Return local model status (placeholder for now)."""
-    return jsonify({"summary": {}, "backends": [], "agents": []})
+    """Return local model backend and model status from team config."""
+    if not engine:
+        _init_engine()
+
+    agents_config = engine.config.get("agents", {})
+    if not isinstance(agents_config, dict):
+        agents_config = {}
+    backend_probe_cache: Dict[str, Dict[str, Any]] = {}
+    backend_status_map: Dict[str, Dict[str, Any]] = {}
+    local_agents = []
+
+    for agent_name, agent_config in agents_config.items():
+        backend_type = _canonical_local_backend_type(agent_config.get("type"))
+        if backend_type is None:
+            continue
+
+        endpoint = str(
+            agent_config.get("endpoint") or LOCAL_BACKEND_DEFAULT_ENDPOINTS.get(backend_type, "")
+        ).rstrip("/")
+        if not endpoint:
+            endpoint = LOCAL_BACKEND_DEFAULT_ENDPOINTS.get(backend_type, "")
+
+        probe_key = f"{backend_type}::{endpoint}"
+        if probe_key not in backend_probe_cache:
+            backend_probe_cache[probe_key] = _probe_local_backend(backend_type, endpoint)
+        probe = backend_probe_cache[probe_key]
+
+        configured_model = agent_config.get("model")
+        configured_model_present = None
+        if isinstance(configured_model, str) and configured_model.strip():
+            configured_model_present = configured_model in set(probe.get("models", []))
+
+        enabled = bool(agent_config.get("enabled", False))
+        agent_status = {
+            "name": agent_name,
+            "type": str(agent_config.get("type", "")),
+            "backend_type": backend_type,
+            "enabled": enabled,
+            "offline": bool(agent_config.get("offline", False)),
+            "endpoint": endpoint,
+            "capabilities": agent_config.get("capabilities", []),
+            "configured_model": configured_model,
+            "configured_model_present": configured_model_present,
+            "endpoint_online": bool(probe.get("online", False)),
+            "available_for_execution": enabled and bool(probe.get("online", False)),
+            "model_count": len(probe.get("models", [])),
+            "discovered_models": probe.get("models", []),
+            "probe_error": probe.get("error"),
+        }
+        local_agents.append(agent_status)
+
+        backend = backend_status_map.get(probe_key)
+        if backend is None:
+            backend = {
+                "backend_type": backend_type,
+                "endpoint": endpoint,
+                "online": bool(probe.get("online", False)),
+                "models": list(probe.get("models", [])),
+                "models_detailed": list(probe.get("models_detailed", [])),
+                "model_count": len(probe.get("models", [])),
+                "agents": [],
+                "enabled_agents": 0,
+                "available_agents": 0,
+                "probe_error": probe.get("error"),
+            }
+            backend_status_map[probe_key] = backend
+
+        backend["agents"].append(agent_name)
+        if enabled:
+            backend["enabled_agents"] += 1
+        if agent_status["available_for_execution"]:
+            backend["available_agents"] += 1
+
+    backends = sorted(
+        backend_status_map.values(),
+        key=lambda item: (item.get("backend_type", ""), item.get("endpoint", "")),
+    )
+    local_agents = sorted(local_agents, key=lambda item: item.get("name", ""))
+
+    summary = {
+        "local_agents": len(local_agents),
+        "enabled_local_agents": sum(1 for item in local_agents if item.get("enabled")),
+        "online_backends": sum(1 for item in backends if item.get("online")),
+        "backends": len(backends),
+        "models": sum(int(item.get("model_count", 0)) for item in backends),
+    }
+
+    return jsonify({"summary": summary, "backends": backends, "agents": local_agents})
 
 
 @socketio.on("connect")

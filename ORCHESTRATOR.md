@@ -2,6 +2,19 @@
 
 The Orchestrator coordinates multiple AI coding assistants through predefined, iterative workflows. It is a fully self-contained Python package at `orchestrator/`.
 
+## Table of Contents
+- [Architecture](#architecture)
+- [Execution Flow](#execution-flow)
+- [Subpackages](#subpackages)
+- [Workflows](#workflows)
+- [Task Lifecycle](#task-lifecycle)
+- [Fallback Routing](#fallback-routing)
+- [Circuit Breaker](#circuit-breaker)
+- [Web UI API](#web-ui-api)
+- [CLI Commands](#cli-commands)
+- [Context System](#context-system)
+- [MCP Integration (Optional)](#mcp-integration-optional)
+
 ## Architecture
 
 ```mermaid
@@ -238,6 +251,7 @@ stateDiagram-v2
 | GET | `/api/status` | Session status |
 | GET | `/api/config` | Get config |
 | PUT | `/api/config` | Update config |
+| GET | `/api/models/status` | Local backend/model readiness summary |
 | GET | `/metrics` | Prometheus |
 
 ## CLI Commands
@@ -267,6 +281,8 @@ stateDiagram-v2
 
 Inside the shell, you can submit tasks conversationally. The shell maintains context between prompts, so follow-up tasks inherit prior output.
 
+Local model note in REPL: local adapters (Ollama/llama.cpp) return text output and are best used for offline drafting, review, and fallback. Direct file edits come from CLI-backed agents.
+
 ### Inspection and Validation
 
 ```bash
@@ -295,6 +311,23 @@ Inside the shell, you can submit tasks conversationally. The shell maintains con
 # Remove a model from the local Ollama cache
 ./ai-orchestrator models remove codellama:13b
 ```
+
+### Local Model Integration and Limits
+
+Local models are first-class workflow agents for offline/hybrid execution, but they use completion APIs (not workspace-editing CLIs).
+
+| Adapter family | Transport | Direct file edits |
+|----------|----------|----------|
+| CLI adapters (`codex`, `claude`, `gemini`, `copilot`) | Local CLI process + workspace execution | Yes (tool-dependent) |
+| Local adapters (`ollama`, `llamacpp`, `localai`, `openai-compatible`) | HTTP completion endpoints | No (text output only) |
+
+Best use for local models:
+- offline drafts and review responses,
+- cloud-to-local fallback continuity,
+- role-specific guidance in hybrid workflows.
+
+> [!IMPORTANT]
+> While it is possible to make local LLMs directly edit files (e.g., via a `file-editor` tool), this approach is currently disabled to prevent unintended destructive changes. Local adapters are advisory — they provide text output that the Orchestrator can use to inform the next steps, but they do not have direct write access to the workspace. This design choice prioritizes safety and predictability while still leveraging local models for their strengths in drafting and feedback. The hard part is not feasibility, it’s safety and reliability: permissions, diff constraints, validation/tests before write, rollback, and preventing bad edits.
 
 ### Single-Agent Testing
 
