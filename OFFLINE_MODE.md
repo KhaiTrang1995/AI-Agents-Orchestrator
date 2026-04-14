@@ -72,6 +72,9 @@ Best-use pattern:
 - Use local models for offline drafting, review, and fallback continuity.
 - Use CLI-backed agents when you need autonomous file edits in the workspace.
 
+> [!IMPORTANT]
+> While it is possible to make local LLMs directly edit files (e.g., via a `file-editor` tool), this approach is currently disabled to prevent unintended destructive changes. Local adapters are advisory — they provide text output that the Orchestrator can use to inform the next steps, but they do not have direct write access to the workspace. This design choice prioritizes safety and predictability while still leveraging local models for their strengths in drafting and feedback. The hard part is not feasibility, it’s safety and reliability: permissions, diff constraints, validation/tests before write, rollback, and preventing bad edits.
+
 ## 4. Dynamic Agent Naming
 
 Agent keys are dynamic. Adapter selection is based on `type`, not the agent name.

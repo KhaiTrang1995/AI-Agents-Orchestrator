@@ -633,6 +633,11 @@ Design implication:
 Best use:
 - local drafting, critique/review, and resilience fallback in hybrid workflows.
 
+> [!CAUTION]
+> The local model itself doesn’t edit files, but you can  make it do so by adding an agent/tool layer around it (same idea as Claude/Codex/Copilot CLIs): give it tools like read_file, write_file, apply_patch, run_tests, then let an orchestrator execute those tool calls.
+>
+> In this project, that would mean extending local adapters from “text completion only” to a workspace-execution loop (or routing local models through an MCP/tool-calling  bridge). The hard part is not feasibility, it’s safety and reliability: permissions, diff constraints, validation/tests before write, rollback, and preventing bad edits.
+
 ## Workflow Engine
 
 ### Workflow Execution
