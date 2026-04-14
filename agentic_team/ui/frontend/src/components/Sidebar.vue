@@ -153,6 +153,79 @@
         </div>
       </div>
 
+      <!-- Local Models Status -->
+      <div class="pt-4 border-t border-slate-700/60">
+        <div class="flex items-center justify-between mb-3">
+          <h3 class="text-xs font-semibold text-cyan-300/80 uppercase tracking-wider">Local Models</h3>
+          <button
+            @click="store.loadLocalModelStatus()"
+            class="text-xs px-2 py-1 rounded-md border border-cyan-500/30 text-cyan-300/80 hover:text-cyan-200 hover:border-cyan-400/60 hover:bg-cyan-500/10 transition-all"
+            :disabled="store.isRunning"
+          >
+            Refresh
+          </button>
+        </div>
+        <p class="text-xs text-amber-300/90">
+          Limitation: local adapters return text output only and do not directly edit files.
+        </p>
+        <p class="text-xs text-slate-500 mt-1.5 mb-2.5">
+          Best use: offline drafting, role handoff input, review feedback, and fallback.
+        </p>
+
+        <div v-if="store.hasLocalModelStatus" class="space-y-2.5">
+          <div
+            v-for="backend in localBackends"
+            :key="`${backend.backend_type}-${backend.endpoint}`"
+            class="rounded-xl border border-cyan-500/20 bg-slate-800/60 p-2.5 space-y-1.5"
+          >
+            <div class="flex items-center justify-between text-xs">
+              <span class="font-semibold text-slate-200 font-mono">{{ backend.backend_type }}</span>
+              <span
+                :class="backend.online ? 'text-emerald-400' : 'text-rose-400'"
+                class="flex items-center gap-1"
+              >
+                <span :class="backend.online ? 'bg-emerald-400' : 'bg-rose-400'" class="w-1.5 h-1.5 rounded-full inline-block"></span>
+                {{ backend.online ? 'Online' : 'Offline' }}
+              </span>
+            </div>
+            <div class="text-xs text-slate-500 break-all font-mono">{{ backend.endpoint }}</div>
+            <div class="text-xs text-slate-400">Agents: {{ backend.agents.join(', ') }}</div>
+            <div class="text-xs text-slate-400">Models: {{ backend.model_count }}</div>
+            <div v-if="backend.models_detailed?.length" class="flex flex-wrap gap-1 pt-1">
+              <span
+                v-for="model in backend.models_detailed.slice(0, 6)"
+                :key="model.name || model.id"
+                class="text-[10px] px-2 py-0.5 rounded-full bg-slate-700/80 text-slate-300 border border-cyan-500/20"
+              >
+                {{ formatModelLabel(model) }}
+              </span>
+            </div>
+            <div v-else-if="backend.models?.length" class="text-[10px] text-slate-500 break-words font-mono">
+              {{ backend.models.slice(0, 6).join(', ') }}
+            </div>
+            <div v-if="backend.probe_error" class="text-[10px] text-amber-400/80">
+              {{ backend.probe_error }}
+            </div>
+          </div>
+
+          <div class="space-y-1">
+            <div
+              v-for="agent in localAgents"
+              :key="agent.name"
+              class="text-xs flex items-center justify-between gap-2 px-2 py-1 rounded bg-slate-800/40"
+            >
+              <span class="text-slate-300 truncate font-mono">{{ agent.name }}</span>
+              <span :class="agent.available_for_execution ? 'text-emerald-400' : 'text-slate-500'">
+                {{ agent.available_for_execution ? 'ready' : 'not-ready' }}
+              </span>
+            </div>
+          </div>
+        </div>
+        <p v-else class="text-xs text-slate-500 italic">
+          No local model backends configured.
+        </p>
+      </div>
+
       <!-- Live Progress Logs -->
       <div v-if="store.isRunning" class="pt-4 border-t border-slate-700/60">
         <div class="flex items-center justify-between mb-2">

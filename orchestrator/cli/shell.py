@@ -393,6 +393,10 @@ Just type your request and press Enter. The system will coordinate the appropria
 AI agents to help you accomplish your task. After completion, use `/followup` to
 continue iterating on the same task with additional requirements.
 
+**Local model note:**
+Ollama/llama.cpp adapters produce text responses only in this shell. They are best
+for local drafts, review, and fallback; direct file edits come from CLI-backed agents.
+
 Type `/help` for more information.
         """
         self.console.print(Panel(Markdown(welcome), border_style="cyan", title="Welcome"))
@@ -639,6 +643,10 @@ Type `/help` for more information.
         table.add_row("/project [path]", "Show or set active project path")
 
         self.console.print(table)
+        self.console.print(
+            "\n[dim]Local model adapters (Ollama/llama.cpp) return text output only. "
+            "Use them for offline drafting/review/fallback; CLI agents handle direct file edits.[/dim]"
+        )
 
     def cmd_exit(self, args: str):
         """Exit the shell."""
@@ -823,6 +831,10 @@ Type `/help` for more information.
 
 [bold]Session Directory:[/bold]
 {self.session_dir}
+
+[bold]Local Model Behavior:[/bold]
+- Local adapters (Ollama/llama.cpp): prompt -> HTTP response text (no direct file writes)
+- CLI adapters (Codex/Gemini/Claude/Copilot): can modify workspace files when supported
         """
 
         self.console.print(Panel(info.strip(), border_style="cyan"))

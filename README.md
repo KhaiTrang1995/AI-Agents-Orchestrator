@@ -524,6 +524,17 @@ flowchart TD
     style ERR fill:#9b2c2c,stroke:#742a2a,color:#fff
 ```
 
+### Local model execution semantics and limitation
+
+Local models are deeply integrated for routing, offline mode, and fallback, but they are **not direct workspace editors** in the current implementation.
+
+| Path | How it runs | Direct file edits |
+|---|---|---|
+| Cloud CLI adapters (Codex/Claude/Gemini/Copilot) | CLI process + workspace execution path | Yes (tool-dependent) |
+| Local adapters (Ollama/llama.cpp/OpenAI-compatible) | HTTP prompt-completion (`/api/generate` or `/v1/completions`) | No (text output only) |
+
+Best use for local models: offline drafting, review feedback, and cloud-to-local fallback continuity.
+
 ### Technology Stack Overview
 
 ```mermaid
@@ -600,6 +611,7 @@ The two systems serve different collaboration models. Choose based on your use c
 | **Agents** | Claude, Codex, Gemini, Copilot (cloud); Ollama, llama.cpp (local) |
 | **CLI** | Interactive REPL shell, one-shot commands, context-aware follow-ups, readline support |
 | **Web UI** | Nuxt 3 + Vue 3 frontend, Flask + Socket.IO backend, Monaco code editor, Pinia state management |
+| **Local model behavior** | Local adapters are advisory (text output); direct file edits come from CLI-backed agents |
 | **Resilience** | Retry with exponential backoff, circuit breakers, cloud-to-local fallback, offline detection |
 | **Observability** | Prometheus metrics, structured logging via structlog, health and readiness probes |
 | **Reports** | Execution summaries, agent performance, workflow analytics, config audits, HTML dashboard with Chart.js charts |
@@ -614,6 +626,7 @@ The two systems serve different collaboration models. Choose based on your use c
 | **Roles** | Project Manager, Software Architect, Software Developer, QA Engineer, DevOps Engineer |
 | **CLI** | Dedicated REPL (`agentic-shell`) with `--max-turns` and `--offline` flags |
 | **Web UI** | Dedicated Nuxt 3 + Flask UI with Config Studio, real-time turn streaming, team communication view |
+| **Local model behavior** | Local adapters contribute role outputs and fallback text, but do not directly write files |
 | **Fallback** | Independent fallback manager and offline detector |
 | **Configuration** | Separate `agents.yaml` with `agentic_team.roles` section for role-to-agent mapping |
 

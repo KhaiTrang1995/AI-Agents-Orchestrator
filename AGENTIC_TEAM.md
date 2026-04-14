@@ -13,6 +13,7 @@
 - [Configuration Model](#configuration-model)
 - [UI: Agentic Team Studio](#ui-agentic-team-studio)
 - [CLI: Agentic Team REPL](#cli-agentic-team-repl)
+- [Local Model Integration and Limits](#local-model-integration-and-limits)
 - [Validation and Failure Handling](#validation-and-failure-handling)
 - [Observability](#observability)
 - [Security and Safety](#security-and-safety)
@@ -474,6 +475,26 @@ flowchart TD
     Q -->|Yes| P
     Q -->|No| X[Exit]
 ```
+
+## Local Model Integration and Limits
+
+Agentic Team can map any role to local adapters (`ollama`, `llamacpp`, `localai`, `openai-compatible`) and those roles fully participate in turn routing, offline mode, and fallback.
+
+Implementation behavior:
+
+| Adapter type | Runtime transport | Direct file writes |
+|---|---|---|
+| CLI-backed agents | Local CLI execution path | Yes (tool-dependent) |
+| Local model adapters | HTTP completion endpoints | No (text output only) |
+
+Practical impact:
+- A role mapped to a local model can still act as architect/developer/QA in team conversation, but it returns guidance/drafts as text.
+- Local-model turns do not directly modify repository files by themselves.
+
+Best use:
+- offline role communication,
+- generating implementation drafts for another agent to apply,
+- review/critique and fallback continuity.
 
 ## Validation and Failure Handling
 

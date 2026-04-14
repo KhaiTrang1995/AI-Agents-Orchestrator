@@ -269,13 +269,24 @@
 
         <div class="architecture-description" style="margin-top: 1.25rem">
           <p>
-            Latest implementation includes five standalone systems (Orchestrator,
-            Agentic Team, MCP Server, Context Dashboard, Graphify), type-based
-            adapter resolution (dynamic agent names), local/offline backends
-            (Ollama + OpenAI-compatible), cloud-to-local fallback on recoverable
-            failures, and Graphify codebase knowledge graphs with 19-language
-            AST analysis.
+            The project is organized into five standalone systems - Orchestrator,
+            Agentic Team, MCP Server, Context Dashboard, and Graphify - and is
+            built to coordinate real coding workflows across Claude, Codex,
+            Gemini, Copilot, and local backends. Orchestrator drives step-based
+            execution and fallback, Agentic Team runs role-based collaboration,
+            MCP Server exposes automation tools, Context Dashboard surfaces
+            memory/telemetry, and Graphify builds AST-powered knowledge graphs
+            across 19 programming languages.
           </p>
+          <div class="local-model-note">
+            <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+            <p>
+              <strong>Local model note:</strong> Local adapters are fully wired
+              into routing/offline/fallback flows, but they currently return text
+              outputs only and do not directly edit files. They are best for
+              offline drafting, review, and continuity fallback.
+            </p>
+          </div>
         </div>
 
         <!-- Simple Workflow Diagram -->
@@ -387,6 +398,14 @@ graph LR
               </li>
               <li>Built-in cloud-to-local fallback routing</li>
               <li>CLI local model lifecycle: status/list/pull/remove</li>
+              <li>
+                Limitation: local adapters return text output only and do not
+                directly edit files
+              </li>
+              <li>
+                Best use: offline drafting/review and cloud-to-local fallback;
+                use CLI agents for direct file edits
+              </li>
             </ul>
           </div>
 
