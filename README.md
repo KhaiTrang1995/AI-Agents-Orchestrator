@@ -90,6 +90,8 @@ Beyond the core engines, we provide a complete **Agentic Infrastructure** that e
 
 ## Agentic Infrastructure
 
+We provide a rich agentic infrastructure that both the Orchestrator and Agentic Team utilize to empower their AI agents with specialized knowledge, reusable skills, powerful tools, and persistent context memory. This infrastructure is designed to be modular and extensible, allowing for easy addition of new agents, skills, tools, and context nodes as the system evolves.
+
 ```mermaid
 graph TB
     subgraph "🧠 Agentic Infrastructure"
