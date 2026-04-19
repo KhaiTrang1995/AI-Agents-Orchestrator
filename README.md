@@ -90,6 +90,8 @@ Beyond the core engines, we provide a complete **Agentic Infrastructure** that e
 
 ## Agentic Infrastructure
 
+We provide a rich agentic infrastructure that both the Orchestrator and Agentic Team utilize to empower their AI agents with specialized knowledge, reusable skills, powerful tools, and persistent context memory. This infrastructure is designed to be modular and extensible, allowing for easy addition of new agents, skills, tools, and context nodes as the system evolves.
+
 ```mermaid
 graph TB
     subgraph "🧠 Agentic Infrastructure"
@@ -593,12 +595,12 @@ The two systems serve different collaboration models. Choose based on your use c
 |---|---|---|
 | **Collaboration model** | Step-based pipeline (sequential) | Free role-to-role communication (turns) |
 | **Agent identity** | Tool names (codex, gemini, claude) | Roles (PM, Architect, Developer, QA, DevOps) |
-| **Control flow** | Workflow YAML defines fixed step order | Team lead (PM) gates completion dynamically |
-| **When to use** | Repeatable pipelines: implement, review, refine | Open-ended tasks needing discussion and consensus |
+| **Control flow** | Dynamic metrics-based planner or workflow YAML step order | Team lead (PM) gates completion dynamically |
+| **When to use** | Dynamic planning, or repeatable pipelines: implement, review, refine | Open-ended tasks needing discussion and consensus |
 | **CLI entry point** | `ai-orchestrator shell` | `ai-orchestrator agentic-shell` |
 | **Web UI port** | `:5001` | `:5002` |
 | **Config file** | `orchestrator/config/agents.yaml` | `agentic_team/config/agents.yaml` |
-| **Built-in workflows** | 7 (default, quick, thorough, review-only, document, offline-default, hybrid) | N/A (turn-based, no fixed pipeline) |
+| **Built-in workflows** | Dynamic planner (metrics-based routing), plus 7 static (default, quick, thorough, review-only, document, offline-default, hybrid) | N/A (turn-based, no fixed pipeline) |
 | **Fallback strategy** | Per-step cloud-to-local routing | Independent fallback manager |
 | **Observability** | Prometheus metrics, structured logging, health probes, report generation | Health and readiness probes |
 | **Security module** | Input validation, rate limiting, audit logging | N/A (inherits from adapter layer) |

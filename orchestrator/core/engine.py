@@ -289,13 +289,27 @@ class Orchestrator:
 
         # Get workflow
         workflows = self.config.get("workflows", {})
-        workflow_config = workflows.get(workflow_name)
 
-        if not workflow_config:
-            raise ValueError(f"Workflow '{workflow_name}' not found")
+        if workflow_name == "dynamic":
+            self.logger.info("Using dynamic PlannerAgent to build workflow.")
+            from orchestrator.core.planner import PlannerAgent
 
-        # Build workflow steps
-        workflow_steps_config = self._extract_workflow_steps(workflow_config)
+            planner = PlannerAgent(self.adapters, self.logger)
+            workflow_steps_config = planner.plan_workflow(task)
+        else:
+            workflow_config = workflows.get(workflow_name)
+            if not workflow_config:
+                if workflow_name == "default":
+                    self.logger.info("Default workflow not found in config. Using dynamic planner.")
+                    from orchestrator.core.planner import PlannerAgent
+
+                    planner = PlannerAgent(self.adapters, self.logger)
+                    workflow_steps_config = planner.plan_workflow(task)
+                else:
+                    raise ValueError(f"Workflow '{workflow_name}' not found")
+            else:
+                workflow_steps_config = self._extract_workflow_steps(workflow_config)
+
         steps = self._build_workflow_steps(workflow_steps_config)
         if not steps:
             raise ValueError(

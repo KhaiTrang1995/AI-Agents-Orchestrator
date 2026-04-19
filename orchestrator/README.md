@@ -36,12 +36,17 @@ A production-grade orchestration engine that coordinates multiple AI coding assi
      +--------+------+ +--------------+ +------+--------+
               |                                 |
     +---------+---------+              +--------v--------+
-    |   WorkflowStep    |              | OfflineDetector |
-    +---------+---------+              +-----------------+
+    | PlannerAgent      |              | OfflineDetector |
+    | (dynamic routing) |              +-----------------+
+    +---------+---------+
               |
     +---------v---------+
-    |   Adapter Layer    |
-    |  (BaseAdapter)     |
+    |   WorkflowStep    |
+    +---------+---------+
+              |
+    +---------v---------+
+    |   Adapter Layer   |
+    |  (BaseAdapter)    |
     +----+----+----+----+
          |    |    |    |
      Claude Codex Gemini Ollama ...
@@ -150,6 +155,7 @@ orchestrator/
 ├── core/
 │   ├── engine.py                Orchestrator class -- main entry point
 │   ├── workflow.py              WorkflowEngine, WorkflowStep
+│   ├── planner.py               PlannerAgent for dynamic, metrics-based routing
 │   ├── task_manager.py          Task lifecycle tracking (pending/running/done/failed)
 │   └── exceptions.py            Typed exception hierarchy
 ├── resilience/
@@ -406,7 +412,18 @@ See [docs/configuration-guide.md](../docs/configuration-guide.md) for the comple
 
 ## Workflows
 
-### Built-in Workflows
+### Dynamic Planner Agent
+
+The Orchestrator features a **Dynamic Planner Agent** (`orchestrator/core/planner.py`) that acts as an intelligent router and dynamic workflow generator. When a task is executed using the `dynamic` workflow (which is the default when no name is provided or a named workflow is missing), the Planner Agent:
+1. **Reads Observability Metrics:** It accesses Prometheus metrics (`orchestrator_agent_calls_total`) to determine the real-time success and failure rates of all available agents.
+2. **Evaluates Routing Policy:** Any agent with a success rate below `0.6` is deprioritized, removing it from the pool of candidates.
+3. **Generates a Plan:** It uses a healthy LLM adapter (e.g., Claude, Gemini, Codex, or local-instruct) to break the task down into sequential steps (e.g., `implement`, `review`, `refine`) and assign the best available agents to each step.
+
+This metrics-based routing ensures the system automatically adapts to API outages, degraded model performance, or local backend unavailability without manual configuration changes.
+
+### Static YAML Workflows
+
+You can also explicitly define static workflows in `agents.yaml`:
 
 | Name              | Steps                                       | Use Case |
 |-------------------|---------------------------------------------|----------|

@@ -644,7 +644,7 @@ Best use:
 
 ```mermaid
 graph TD
-    START([Start Workflow]) --> LOAD[Load Workflow Definition]
+    START([Start Workflow]) --> LOAD[Load Workflow Definition / Dynamic Planner]
     LOAD --> VALIDATE[Validate Workflow]
     VALIDATE --> INIT[Initialize Agents]
     INIT --> ITER{Iteration < Max?}
@@ -667,9 +667,18 @@ graph TD
     REPORT --> END([End])
 ```
 
+### Dynamic Planner Agent & Metrics-Based Routing
+
+The Orchestrator features a **Dynamic Planner Agent** (`orchestrator/core/planner.py`) that replaces static YAML workflows. When a task is executed using the `dynamic` workflow (or if a requested workflow is missing), the Planner Agent:
+1. **Reads Observability Metrics:** It fetches live success/failure rates from Prometheus metrics (`orchestrator_agent_calls_total`).
+2. **Evaluates Routing Policy:** Any agent with a success rate below `0.6` is deprioritized to avoid cascading failures.
+3. **Generates a Plan:** It uses a preferred LLM adapter to break the task down into sequential steps (e.g., `implement`, `review`, `refine`) and assigns healthy, available agents dynamically.
+
+This metrics-based routing ensures the system automatically adapts to API outages, degraded model performance, or local backend unavailability without manual configuration changes.
+
 ### Workflow Configuration
 
-Workflows are defined in YAML:
+Workflows can still be defined statically in YAML (if not using the dynamic planner):
 
 ```yaml
 workflows:
