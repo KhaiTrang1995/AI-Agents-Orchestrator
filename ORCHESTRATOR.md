@@ -2,6 +2,19 @@
 
 The Orchestrator coordinates multiple AI coding assistants through predefined, iterative workflows. It is a fully self-contained Python package at `orchestrator/`.
 
+## Table of Contents
+- [Architecture](#architecture)
+- [Execution Flow](#execution-flow)
+- [Subpackages](#subpackages)
+- [Workflows](#workflows)
+- [Task Lifecycle](#task-lifecycle)
+- [Fallback Routing](#fallback-routing)
+- [Circuit Breaker](#circuit-breaker)
+- [Web UI API](#web-ui-api)
+- [CLI Commands](#cli-commands)
+- [Context System](#context-system)
+- [MCP Integration (Optional)](#mcp-integration-optional)
+
 ## Architecture
 
 ```mermaid
@@ -93,7 +106,7 @@ sequenceDiagram
 | Package | Purpose | Key Classes |
 |---------|---------|-------------|
 | `adapters/` | AI agent integration layer | `BaseAdapter`, `ClaudeAdapter`, `CodexAdapter`, `GeminiAdapter`, `CopilotAdapter`, `OllamaAdapter`, `LlamaCppAdapter`, `CLICommunicator` |
-| `core/` | Engine and workflow management | `Orchestrator`, `WorkflowEngine`, `WorkflowStep`, `TaskManager`, `OrchestratorError` |
+| `core/` | Engine and workflow management | `Orchestrator`, `WorkflowEngine`, `WorkflowStep`, `PlannerAgent`, `TaskManager`, `OrchestratorError` |
 | `resilience/` | Fault tolerance | `FallbackManager`, `CircuitBreaker`, `CircuitState`, `OfflineDetector`, `RateLimiter` |
 | `observability/` | Monitoring and logging | `MetricsCollector`, `HealthChecker`, `configure_logging`, `get_logger` |
 | `security_module/` | Input validation and security | `InputValidator`, `TokenBucketRateLimiter`, `SecretManager`, `AuditLogger` |
@@ -127,6 +140,19 @@ graph TD
 ```
 
 ## Workflows
+
+### Dynamic Planner Agent
+
+The Orchestrator features a **Dynamic Planner Agent** (`orchestrator/core/planner.py`) that acts as an intelligent router and dynamic workflow generator. When a task is executed using the `dynamic` workflow (or if no matching static YAML workflow is found), the Planner Agent:
+1. **Reads Observability Metrics:** It accesses Prometheus metrics (`orchestrator_agent_calls_total`) to determine the real-time success and failure rates of all available agents.
+2. **Evaluates Routing Policy:** Any agent with a success rate below `0.6` is deprioritized, removing it from the pool of candidates.
+3. **Generates a Plan:** It uses a healthy LLM adapter (e.g., Claude, Gemini, Codex, or local-instruct) to break the task down into sequential steps (e.g., `implement`, `review`, `refine`) and assign the best available agents to each step.
+
+This ensures the system automatically adapts to API outages or degraded local backend performance without requiring manual YAML edits.
+
+### Static YAML Workflows
+
+You can also explicitly define static workflows in `agents.yaml`:
 
 ```mermaid
 graph LR
@@ -238,6 +264,7 @@ stateDiagram-v2
 | GET | `/api/status` | Session status |
 | GET | `/api/config` | Get config |
 | PUT | `/api/config` | Update config |
+| GET | `/api/models/status` | Local backend/model readiness summary |
 | GET | `/metrics` | Prometheus |
 
 ## CLI Commands
@@ -267,6 +294,8 @@ stateDiagram-v2
 
 Inside the shell, you can submit tasks conversationally. The shell maintains context between prompts, so follow-up tasks inherit prior output.
 
+Local model note in REPL: local adapters (Ollama/llama.cpp) return text output and are best used for offline drafting, review, and fallback. Direct file edits come from CLI-backed agents.
+
 ### Inspection and Validation
 
 ```bash
@@ -295,6 +324,23 @@ Inside the shell, you can submit tasks conversationally. The shell maintains con
 # Remove a model from the local Ollama cache
 ./ai-orchestrator models remove codellama:13b
 ```
+
+### Local Model Integration and Limits
+
+Local models are first-class workflow agents for offline/hybrid execution, but they use completion APIs (not workspace-editing CLIs).
+
+| Adapter family | Transport | Direct file edits |
+|----------|----------|----------|
+| CLI adapters (`codex`, `claude`, `gemini`, `copilot`) | Local CLI process + workspace execution | Yes (tool-dependent) |
+| Local adapters (`ollama`, `llamacpp`, `localai`, `openai-compatible`) | HTTP completion endpoints | No (text output only) |
+
+Best use for local models:
+- offline drafts and review responses,
+- cloud-to-local fallback continuity,
+- role-specific guidance in hybrid workflows.
+
+> [!IMPORTANT]
+> While it is possible to make local LLMs directly edit files (e.g., via a `file-editor` tool), this approach is currently disabled to prevent unintended destructive changes. Local adapters are advisory — they provide text output that the Orchestrator can use to inform the next steps, but they do not have direct write access to the workspace. This design choice prioritizes safety and predictability while still leveraging local models for their strengths in drafting and feedback. The hard part is not feasibility, it’s safety and reliability: permissions, diff constraints, validation/tests before write, rollback, and preventing bad edits.
 
 ### Single-Agent Testing
 
@@ -348,6 +394,59 @@ context = manager.get_project_context(pid, task="Add user roles")
 # Search with hybrid BM25 + semantic
 results = manager.search("authentication patterns", limit=10)
 ```
+
+### Obsidian Vault Export
+
+Export the orchestrator's context graph as an [Obsidian](https://obsidian.md) vault for interactive exploration. Each node (task, decision, pattern, mistake, conversation) becomes a markdown note with YAML frontmatter and `[[wikilinks]]` to related nodes.
+
+```python
+from orchestrator.context.ops.export import ContextExporter
+from orchestrator.context.graph_store import GraphStore
+
+store = GraphStore("~/.ai-orchestrator/context.db")
+exporter = ContextExporter(store)
+
+# Export full graph
+result = exporter.export_obsidian("./orchestrator-vault")
+# → { notes_written: 142, edges_linked: 387, folders: [...] }
+
+# Export only decisions and patterns
+result = exporter.export_obsidian("./vault", node_types=["decision", "pattern"])
+```
+
+Open the vault in Obsidian and press **Ctrl/Cmd + G** to visualize task dependencies, decision chains, and learned patterns as an interactive color-coded graph.
+
+```mermaid
+graph LR
+    subgraph "Orchestrator Context → Obsidian"
+        DB[(context.db)] --> EXP[ContextExporter]
+        EXP --> VAULT[Obsidian Vault]
+        VAULT --> IDX[_Index.md<br/>Map of Content]
+        VAULT --> TASKS[Tasks/]
+        VAULT --> DECS[Decisions/]
+        VAULT --> PATS[Patterns/]
+        VAULT --> MIST[Mistakes/]
+        VAULT --> CONVS[Conversations/]
+        VAULT --> OBS[.obsidian/<br/>graph.json]
+    end
+
+    style VAULT fill:#7C3AED,color:#fff
+    style OBS fill:#4FC3F7,color:#000
+    style IDX fill:#FFC107,color:#000
+```
+
+**Generated vault structure:**
+
+| Folder | Contents | Color in Graph View |
+|--------|----------|-------------------|
+| `Tasks/` | Completed tasks with outcomes | 🟢 Green |
+| `Decisions/` | Architectural decisions with rationale | 🟣 Purple |
+| `Patterns/` | Reusable code patterns | 🟠 Orange |
+| `Mistakes/` | Errors with corrections and prevention | 🔴 Red |
+| `Conversations/` | Past chat sessions | 🔵 Light Blue |
+| `Code Snippets/` | Useful code fragments | ⚫ Grey |
+| `Concepts/` | Domain knowledge | 🟡 Lime |
+| `Projects/` | Registered project roots | 🟡 Amber |
 
 ## MCP Integration (Optional)
 

@@ -310,7 +310,7 @@ Maintainers only:
 
 - **Questions**: Open a GitHub Discussion
 - **Bugs**: Open a GitHub Issue
-- **Security**: Email security@example.com
+- **Security**: Email hoangson091104@gmail.com
 
 ## Recognition
 

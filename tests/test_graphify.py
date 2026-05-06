@@ -823,3 +823,153 @@ class TestMultiProjectIsolation:
         store.delete_project(pid_a)
         assert len(store.get_nodes(project_id=pid_a)) == 0
         assert len(store.get_nodes(project_id=pid_b)) > 0
+
+
+# ---------------------------------------------------------------------------
+# Obsidian export tests
+# ---------------------------------------------------------------------------
+
+
+class TestObsidianExport:
+    """Tests for the Obsidian vault exporter."""
+
+    def test_to_obsidian_creates_vault(self, scanned_store, tmp_path):
+        """Should create a vault directory with notes and config."""
+        store, pid = scanned_store
+        exporter = GraphExporter(store)
+        vault_dir = str(tmp_path / "vault")
+
+        result = exporter.to_obsidian(pid, output_dir=vault_dir)
+
+        assert result["notes_written"] > 0
+        assert result["output_dir"] == str(Path(vault_dir))
+        assert isinstance(result["folders"], list)
+        assert len(result["folders"]) > 0
+        assert Path(vault_dir).is_dir()
+
+    def test_to_obsidian_index_exists(self, scanned_store, tmp_path):
+        """Should generate _Index.md MOC."""
+        store, pid = scanned_store
+        exporter = GraphExporter(store)
+        vault_dir = str(tmp_path / "vault")
+        exporter.to_obsidian(pid, output_dir=vault_dir)
+
+        index = Path(vault_dir) / "_Index.md"
+        assert index.is_file()
+        content = index.read_text(encoding="utf-8")
+        assert "# 🗺️" in content
+        assert "Overview" in content
+        assert "Categories" in content
+
+    def test_to_obsidian_graph_config(self, scanned_store, tmp_path):
+        """Should generate .obsidian/ config files with graph colors."""
+        store, pid = scanned_store
+        exporter = GraphExporter(store)
+        vault_dir = str(tmp_path / "vault")
+        exporter.to_obsidian(pid, output_dir=vault_dir)
+
+        obs_dir = Path(vault_dir) / ".obsidian"
+        assert obs_dir.is_dir()
+
+        graph_json = obs_dir / "graph.json"
+        assert graph_json.is_file()
+        graph_cfg = json.loads(graph_json.read_text(encoding="utf-8"))
+        assert "colorGroups" in graph_cfg
+        assert len(graph_cfg["colorGroups"]) > 0
+        # Each color group has query and color keys
+        cg = graph_cfg["colorGroups"][0]
+        assert "query" in cg
+        assert "color" in cg
+        assert "rgb" in cg["color"]
+        assert "a" in cg["color"]
+
+        appearance = obs_dir / "appearance.json"
+        assert appearance.is_file()
+        app_cfg = json.loads(appearance.read_text(encoding="utf-8"))
+        assert app_cfg.get("theme") == "obsidian"
+
+        plugins = obs_dir / "core-plugins.json"
+        assert plugins.is_file()
+        plugins_list = json.loads(plugins.read_text(encoding="utf-8"))
+        assert isinstance(plugins_list, list)
+        assert "graph" in plugins_list
+
+    def test_to_obsidian_notes_have_frontmatter(self, scanned_store, tmp_path):
+        """Each note should have YAML frontmatter with type and tags."""
+        store, pid = scanned_store
+        exporter = GraphExporter(store)
+        vault_dir = str(tmp_path / "vault")
+        exporter.to_obsidian(pid, output_dir=vault_dir)
+
+        md_files = list(Path(vault_dir).rglob("*.md"))
+        # Exclude _Index.md
+        note_files = [f for f in md_files if f.name != "_Index.md"]
+        assert len(note_files) > 0
+
+        for note in note_files[:5]:  # check first 5
+            text = note.read_text(encoding="utf-8")
+            assert text.startswith("---"), f"{note.name} missing frontmatter"
+            # Should have closing ---
+            parts = text.split("---", 2)
+            assert len(parts) >= 3, f"{note.name} missing closing ---"
+            # Frontmatter should contain type
+            assert "type:" in parts[1]
+
+    def test_to_obsidian_folder_structure(self, scanned_store, tmp_path):
+        """Notes should be organized into typed folders."""
+        store, pid = scanned_store
+        exporter = GraphExporter(store)
+        vault_dir = str(tmp_path / "vault")
+        exporter.to_obsidian(pid, output_dir=vault_dir)
+
+        vault = Path(vault_dir)
+        # At least some of these folders should exist (scanned project has files, classes, functions)
+        expected_some = {"Files", "Classes", "Functions"}
+        existing = {d.name for d in vault.iterdir() if d.is_dir() and not d.name.startswith(".")}
+        assert expected_some & existing, f"Expected some type folders, got {existing}"
+
+    def test_to_obsidian_wikilinks(self, scanned_store, tmp_path):
+        """Notes with edges should contain [[wikilinks]]."""
+        store, pid = scanned_store
+        exporter = GraphExporter(store)
+        vault_dir = str(tmp_path / "vault")
+        exporter.to_obsidian(pid, output_dir=vault_dir)
+
+        all_text = ""
+        for f in Path(vault_dir).rglob("*.md"):
+            if f.name != "_Index.md":
+                all_text += f.read_text(encoding="utf-8")
+
+        # Scanned project should have some relationships → wikilinks
+        assert "[[" in all_text and "]]" in all_text
+
+    def test_to_obsidian_max_nodes(self, scanned_store, tmp_path):
+        """max_nodes parameter should limit output."""
+        store, pid = scanned_store
+        exporter = GraphExporter(store)
+        vault_dir = str(tmp_path / "vault")
+        result = exporter.to_obsidian(pid, output_dir=vault_dir, max_nodes=3)
+        assert result["notes_written"] <= 3
+
+    def test_export_obsidian_cli_command(self, sample_project):
+        """CLI 'export obsidian' should create vault directory."""
+        from click.testing import CliRunner
+
+        from graphify.cli import main
+
+        store = GraphStore(str(sample_project / ".graphify.db"))
+        scanner = Scanner(str(sample_project), store)
+        scanner.scan()
+        store.close()
+
+        runner = CliRunner()
+        with tempfile.TemporaryDirectory() as td:
+            out = os.path.join(td, "result")
+            result = runner.invoke(
+                main,
+                ["export", "obsidian", str(sample_project), "--output", out],
+            )
+            assert result.exit_code == 0, result.output
+            assert Path(out).is_dir() or any(
+                Path(td).rglob("*.md"),
+            )

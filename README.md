@@ -23,6 +23,7 @@
 ![TailwindCSS](https://img.shields.io/badge/Tailwind-3.x-06B6D4?logo=tailwindcss&logoColor=white)
 ![Pinia](https://img.shields.io/badge/Pinia-State-FFD859?logo=vue.js&logoColor=white)
 ![Monaco](https://img.shields.io/badge/Monaco_Editor-VS_Code-007ACC?logo=visualparadigm&logoColor=white)
+![Obsidian](https://img.shields.io/badge/Obsidian-Knowledge_Graph-483699?logo=obsidian&logoColor=white)
 ![Socket.IO](https://img.shields.io/badge/Socket.IO-4.x-010101?logo=socket.io&logoColor=white)
 ![Axios](https://img.shields.io/badge/Axios-HTTP-5A29E4?logo=axios&logoColor=white)
 ![Prometheus](https://img.shields.io/badge/Prometheus-Metrics-E6522C?logo=prometheus&logoColor=white)
@@ -35,7 +36,6 @@
 ![Flake8](https://img.shields.io/badge/Linter-Flake8-4B8BBE?logo=python&logoColor=white)
 ![isort](https://img.shields.io/badge/isort-Imports-EF8336?logo=python&logoColor=white)
 ![Pre-commit](https://img.shields.io/badge/Pre--commit-15_Hooks_Passing-FAB040?logo=precommit&logoColor=white)
-![Zero Warnings](https://img.shields.io/badge/Warnings-0-brightgreen?logo=python&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)
 ![Kubernetes](https://img.shields.io/badge/Kubernetes-Ready-326CE5?logo=kubernetes&logoColor=white)
 ![SQLite](https://img.shields.io/badge/SQLite-Context_Graph-003B57?logo=sqlite&logoColor=white)
@@ -89,6 +89,8 @@ Beyond the core engines, we provide a complete **Agentic Infrastructure** that e
 > Quickstart with the Orchestrator for structured workflows, or the Agentic Team for open-ended collaboration. Both systems benefit from the shared agentic infrastructure and context memory. See [QUICKSTART.md](QUICKSTART.md) for quick setup instructions to get started in ~2 minutes. Or, see [#quick-start](#quick-start) below for a detailed walkthrough.
 
 ## Agentic Infrastructure
+
+We provide a rich agentic infrastructure that both the Orchestrator and Agentic Team utilize to empower their AI agents with specialized knowledge, reusable skills, powerful tools, and persistent context memory. This infrastructure is designed to be modular and extensible, allowing for easy addition of new agents, skills, tools, and context nodes as the system evolves.
 
 ```mermaid
 graph TB
@@ -171,14 +173,21 @@ graph TB
             APP[app.py — Flask aggregator]
             VIZ[templates/ — Interactive visualization]
         end
+
+        subgraph OBS_OUT["Obsidian Export"]
+            OBS_V["Obsidian Vault<br/>[[wikilinks]] + graph.json"]
+        end
     end
 
     ORCH_CTX --> DASH
     TEAM_CTX --> DASH
+    ORCH_CTX --> OBS_OUT
+    TEAM_CTX --> OBS_OUT
 
     style ORCH_CTX fill:#1a365d,color:#fff
     style TEAM_CTX fill:#1a365d,color:#fff
     style DASH fill:#2d3748,color:#fff
+    style OBS_OUT fill:#7C3AED,color:#fff
 ```
 
 **Node Types** — 10 types of knowledge stored in the graph:
@@ -262,6 +271,9 @@ graph TB
 
 > [!NOTE]
 > **Context Dashboard:** Launch with `python -m context_dashboard` (port 5003) to visualize both context graphs, inspect nodes/edges, and search across all stored knowledge. See [`context_dashboard/README.md`](context_dashboard/README.md) for details.
+
+> [!TIP]
+> **Obsidian Export:** Export any graph as an [Obsidian](https://obsidian.md) vault for offline interactive exploration. Graphify: `graphify export obsidian <path>`. Context systems: `ContextExporter.export_obsidian()`. Each vault includes `[[wikilinks]]`, typed folders, YAML frontmatter, and pre-configured `.obsidian/graph.json` color groups. See [GRAPHIFY.md](GRAPHIFY.md#obsidian-vault-export), [ORCHESTRATOR.md](ORCHESTRATOR.md#obsidian-vault-export), and [AGENTIC_TEAM.md](AGENTIC_TEAM.md#obsidian-vault-export).
 
 ### Skills Library & Agent Definitions
 
@@ -514,6 +526,20 @@ flowchart TD
     style ERR fill:#9b2c2c,stroke:#742a2a,color:#fff
 ```
 
+### Local model execution semantics and limitation
+
+Local models are deeply integrated for routing, offline mode, and fallback, but they are **not direct workspace editors** in the current implementation.
+
+| Path | How it runs | Direct file edits |
+|---|---|---|
+| Cloud CLI adapters (Codex/Claude/Gemini/Copilot) | CLI process + workspace execution path | Yes (tool-dependent) |
+| Local adapters (Ollama/llama.cpp/OpenAI-compatible) | HTTP prompt-completion (`/api/generate` or `/v1/completions`) | No (text output only) |
+
+Best use for local models: offline drafting, review feedback, and cloud-to-local fallback continuity.
+
+> [!CAUTION]
+> While it is possible to make local LLMs directly edit files (e.g., via a `file-editor` tool), this approach is currently disabled to prevent unintended destructive changes. Local adapters are advisory — they provide text output that the Orchestrator can use to inform the next steps, but they do not have direct write access to the workspace. This design choice prioritizes safety and predictability while still leveraging local models for their strengths in drafting and feedback. The hard part is not feasibility, it’s safety and reliability: permissions, diff constraints, validation/tests before write, rollback, and preventing bad edits.
+
 ### Technology Stack Overview
 
 ```mermaid
@@ -569,12 +595,12 @@ The two systems serve different collaboration models. Choose based on your use c
 |---|---|---|
 | **Collaboration model** | Step-based pipeline (sequential) | Free role-to-role communication (turns) |
 | **Agent identity** | Tool names (codex, gemini, claude) | Roles (PM, Architect, Developer, QA, DevOps) |
-| **Control flow** | Workflow YAML defines fixed step order | Team lead (PM) gates completion dynamically |
-| **When to use** | Repeatable pipelines: implement, review, refine | Open-ended tasks needing discussion and consensus |
+| **Control flow** | Dynamic metrics-based planner or workflow YAML step order | Team lead (PM) gates completion dynamically |
+| **When to use** | Dynamic planning, or repeatable pipelines: implement, review, refine | Open-ended tasks needing discussion and consensus |
 | **CLI entry point** | `ai-orchestrator shell` | `ai-orchestrator agentic-shell` |
 | **Web UI port** | `:5001` | `:5002` |
 | **Config file** | `orchestrator/config/agents.yaml` | `agentic_team/config/agents.yaml` |
-| **Built-in workflows** | 7 (default, quick, thorough, review-only, document, offline-default, hybrid) | N/A (turn-based, no fixed pipeline) |
+| **Built-in workflows** | Dynamic planner (metrics-based routing), plus 7 static (default, quick, thorough, review-only, document, offline-default, hybrid) | N/A (turn-based, no fixed pipeline) |
 | **Fallback strategy** | Per-step cloud-to-local routing | Independent fallback manager |
 | **Observability** | Prometheus metrics, structured logging, health probes, report generation | Health and readiness probes |
 | **Security module** | Input validation, rate limiting, audit logging | N/A (inherits from adapter layer) |
@@ -590,6 +616,7 @@ The two systems serve different collaboration models. Choose based on your use c
 | **Agents** | Claude, Codex, Gemini, Copilot (cloud); Ollama, llama.cpp (local) |
 | **CLI** | Interactive REPL shell, one-shot commands, context-aware follow-ups, readline support |
 | **Web UI** | Nuxt 3 + Vue 3 frontend, Flask + Socket.IO backend, Monaco code editor, Pinia state management |
+| **Local model behavior** | Local adapters are advisory (text output); direct file edits come from CLI-backed agents |
 | **Resilience** | Retry with exponential backoff, circuit breakers, cloud-to-local fallback, offline detection |
 | **Observability** | Prometheus metrics, structured logging via structlog, health and readiness probes |
 | **Reports** | Execution summaries, agent performance, workflow analytics, config audits, HTML dashboard with Chart.js charts |
@@ -604,6 +631,7 @@ The two systems serve different collaboration models. Choose based on your use c
 | **Roles** | Project Manager, Software Architect, Software Developer, QA Engineer, DevOps Engineer |
 | **CLI** | Dedicated REPL (`agentic-shell`) with `--max-turns` and `--offline` flags |
 | **Web UI** | Dedicated Nuxt 3 + Flask UI with Config Studio, real-time turn streaming, team communication view |
+| **Local model behavior** | Local adapters contribute role outputs and fallback text, but do not directly write files |
 | **Fallback** | Independent fallback manager and offline detector |
 | **Configuration** | Separate `agents.yaml` with `agentic_team.roles` section for role-to-agent mapping |
 
@@ -615,7 +643,7 @@ The two systems serve different collaboration models. Choose based on your use c
 | **Graph** | SQLite + FTS5, WAL mode, schema migrations (v1→v2→v3), thread-local connections, context manager |
 | **Search** | Full-text search, node explanation, path finding (BFS), community detection, god node analysis, complexity hotspots |
 | **Cache** | SHA-256 content-addressable cache, incremental scans (only changed files) |
-| **Export** | JSON, DOT (Graphviz), Markdown, GraphML, interactive HTML (vis.js) |
+| **Export** | JSON, DOT (Graphviz), Markdown, GraphML, interactive HTML (vis.js), **Obsidian vault** |
 | **API** | Flask REST API with CORS, structured error handling, metrics/snapshot/diff endpoints |
 | **Operations** | File watching (watchdog + polling), graph snapshots & diffing, scan metrics collection |
 | **Security** | Path traversal protection, input sanitization, bounded parameters, no debug mode |
@@ -1259,7 +1287,7 @@ Contributions are welcome. Please see [CONTRIBUTING.md](.github/CONTRIBUTING.md)
 
 ## Security
 
-For security issues, please email security@example.com. Do not open public issues for security vulnerabilities. See [SECURITY.md](SECURITY.md) for the full security policy.
+For security issues, please email hoangson091104@gmail.com. Do not open public issues for security vulnerabilities. See [SECURITY.md](SECURITY.md) for the full security policy.
 
 ## License
 

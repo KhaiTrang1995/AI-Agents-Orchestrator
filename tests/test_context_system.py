@@ -457,3 +457,242 @@ class TestEmbeddings:
 
         # Similar texts should have higher similarity
         assert sim_similar > sim_different
+
+
+# ---------------------------------------------------------------------------
+# Obsidian export tests
+# ---------------------------------------------------------------------------
+
+
+class TestObsidianExport:
+    """Tests for the Obsidian vault exporter on context graphs."""
+
+    @pytest.fixture
+    def populated_exporter(self, tmp_path):
+        """Create a ContextExporter with a populated graph store."""
+        import json as _json
+
+        from orchestrator.context.graph_store import GraphStore
+        from orchestrator.context.ops.export import ContextExporter
+        from orchestrator.context.schemas import (
+            ConversationNode,
+            DecisionNode,
+            EdgeType,
+            MistakeNode,
+            PatternNode,
+            TaskNode,
+        )
+
+        db_path = str(tmp_path / "test_ctx.db")
+        store = GraphStore(db_path)
+        now = datetime.now(timezone.utc)
+
+        task = TaskNode(
+            id="task-1",
+            content="Implement authentication module",
+            timestamp=now,
+            task_description="Build JWT auth",
+            outcome="completed",
+            success=True,
+            tags=["auth", "security"],
+        )
+        decision = DecisionNode(
+            id="dec-1",
+            content="Use SQLite for storage",
+            timestamp=now,
+            decision="SQLite",
+            rationale="Simple, embedded, no external deps",
+            alternatives=["PostgreSQL", "MongoDB"],
+        )
+        mistake = MistakeNode(
+            id="mis-1",
+            content="Used string formatting in SQL",
+            timestamp=now,
+            description="SQL injection risk",
+            correction="Parameterized queries",
+            prevention="Always use ? placeholders",
+        )
+        pattern = PatternNode(
+            id="pat-1",
+            content="Adapter pattern for tool integration",
+            timestamp=now,
+            pattern_name="Adapter",
+            language="python",
+            use_case="Wrapping external CLIs",
+        )
+        conv = ConversationNode(
+            id="conv-1",
+            content="Discussion about auth architecture",
+            timestamp=now,
+        )
+
+        for node in [task, decision, mistake, pattern, conv]:
+            store.add_node(node)
+
+        store.add_edge("task-1", "dec-1", EdgeType.RELATED_TO)
+        store.add_edge("dec-1", "mis-1", EdgeType.CAUSED_BY)
+        store.add_edge("pat-1", "task-1", EdgeType.USED_IN)
+
+        exporter = ContextExporter(store)
+        yield exporter, store
+
+    def test_export_obsidian_creates_vault(self, populated_exporter, tmp_path):
+        """Should create vault directory with notes."""
+        exporter, _ = populated_exporter
+        vault_dir = str(tmp_path / "vault")
+        result = exporter.export_obsidian(vault_dir)
+
+        from pathlib import Path
+
+        assert result["notes_written"] == 5
+        assert result["output_path"] == vault_dir
+        assert Path(vault_dir).is_dir()
+
+    def test_export_obsidian_index(self, populated_exporter, tmp_path):
+        """Should create _Index.md with stats and categories."""
+        exporter, _ = populated_exporter
+        vault_dir = str(tmp_path / "vault")
+        exporter.export_obsidian(vault_dir)
+
+        from pathlib import Path
+
+        index = Path(vault_dir) / "_Index.md"
+        assert index.is_file()
+        text = index.read_text(encoding="utf-8")
+        assert "Context Graph" in text
+        assert "Nodes" in text
+        assert "Edges" in text
+
+    def test_export_obsidian_graph_config(self, populated_exporter, tmp_path):
+        """Should create .obsidian/ config with graph colors."""
+        exporter, _ = populated_exporter
+        vault_dir = str(tmp_path / "vault")
+        exporter.export_obsidian(vault_dir)
+
+        import json as _json
+        from pathlib import Path
+
+        obs = Path(vault_dir) / ".obsidian"
+        assert obs.is_dir()
+
+        graph_json = _json.loads((obs / "graph.json").read_text(encoding="utf-8"))
+        assert "colorGroups" in graph_json
+        assert len(graph_json["colorGroups"]) > 0
+
+        plugins = _json.loads((obs / "core-plugins.json").read_text(encoding="utf-8"))
+        assert isinstance(plugins, list)
+        assert "graph" in plugins
+
+    def test_export_obsidian_frontmatter(self, populated_exporter, tmp_path):
+        """Notes should have YAML frontmatter with type and tags."""
+        exporter, _ = populated_exporter
+        vault_dir = str(tmp_path / "vault")
+        exporter.export_obsidian(vault_dir)
+
+        from pathlib import Path
+
+        md_files = [f for f in Path(vault_dir).rglob("*.md") if f.name != "_Index.md"]
+        assert len(md_files) == 5
+
+        for note in md_files:
+            text = note.read_text(encoding="utf-8")
+            assert text.startswith("---"), f"{note.name} missing frontmatter"
+            assert "type:" in text
+
+    def test_export_obsidian_wikilinks(self, populated_exporter, tmp_path):
+        """Notes with relationships should contain [[wikilinks]]."""
+        exporter, _ = populated_exporter
+        vault_dir = str(tmp_path / "vault")
+        exporter.export_obsidian(vault_dir)
+
+        from pathlib import Path
+
+        all_text = ""
+        for f in Path(vault_dir).rglob("*.md"):
+            all_text += f.read_text(encoding="utf-8")
+        assert "[[" in all_text and "]]" in all_text
+
+    def test_export_obsidian_node_type_filter(self, populated_exporter, tmp_path):
+        """Filtering by node_types should only export those types."""
+        exporter, _ = populated_exporter
+        vault_dir = str(tmp_path / "vault")
+        result = exporter.export_obsidian(vault_dir, node_types=["task"])
+
+        assert result["notes_written"] == 1
+
+    def test_export_obsidian_folder_layout(self, populated_exporter, tmp_path):
+        """Notes should be organized in typed folders."""
+        exporter, _ = populated_exporter
+        vault_dir = str(tmp_path / "vault")
+        exporter.export_obsidian(vault_dir)
+
+        from pathlib import Path
+
+        vault = Path(vault_dir)
+        dirs = {d.name for d in vault.iterdir() if d.is_dir() and not d.name.startswith(".")}
+        # We inserted task, decision, mistake, pattern, conversation
+        expected = {"Tasks", "Decisions", "Mistakes", "Patterns", "Conversations"}
+        assert expected.issubset(dirs), f"Missing folders: {expected - dirs}"
+
+
+class TestAgenticTeamObsidianExport:
+    """Tests for the Agentic Team Obsidian vault exporter."""
+
+    @pytest.fixture
+    def at_exporter(self, tmp_path):
+        """Create an Agentic Team ContextExporter with populated graph store."""
+        from agentic_team.context.graph_store import GraphStore
+        from agentic_team.context.ops.export import ContextExporter
+        from agentic_team.context.schemas import ConversationNode, DecisionNode, EdgeType, TaskNode
+
+        db_path = str(tmp_path / "at_ctx.db")
+        store = GraphStore(db_path)
+        now = datetime.now(timezone.utc)
+
+        task = TaskNode(
+            id="at-task-1",
+            content="Team coordination task",
+            timestamp=now,
+            task_description="Coordinate agents",
+            outcome="success",
+            success=True,
+        )
+        decision = DecisionNode(
+            id="at-dec-1",
+            content="Use round-robin scheduling",
+            timestamp=now,
+            decision="Round-robin",
+            rationale="Fair distribution",
+            alternatives=["Priority-based"],
+        )
+
+        store.add_node(task)
+        store.add_node(decision)
+        store.add_edge("at-task-1", "at-dec-1", EdgeType.RELATED_TO)
+
+        exporter = ContextExporter(store)
+        yield exporter, store
+
+    def test_at_export_obsidian_creates_vault(self, at_exporter, tmp_path):
+        """Should create vault with notes and config."""
+        exporter, _ = at_exporter
+        vault_dir = str(tmp_path / "vault")
+        result = exporter.export_obsidian(vault_dir)
+
+        from pathlib import Path
+
+        assert result["notes_written"] == 2
+        assert Path(vault_dir).is_dir()
+        assert (Path(vault_dir) / "_Index.md").is_file()
+        assert (Path(vault_dir) / ".obsidian" / "graph.json").is_file()
+
+    def test_at_export_obsidian_index_branding(self, at_exporter, tmp_path):
+        """Index should reference Agentic Team branding."""
+        exporter, _ = at_exporter
+        vault_dir = str(tmp_path / "vault")
+        exporter.export_obsidian(vault_dir)
+
+        from pathlib import Path
+
+        text = (Path(vault_dir) / "_Index.md").read_text(encoding="utf-8")
+        assert "Agentic Team" in text

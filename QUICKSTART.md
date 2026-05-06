@@ -1,6 +1,6 @@
 # ⚡ Quickstart
 
-Get up and running in under 2 minutes.
+Get up and running in under 2 minutes. Our two flagship systems, **Orchestrator** and **Agentic Team**, can be accessed via CLI shells, web UIs, or Docker. Both engines leverage your configured AI tools to execute tasks, build context graphs, and accelerate over time.
 
 ## Prerequisites
 

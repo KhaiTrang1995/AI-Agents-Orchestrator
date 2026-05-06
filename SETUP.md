@@ -7,6 +7,27 @@
 >
 > Each is self-contained with its own adapters, config, and UI. They share nothing.
 
+## Table of Contents
+- [Setup Flow](#setup-flow)
+- [Prerequisites](#prerequisites)
+- [Installation Flow](#installation-flow)
+- [Quick Start](#quick-start)
+- [Detailed Installation](#detailed-installation)
+- [AI CLI Tools Setup](#ai-cli-tools-setup)
+- [Configuration](#configuration)
+- [System Startup Options](#system-startup-options)
+- [Web UI Setup](#web-ui-setup)
+- [Standalone Agentic Team Setup](#standalone-agentic-team-setup)
+- [Context System Setup](#context-system-setup)
+- [Skills, Agents & Rules Setup](#skills-agents--rules-setup)
+- [MCP Server Setup](#mcp-server-setup)
+- [Docker Setup](#docker-setup)
+- [Troubleshooting](#troubleshooting)
+- [Verification](#verification)
+- [Additional Resources](#additional-resources)
+
+---
+
 ## Setup Flow
 
 ```mermaid
@@ -25,6 +46,8 @@ flowchart TD
     I -->|Docker| M[docker compose up]
 ```
 
+---
+
 ## Prerequisites
 
 ### System Requirements
@@ -39,7 +62,7 @@ flowchart TD
 - **OpenAI Codex**: Installed and authenticated (if using Codex agent, try running `codex` and see if it responds)
 - **Google Gemini CLI**: Installed and authenticated (if using Gemini agent, try `gemini --version` to verify)
 - **GitHub Copilot CLI**: Installed and authenticated (if using Copilot agent, try `copilot --version` to verify)
-- **Llama.cpp or Ollama**: If using local LLM agents, ensure they are installed and configured properly (try running `ollama list` or `llamacpp --help` to verify)
+- **Ollama or OpenAI-compatible local backend** (llama.cpp, LocalAI, text-generation-webui): If using local LLM agents, ensure the backend is running and reachable (try `ollama list` or `curl http://localhost:8080/v1/models`)
 - **Optional**: Docker and Docker Compose for containerized setup
 
 ### Required Tools
@@ -66,6 +89,8 @@ You need **at least one** of these AI CLI tools installed:
 - ✅ OpenAI Codex
 - ✅ Google Gemini CLI
 - ✅ GitHub Copilot CLI
+
+---
 
 ## Installation Flow
 
@@ -100,6 +125,8 @@ flowchart TD
     style M fill:#9b2c2c,stroke:#742a2a,color:#fff
 ```
 
+---
+
 ## Quick Start
 
 ### 5-Minute Setup
@@ -130,6 +157,8 @@ chmod +x ai-orchestrator
 # 8. (Optional) Start standalone Agentic Team UI
 ./start-agentic-ui.sh
 ```
+
+---
 
 ## Detailed Installation
 
@@ -240,6 +269,8 @@ RATE_LIMIT_PER_MINUTE=10
 # Show system info
 ./ai-orchestrator info
 ```
+
+---
 
 ## AI CLI Tools Setup
 
@@ -401,6 +432,57 @@ agents:
     timeout: 120
 ```
 
+### Local LLM Backends (Ollama + OpenAI-Compatible)
+
+Local adapters are first-class in workflows and role mappings. They can be used in orchestrator workflows, Agentic Team roles, offline mode, and cloud-to-local fallback.
+
+Supported local adapter `type` values:
+- `ollama`
+- `llamacpp`
+- `localai`
+- `text-generation-webui`
+
+**Backend Verification:**
+```bash
+# Ollama
+ollama serve
+ollama list
+
+# OpenAI-compatible backend (llama.cpp / LocalAI / text-generation-webui)
+curl http://localhost:8080/health
+curl http://localhost:8080/v1/models
+```
+
+**Configuration Example (`agents.yaml`):**
+```yaml
+agents:
+  local-code:
+    type: ollama
+    endpoint: http://localhost:11434
+    model: codellama:13b
+    offline: true
+    enabled: true
+
+  local-review:
+    type: llamacpp
+    endpoint: http://localhost:8080
+    offline: true
+    enabled: true
+```
+
+**Local Model Management (Orchestrator CLI):**
+```bash
+./ai-orchestrator models status
+./ai-orchestrator models list
+./ai-orchestrator models pull codellama:13b
+./ai-orchestrator models remove codellama:13b
+```
+
+> [!IMPORTANT]
+> Local adapters currently return text outputs and do not directly edit workspace files.
+> Use local models for offline drafting, review, and fallback continuity.
+> Use CLI-backed agents (`claude`, `codex`, `gemini`, `copilot`) when you need direct file edits.
+
 ### Verification Script
 
 Save this as `check-tools.sh`:
@@ -462,6 +544,8 @@ Run it:
 chmod +x check-tools.sh
 ./check-tools.sh
 ```
+
+---
 
 ## Configuration
 
@@ -598,6 +682,8 @@ export METRICS_PORT="9090"
 export RATE_LIMIT_PER_MINUTE="20"
 ```
 
+---
+
 ## System Startup Options
 
 After installation, you have multiple ways to interact with the two systems. The following diagram shows all entry points.
@@ -632,6 +718,8 @@ flowchart TD
     style DOCKER fill:#553c9a,stroke:#44337a,color:#fff
     style MCP fill:#9b2c2c,stroke:#742a2a,color:#fff
 ```
+
+---
 
 ## Web UI Setup
 
@@ -735,6 +823,8 @@ chmod +x start-ui.sh
 3. Starts frontend in foreground
 4. Serves orchestrator UI at `http://localhost:3000` and API at `http://localhost:5000`
 
+---
+
 ## Standalone Agentic Team Setup
 
 This mode is separate from orchestrator workflows. It has its own backend/UI runtime and communication graph.
@@ -779,6 +869,8 @@ python app.py
 - Agentic team role mappings are loaded from `orchestrator/config/agents.yaml` under `agentic_team.roles`.
 - Each role must map to an available agent name in `agents`.
 - The dedicated UI includes a guided config editor (no YAML editor required).
+
+---
 
 ## Context System Setup
 
@@ -954,6 +1046,8 @@ at_client = AgenticTeamMCPClient("http://localhost:8000/mcp")
 result = await at_client.execute_task("Design architecture")
 ```
 
+---
+
 ## Docker Setup
 
 The Docker Compose stack runs both systems as separate services with optional monitoring.
@@ -1041,6 +1135,8 @@ services:
       - ./my-custom-config:/app/config
 ```
 
+---
+
 ## Production Deployment
 
 ### Systemd Service (Linux)
@@ -1127,6 +1223,8 @@ settings:
   max_iterations: 5
   rate_limiting: true
 ```
+
+---
 
 ## Troubleshooting
 
@@ -1342,6 +1440,8 @@ curl http://localhost:5002/ready
 ./ai-orchestrator version
 ```
 
+---
+
 ## Verification
 
 The following diagram shows the verification sequence after setup.
@@ -1458,6 +1558,8 @@ You should see:
    ```
 
 9. **Explore Agentic Infrastructure** — read [AGENTIC_INFRA.md](AGENTIC_INFRA.md) for the full architecture overview of both orchestration engines.
+
+---
 
 ## Additional Resources
 

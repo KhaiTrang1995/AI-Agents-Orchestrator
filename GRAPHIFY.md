@@ -21,6 +21,7 @@ agents, CLIs, and REST APIs can query instantly.
 - [Analyzers](#analyzers)
 - [Search Engines](#search-engines)
 - [Export Formats](#export-formats)
+  - [Obsidian Vault Export](#obsidian-vault-export)
 - [Production Features](#production-features)
 - [Integration with Orchestrator & Agentic Team](#integration-with-orchestrator--agentic-team)
 - [Testing](#testing)
@@ -424,6 +425,103 @@ flowchart LR
 | DOT | `.dot` | Graphviz visualization |
 | GraphML | `.graphml` | Gephi, yEd graph editors |
 | Markdown | `.md` | Human-readable summaries |
+| **Obsidian** | **vault/** | Interactive graph exploration in [Obsidian](https://obsidian.md) |
+
+### Obsidian Vault Export
+
+Export your code graph as an [Obsidian](https://obsidian.md) vault for interactive exploration with the built-in graph view.
+
+```bash
+# Export via CLI
+graphify export obsidian /path/to/project --output ./my-vault
+
+# Then open ./my-vault in Obsidian → press Ctrl/Cmd + G for graph view
+```
+
+```mermaid
+flowchart LR
+    subgraph "Graphify → Obsidian"
+        STORE[(GraphStore<br/>SQLite + FTS5)] --> EXPORT["to_obsidian(pid)"]
+        EXPORT --> VAULT["Obsidian Vault"]
+    end
+
+    subgraph "Vault Contents"
+        VAULT --> CLS["Classes/<br/>🟢 #42A5F5"]
+        VAULT --> FNS["Functions/<br/>🔵 #66BB6A"]
+        VAULT --> FLS["Files/<br/>📄 #FFA726"]
+        VAULT --> TST["Tests/<br/>🧪 #EF5350"]
+        VAULT --> IMP["Imports/<br/>📥 #AB47BC"]
+        VAULT --> IDX["_Index.md"]
+        VAULT --> OBS[".obsidian/<br/>graph.json"]
+    end
+
+    style STORE fill:#2b6cb0,color:#fff
+    style VAULT fill:#7C3AED,color:#fff
+    style OBS fill:#4FC3F7,color:#000
+```
+
+**Vault structure:**
+
+```
+my-vault/
+├── _Index.md              # Map of Content — links to all categories
+├── Classes/               # One note per class
+│   └── GraphStore.md      #   → frontmatter + [[wikilinks]]
+├── Functions/
+├── Files/
+├── Tests/
+├── Imports/
+├── ...
+└── .obsidian/
+    ├── graph.json          # Color groups per node type
+    ├── appearance.json     # Dark theme
+    └── core-plugins.json   # Graph view enabled
+```
+
+**Note format example:**
+
+```markdown
+---
+type: "class"
+tags: ["class", "python"]
+language: "python"
+file: "graphify/core/graph.py"
+line_start: 45
+line_end: 280
+---
+
+# 🏛️ GraphStore
+
+SQLite-backed graph store with FTS5 search...
+
+## Relationships
+
+### → Contains
+- [[Functions/add_node|add_node]]
+- [[Functions/get_node|get_node]]
+
+### ← Contained By
+- [[Files/graph.py|graph.py]]
+```
+
+Each note contains YAML frontmatter (type, language, tags, line range) and `[[wikilinks]]` to related nodes grouped by relationship type (Contains, Calls, Imports, Inherits, etc.).
+
+The `.obsidian/graph.json` configures distinct colors for each node type — classes, functions, files, tests, imports — so the graph view renders a color-coded relationship web out of the box.
+
+**Node type color mapping:**
+
+| Node Type | Color | Emoji | Graph Query |
+|-----------|-------|-------|-------------|
+| Class | `#42A5F5` Blue | 🏛️ | `tag:#class` |
+| Function | `#66BB6A` Green | ⚡ | `tag:#function` |
+| File | `#FFA726` Orange | 📄 | `tag:#file` |
+| Module | `#AB47BC` Purple | 📦 | `tag:#module` |
+| Import | `#78909C` Grey | 📥 | `tag:#import` |
+| Test | `#EF5350` Red | 🧪 | `tag:#test` |
+| Pattern | `#FFCA28` Amber | 🔁 | `tag:#pattern` |
+| Documentation | `#26C6DA` Cyan | 📚 | `tag:#documentation` |
+
+> **Tip:** The Obsidian export is also available on the **orchestrator** and **agentic team** context graphs via `ContextExporter.export_obsidian()`, visualizing tasks, decisions, patterns, mistakes, and conversations. See [ORCHESTRATOR.md](ORCHESTRATOR.md#obsidian-vault-export) and [AGENTIC_TEAM.md](AGENTIC_TEAM.md#obsidian-vault-export) for details.
 
 ---
 

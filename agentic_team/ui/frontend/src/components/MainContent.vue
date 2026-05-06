@@ -85,14 +85,52 @@
             <div class="p-4 overflow-x-auto text-sm text-slate-300 leading-relaxed bg-slate-900 max-h-[60vh] overflow-y-auto prose prose-invert prose-sm max-w-none prose-pre:bg-slate-950 prose-pre:border prose-pre:border-cyan-500/20 prose-code:text-teal-400 prose-a:text-cyan-400 prose-headings:text-slate-200" v-html="renderedOutput"></div>
           </div>
         </div>
-        <div v-else-if="!store.isRunning" class="flex flex-col items-center justify-center py-16 text-center">
-          <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500/10 to-teal-500/10 border border-cyan-500/20 flex items-center justify-center mb-4">
-            <svg class="w-8 h-8 text-cyan-500/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-            </svg>
+        <!-- Empty state: live log stream or idle prompt -->
+        <div v-else-if="!store.isRunning" class="mt-2">
+          <div v-if="store.hasLogs" class="rounded-xl border border-slate-700/60 bg-slate-900 overflow-hidden">
+            <!-- header -->
+            <div class="flex items-center justify-between px-4 py-2 bg-slate-800/80 border-b border-slate-700/60">
+              <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
+                <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+                Recent Activity
+              </span>
+              <button @click="store.clearLogs()" class="text-[10px] text-slate-600 hover:text-red-400 transition-colors">Clear</button>
+            </div>
+            <!-- scrollable log stream -->
+            <div ref="liveLogEl" class="bg-black p-3 max-h-72 overflow-y-auto font-mono text-xs leading-5 space-y-0.5">
+              <div
+                v-for="log in store.logs"
+                :key="log.id"
+                class="flex gap-2 group"
+              >
+                <span class="text-slate-700 flex-shrink-0 select-none" style="min-width:5rem;">{{ log.time }}</span>
+                <span :class="{
+                  'text-cyan-500': log.level === 'info',
+                  'text-emerald-400': log.level === 'success',
+                  'text-amber-400': log.level === 'warn' || log.level === 'warning',
+                  'text-red-400': log.level === 'error',
+                  'text-slate-600': !['info','success','warn','warning','error'].includes(log.level)
+                }" class="flex-shrink-0 select-none" style="min-width:1rem;">›</span>
+                <span :class="{
+                  'text-slate-300': log.level === 'info',
+                  'text-emerald-300': log.level === 'success',
+                  'text-amber-300': log.level === 'warn' || log.level === 'warning',
+                  'text-red-300': log.level === 'error',
+                  'text-slate-500': !['info','success','warn','warning','error'].includes(log.level)
+                }" class="break-all whitespace-pre-wrap flex-1">{{ log.message }}</span>
+              </div>
+            </div>
           </div>
-          <p class="text-sm text-slate-400 font-medium">Ready to collaborate</p>
-          <p class="text-xs text-slate-600 mt-1">Assign a task to see your AI team in action</p>
+          <!-- idle hint when no logs yet -->
+          <div v-else class="flex flex-col items-center justify-center py-12 text-center">
+            <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-cyan-500/10 to-teal-500/10 border border-cyan-500/20 flex items-center justify-center mb-4">
+              <svg class="w-8 h-8 text-cyan-500/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+              </svg>
+            </div>
+            <p class="text-sm text-slate-400 font-medium">Ready to collaborate</p>
+            <p class="text-xs text-slate-600 mt-1">Assign a task to see your AI team in action</p>
+          </div>
         </div>
       </div>
 
@@ -164,17 +202,66 @@
               </span>
               <span v-else class="text-xs text-slate-600 italic">Select a file from the explorer</span>
             </div>
-            <button
-              v-if="store.currentFile"
-              @click="downloadFile"
-              class="px-2.5 py-1 text-xs bg-cyan-600/20 hover:bg-cyan-600/30 border border-cyan-500/30 hover:border-cyan-500/50 text-cyan-400 hover:text-cyan-300 rounded transition-all flex-shrink-0"
-            >
-              Download
-            </button>
+            <div class="flex items-center gap-2 flex-shrink-0">
+              <!-- MD preview toggle -->
+              <div
+                v-if="isMarkdownFile"
+                class="flex items-center rounded overflow-hidden border border-cyan-500/30 text-[10px] font-mono"
+              >
+                <button
+                  @click="editorMode = 'code'"
+                  :class="editorMode === 'code' ? 'bg-cyan-600/30 text-cyan-300' : 'text-slate-500 hover:text-slate-300'"
+                  class="px-2.5 py-1 transition-colors"
+                >Code</button>
+                <button
+                  @click="editorMode = 'preview'"
+                  :class="editorMode === 'preview' ? 'bg-cyan-600/30 text-cyan-300' : 'text-slate-500 hover:text-slate-300'"
+                  class="px-2.5 py-1 transition-colors border-l border-cyan-500/30"
+                >Preview</button>
+                <button
+                  @click="editorMode = 'split'"
+                  :class="editorMode === 'split' ? 'bg-cyan-600/30 text-cyan-300' : 'text-slate-500 hover:text-slate-300'"
+                  class="px-2.5 py-1 transition-colors border-l border-cyan-500/30"
+                >Split</button>
+              </div>
+              <button
+                v-if="store.currentFile"
+                @click="downloadFile"
+                class="px-2.5 py-1 text-xs bg-cyan-600/20 hover:bg-cyan-600/30 border border-cyan-500/30 hover:border-cyan-500/50 text-cyan-400 hover:text-cyan-300 rounded transition-all"
+              >
+                Download
+              </button>
+            </div>
           </div>
-          <!-- Monaco -->
-          <div class="flex-1">
-            <MonacoEditor />
+          <!-- Editor / Preview body -->
+          <div class="flex-1 flex overflow-hidden">
+            <!-- Monaco (hidden in pure preview mode) -->
+            <div
+              :class="editorMode === 'preview' ? 'hidden' : editorMode === 'split' ? 'w-1/2 border-r border-cyan-500/20' : 'flex-1'"
+              class="h-full"
+            >
+              <MonacoEditor />
+            </div>
+            <!-- Markdown Preview -->
+            <div
+              v-if="isMarkdownFile && editorMode !== 'code'"
+              :class="editorMode === 'split' ? 'w-1/2' : 'flex-1'"
+              class="h-full overflow-y-auto bg-slate-900 p-6"
+            >
+              <div
+                v-if="renderedMarkdown"
+                class="prose prose-invert prose-sm max-w-none
+                  prose-headings:text-cyan-300 prose-headings:border-b prose-headings:border-cyan-500/20 prose-headings:pb-1
+                  prose-a:text-cyan-400 prose-code:text-teal-300
+                  prose-pre:bg-slate-950 prose-pre:border prose-pre:border-cyan-500/20
+                  prose-blockquote:border-cyan-500/40 prose-blockquote:text-slate-400
+                  prose-strong:text-slate-200 prose-hr:border-cyan-500/20"
+                v-html="renderedMarkdown"
+              ></div>
+              <div v-else class="flex items-center justify-center h-full">
+                <p class="text-xs text-slate-600 italic">No content to preview</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -321,6 +408,30 @@ const tabs = [
 ]
 
 const selectedFilePath = ref('')
+const editorMode = ref('code') // 'code' | 'preview' | 'split'
+
+const isMarkdownFile = computed(() => {
+  const name = store.currentFile?.filename || ''
+  return name.toLowerCase().endsWith('.md')
+})
+
+const renderedMarkdown = computed(() => {
+  if (!isMarkdownFile.value) return ''
+  const content = store.fileContent || ''
+  if (!content) return ''
+  try {
+    return marked.parse(content, { breaks: true, gfm: true })
+  } catch {
+    return content
+  }
+})
+
+// Reset to code mode when switching to a non-md file
+watch(() => store.currentFile, (file) => {
+  if (file && !file.filename?.toLowerCase().endsWith('.md')) {
+    editorMode.value = 'code'
+  }
+})
 
 const fileTree = computed(() => {
   const files = (store.files || []).filter(f =>
@@ -379,7 +490,12 @@ const selectFile = (path) => {
 }
 
 watch(() => store.currentFile, (file) => {
-  if (file) activeTab.value = 'editor'
+  if (file) {
+    activeTab.value = 'editor'
+    if (!file.filename?.toLowerCase().endsWith('.md')) {
+      editorMode.value = 'code'
+    }
+  }
 })
 
 const downloadFile = () => {
@@ -395,4 +511,13 @@ const copyOutput = async () => {
     } catch {}
   }
 }
+
+// Live log stream auto-scroll
+const liveLogEl = ref(null)
+watch(() => store.logs.length, async () => {
+  await nextTick()
+  if (liveLogEl.value) {
+    liveLogEl.value.scrollTop = liveLogEl.value.scrollHeight
+  }
+})
 </script>

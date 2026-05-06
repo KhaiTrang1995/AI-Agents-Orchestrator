@@ -13,6 +13,7 @@
 - [Configuration Model](#configuration-model)
 - [UI: Agentic Team Studio](#ui-agentic-team-studio)
 - [CLI: Agentic Team REPL](#cli-agentic-team-repl)
+- [Local Model Integration and Limits](#local-model-integration-and-limits)
 - [Validation and Failure Handling](#validation-and-failure-handling)
 - [Observability](#observability)
 - [Security and Safety](#security-and-safety)
@@ -21,6 +22,7 @@
 - [Package Structure](#package-structure)
 - [MCP Integration (Optional)](#mcp-integration-optional)
 - [Context System](#context-system)
+  - [Obsidian Vault Export](#obsidian-vault-export)
 
 ## Overview
 
@@ -474,6 +476,29 @@ flowchart TD
     Q -->|No| X[Exit]
 ```
 
+## Local Model Integration and Limits
+
+Agentic Team can map any role to local adapters (`ollama`, `llamacpp`, `localai`, `openai-compatible`) and those roles fully participate in turn routing, offline mode, and fallback.
+
+Implementation behavior:
+
+| Adapter type | Runtime transport | Direct file writes |
+|---|---|---|
+| CLI-backed agents | Local CLI execution path | Yes (tool-dependent) |
+| Local model adapters | HTTP completion endpoints | No (text output only) |
+
+Practical impact:
+- A role mapped to a local model can still act as architect/developer/QA in team conversation, but it returns guidance/drafts as text.
+- Local-model turns do not directly modify repository files by themselves.
+
+Best use:
+- offline role communication,
+- generating implementation drafts for another agent to apply,
+- review/critique and fallback continuity.
+
+> [!IMPORTANT]
+> While it is possible to make local LLMs directly edit files (e.g., via a `file-editor` tool), this approach is currently disabled to prevent unintended destructive changes. Local adapters are advisory — they provide text output that the Orchestrator can use to inform the next steps, but they do not have direct write access to the workspace. This design choice prioritizes safety and predictability while still leveraging local models for their strengths in drafting and feedback. The hard part is not feasibility, it’s safety and reliability: permissions, diff constraints, validation/tests before write, rollback, and preventing bad edits.
+
 ## Validation and Failure Handling
 
 Pre-run checks:
@@ -776,3 +801,53 @@ The Agentic Team context system (`agentic_team/context/`) is a fully independent
 - Own `store/graph_store.py` — independent SQLite graph store
 - Own `ops/project_scanner.py` — independent copy of the project scanner
 - **Zero imports from `orchestrator/`** — verified by CI
+
+### Obsidian Vault Export
+
+Export the Agentic Team's communication and context graph as an [Obsidian](https://obsidian.md) vault. Each node becomes a markdown note with YAML frontmatter, typed folder organization, and `[[wikilinks]]` connecting related nodes.
+
+```python
+from agentic_team.context.ops.export import ContextExporter
+from agentic_team.context.graph_store import GraphStore
+
+store = GraphStore("~/.agentic-team/context.db")
+exporter = ContextExporter(store)
+
+# Export full context graph
+result = exporter.export_obsidian("./team-vault")
+# → { notes_written: 89, edges_linked: 214, folders: [...] }
+
+# Export only tasks and decisions
+result = exporter.export_obsidian("./vault", node_types=["task", "decision"])
+```
+
+Open the generated vault in Obsidian and press **Ctrl/Cmd + G** to explore team interactions, role handoffs, and decisions as a visual graph.
+
+```mermaid
+graph LR
+    subgraph "Agentic Team Context → Obsidian"
+        DB[(context.db)] --> EXP[ContextExporter]
+        EXP --> VAULT[Obsidian Vault]
+        VAULT --> IDX[_Index.md<br/>Map of Content]
+        VAULT --> TASKS[Tasks/]
+        VAULT --> DECS[Decisions/]
+        VAULT --> PATS[Patterns/]
+        VAULT --> MIST[Mistakes/]
+        VAULT --> AGENTS[Agent Outputs/]
+        VAULT --> OBS[.obsidian/<br/>graph.json]
+    end
+
+    style VAULT fill:#7C3AED,color:#fff
+    style OBS fill:#4FC3F7,color:#000
+    style IDX fill:#FFC107,color:#000
+```
+
+**Vault features:**
+- **Typed folders** — Tasks/, Decisions/, Patterns/, Mistakes/, Conversations/, Agent Outputs/, etc.
+- **YAML frontmatter** — type, tags, importance score, timestamps, project_id, metadata
+- **`[[Wikilinks]]`** — Relationships grouped by edge type with → outgoing and ← incoming sections
+- **`_Index.md`** — Map of Content with stats table and links to every category
+- **`.obsidian/graph.json`** — Color groups per node type for the built-in graph view
+- **Dark theme** — `.obsidian/appearance.json` pre-configured with Obsidian dark mode
+
+> **Note:** This is a fully independent implementation from the orchestrator's Obsidian exporter — zero shared imports, consistent with the Agentic Team's independence guarantee.

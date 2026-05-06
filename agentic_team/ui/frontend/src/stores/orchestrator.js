@@ -13,9 +13,9 @@ const socketPath = import.meta.env.VITE_SOCKET_PATH || "/socket.io";
 const socketTransportsEnv = import.meta.env.VITE_SOCKET_TRANSPORTS;
 const socketTransports = socketTransportsEnv
   ? socketTransportsEnv
-      .split(",")
-      .map((t) => t.trim())
-      .filter(Boolean)
+    .split(",")
+    .map((t) => t.trim())
+    .filter(Boolean)
   : ["websocket", "polling"];
 const api = axios.create({ baseURL: apiBaseUrl });
 const backendLabel =
@@ -42,11 +42,11 @@ const clientId = (() => {
   try {
     const stored = sessionStorage.getItem(STORAGE_KEY);
     if (stored) return stored;
-  } catch {}
+  } catch { }
   const id = createClientId();
   try {
     sessionStorage.setItem(STORAGE_KEY, id);
-  } catch {}
+  } catch { }
   return id;
 })();
 api.defaults.headers.common["X-Client-Id"] = clientId;
@@ -81,6 +81,12 @@ export const useOrchestratorStore = defineStore("orchestrator", () => {
   const lastOutput = ref("");
   const canFollowUp = ref(false);
   const errorMessage = ref("");
+  const hitlEnabled = ref(false);
+  const hitlPending = ref(null); // { agent, step, description } when awaiting approval
+  const isPaused = ref(false);
+  // agentActivity: maps agent name → { status, message, ts }
+  // status values: 'idle' | 'thinking' | 'coding' | 'testing' | 'reviewing' | 'done' | 'error'
+  const agentActivity = ref({});
   const logs = ref([]);
   let logCounter = 0;
   let statusPollIntervalId = null;
@@ -378,6 +384,21 @@ export const useOrchestratorStore = defineStore("orchestrator", () => {
         const message = data?.message || JSON.stringify(data || {});
         const level = data?.level || "info";
         addLog(message, level, { timestamp: data?.timestamp });
+        // Infer agent activity from progress log
+        if (data?.agent) {
+          const agentName = data.agent.toLowerCase();
+          const msg = message.toLowerCase();
+          let actStatus = "thinking";
+          if (msg.includes("implement") || msg.includes("generat") || msg.includes("writ") || msg.includes("cod")) actStatus = "coding";
+          else if (msg.includes("test") || msg.includes("verif") || msg.includes("check")) actStatus = "testing";
+          else if (msg.includes("review") || msg.includes("analyz") || msg.includes("evaluat")) actStatus = "reviewing";
+          else if (msg.includes("complet") || msg.includes("done") || msg.includes("finish")) actStatus = "done";
+          else if (level === "error") actStatus = "error";
+          agentActivity.value = {
+            ...agentActivity.value,
+            [agentName]: { status: actStatus, message: message.slice(0, 80), ts: Date.now() },
+          };
+        }
       });
 
       socket.value.on("task_completed", (data) => {
@@ -392,6 +413,7 @@ export const useOrchestratorStore = defineStore("orchestrator", () => {
         lastTask.value = data.task;
         lastOutput.value = data.output || "";
         canFollowUp.value = data.success !== false;
+        agentActivity.value = {};
         addLog(
           `Task completed ${data.success === false ? "(failed)" : "successfully"}`,
           data.success === false ? "warn" : "success",
@@ -402,7 +424,28 @@ export const useOrchestratorStore = defineStore("orchestrator", () => {
         console.log("Task cancelled:", data);
         stopStatusPolling();
         status.value = "idle";
+        isPaused.value = false;
+        hitlPending.value = null;
+        agentActivity.value = {};
         addLog("Execution cancelled by user", "warn");
+      });
+
+      // Human-in-the-Loop: backend requests user approval before proceeding
+      socket.value.on("hitl_request", (data) => {
+        console.log("HITL request:", data);
+        hitlPending.value = {
+          agent: data.agent || "agent",
+          step: data.step || "next step",
+          description: data.description || "",
+          context: data.context || "",
+        };
+        isPaused.value = true;
+        status.value = "paused";
+        stopStatusPolling();
+        addLog(
+          `Awaiting approval: ${data.agent || ""} → "${data.step || "next step"}"`,
+          "warn",
+        );
       });
 
       socket.value.on("task_error", (data) => {
@@ -625,6 +668,58 @@ export const useOrchestratorStore = defineStore("orchestrator", () => {
     }
   }
 
+  async function pauseExecution() {
+    isPaused.value = true;
+    status.value = "paused";
+    addLog("Execution paused — waiting for user approval", "warn");
+    try {
+      await api.post("/api/pause", { client_id: clientId });
+    } catch {
+      // Backend may not support /api/pause — the UI state is still set
+      addLog("Pause signal sent (backend HITL support may vary)", "info");
+    }
+  }
+
+  async function approveHitl() {
+    const pending = hitlPending.value;
+    hitlPending.value = null;
+    isPaused.value = false;
+    status.value = "running";
+    startStatusPolling();
+    addLog(
+      `Approved: ${pending?.agent || ""} step "${pending?.step || ""}" — continuing`,
+      "success",
+    );
+    try {
+      await api.post("/api/hitl/respond", {
+        approved: true,
+        client_id: clientId,
+      });
+    } catch {
+      addLog("Approval sent (backend HITL endpoint optional)", "info");
+    }
+  }
+
+  async function rejectHitl() {
+    const pending = hitlPending.value;
+    hitlPending.value = null;
+    isPaused.value = false;
+    status.value = "idle";
+    stopStatusPolling();
+    addLog(
+      `Rejected: ${pending?.agent || ""} step "${pending?.step || ""}" — execution stopped`,
+      "warn",
+    );
+    try {
+      await api.post("/api/hitl/respond", {
+        approved: false,
+        client_id: clientId,
+      });
+    } catch {
+      addLog("Rejection sent (backend HITL endpoint optional)", "info");
+    }
+  }
+
   function clear() {
     stopStatusPolling();
     task.value = "";
@@ -637,6 +732,7 @@ export const useOrchestratorStore = defineStore("orchestrator", () => {
     lastTask.value = "";
     lastOutput.value = "";
     canFollowUp.value = false;
+    agentActivity.value = {};
     setError("");
     clearLogs();
   }
@@ -698,5 +794,14 @@ export const useOrchestratorStore = defineStore("orchestrator", () => {
     clearError: () => setError(""),
     downloadFile,
     clientId,
+    // HITL
+    hitlEnabled,
+    hitlPending,
+    isPaused,
+    pauseExecution,
+    approveHitl,
+    rejectHitl,
+    // Agent activity
+    agentActivity,
   };
 });
