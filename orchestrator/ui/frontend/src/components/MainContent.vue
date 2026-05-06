@@ -275,6 +275,65 @@
         </div>
       </div>
 
+      <!-- Terminal Tab -->
+      <div v-show="activeTab === 'terminal'" class="h-full flex flex-col" style="min-height: 500px;">
+        <!-- Terminal toolbar -->
+        <div class="flex items-center justify-between px-4 py-2 bg-black border-b border-slate-700/60 flex-shrink-0">
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-3 rounded-full bg-red-500/80"></span>
+            <span class="w-3 h-3 rounded-full bg-amber-500/80"></span>
+            <span class="w-3 h-3 rounded-full bg-emerald-500/80"></span>
+            <span class="ml-3 text-xs text-slate-500 font-mono">orchestrator — terminal</span>
+            <span v-if="store.isRunning" class="ml-2 flex items-center gap-1 text-emerald-400 text-[10px] font-mono">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              running
+            </span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button
+              @click="terminalFilter = terminalFilter === 'all' ? 'error' : 'all'"
+              :class="terminalFilter === 'error' ? 'text-red-400 border-red-500/40' : 'text-slate-500 border-slate-700'"
+              class="px-2 py-0.5 text-[10px] font-mono border rounded transition-all hover:text-red-400 hover:border-red-500/40"
+            >errors only</button>
+            <button
+              @click="clearTerminal"
+              class="px-2 py-0.5 text-[10px] font-mono text-slate-500 hover:text-red-400 border border-slate-700 hover:border-red-500/40 rounded transition-all"
+            >clear</button>
+            <button
+              @click="terminalAutoScroll = !terminalAutoScroll"
+              :class="terminalAutoScroll ? 'text-emerald-400 border-emerald-500/40' : 'text-slate-500 border-slate-700'"
+              class="px-2 py-0.5 text-[10px] font-mono border rounded transition-all"
+            >auto-scroll</button>
+          </div>
+        </div>
+        <!-- Terminal body -->
+        <div
+          ref="terminalEl"
+          class="flex-1 bg-black overflow-y-auto font-mono text-xs leading-5 p-4 select-text"
+          style="font-family: 'Cascadia Code', 'Fira Code', 'JetBrains Mono', 'Consolas', monospace;"
+        >
+          <div v-if="terminalLines.length === 0" class="text-slate-600">
+            <span class="text-emerald-500">$</span> Waiting for execution output...<span class="animate-pulse">▋</span>
+          </div>
+          <div
+            v-for="line in terminalLines"
+            :key="line.id"
+            class="flex gap-2 mb-0.5 group"
+          >
+            <span class="text-slate-600 select-none flex-shrink-0" style="min-width:5rem;">{{ line.time }}</span>
+            <span
+              :class="terminalLevelClass(line.level)"
+              class="flex-shrink-0 select-none"
+              style="min-width:1.2rem;"
+            >{{ terminalPrompt(line.level) }}</span>
+            <span :class="terminalTextClass(line.level)" class="break-all whitespace-pre-wrap">{{ line.message }}</span>
+          </div>
+          <div v-if="store.isRunning" class="text-emerald-400 mt-1">
+            <span class="animate-pulse">▋</span>
+          </div>
+        </div>
+      </div>
+
       <!-- Config Editor Tab -->
       <div v-show="activeTab === 'config'" class="p-4">
         <GuidedConfigEditor />
@@ -285,7 +344,7 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive, watch } from 'vue'
+import { ref, computed, reactive, watch, nextTick } from 'vue'
 import { marked } from 'marked'
 import { useOrchestratorStore } from '../stores/orchestrator'
 import MonacoEditor from './MonacoEditor.vue'
@@ -309,6 +368,7 @@ const tabs = [
   { id: 'editor', label: 'Code Editor', icon: '{}' },
   { id: 'iterations', label: 'Iterations', icon: '↻' },
   { id: 'logs', label: 'Logs', icon: '≡' },
+  { id: 'terminal', label: 'Terminal', icon: '>_' },
   { id: 'config', label: 'Config', icon: '⚙' }
 ]
 
@@ -387,4 +447,69 @@ const copyOutput = async () => {
     } catch {}
   }
 }
+
+// Terminal tab state
+const terminalEl = ref(null)
+const terminalAutoScroll = ref(true)
+const terminalFilter = ref('all')
+const terminalCleared = ref(0) // bump to clear
+
+const terminalLines = computed(() => {
+  // reference terminalCleared so recompute triggers after clear
+  void terminalCleared.value
+  const lines = store.logs
+  if (terminalFilter.value === 'error') {
+    return lines.filter(l => l.level === 'error')
+  }
+  return lines
+})
+
+const clearTerminal = () => {
+  store.clearLogs()
+  terminalCleared.value++
+}
+
+const terminalPrompt = (level) => {
+  const map = { error: '✖', warn: '!', warning: '!', success: '✔', info: '›' }
+  return map[level] || '›'
+}
+
+const terminalLevelClass = (level) => {
+  const map = {
+    error: 'text-red-500',
+    warn: 'text-amber-400',
+    warning: 'text-amber-400',
+    success: 'text-emerald-400',
+    info: 'text-slate-500',
+  }
+  return map[level] || 'text-slate-600'
+}
+
+const terminalTextClass = (level) => {
+  const map = {
+    error: 'text-red-300',
+    warn: 'text-amber-300',
+    warning: 'text-amber-300',
+    success: 'text-emerald-300',
+    info: 'text-slate-300',
+  }
+  return map[level] || 'text-slate-400'
+}
+
+// Auto-scroll terminal to bottom when new logs arrive
+watch(() => store.logs.length, async () => {
+  if (!terminalAutoScroll.value) return
+  await nextTick()
+  if (terminalEl.value) {
+    terminalEl.value.scrollTop = terminalEl.value.scrollHeight
+  }
+})
+
+// Switch to terminal tab on run start
+watch(() => store.isRunning, (running) => {
+  if (running && activeTab.value !== 'terminal') {
+    // only auto-switch if user is on output tab
+    if (activeTab.value === 'output') activeTab.value = 'terminal'
+  }
+})
 </script>

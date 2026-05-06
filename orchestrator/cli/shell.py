@@ -7,7 +7,13 @@ similar to Claude Code and Codex CLIs.
 
 import json
 import os
-import readline
+try:
+    import readline
+except ImportError:
+    try:
+        import pyreadline3 as readline  # type: ignore
+    except ImportError:
+        readline = None  # type: ignore
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
